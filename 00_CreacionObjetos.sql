@@ -4,29 +4,29 @@ go
 -- Creacion de la base de datos
 if exists (
 	select name from master.dbo.sysdatabases
-	where name = 'sol_norte_grupo3'
+	where name = 'COM5600G03'
 )
-	Begin
+	begin
 		print 'La base de datos ya existe'
 	end
 else
 	begin
-		Create database sol_norte_grupo3
+		Create database COM5600G03
 	end
 go
 
-Use sol_norte_grupo3
+Use COM5600G03
 go
 
 if exists(
 	select name from sys.schemas
 	where name = 'socios'
 )
-	Begin
+	begin
 		print 'El esquema de los socios ya existe'
 	end
-Else
-	Begin
+else
+	begin
 		exec('Create schema socios')
 	end
 go
@@ -35,11 +35,11 @@ if exists(
 	select name from sys.schemas
 	where name = 'actividades'
 )
-	Begin
+	begin
 		print 'El esquema de actividades ya existe'
 	end
-Else
-	Begin
+else
+	begin
 		exec('Create schema actividades')
 	end
 go
@@ -48,11 +48,11 @@ if exists(
 	select name from sys.schemas
 	where name = 'facturacion'
 )
-	Begin
-		print 'El esquema de actividades ya existe'
+	begin
+		print 'El esquema de facturacion ya existe'
 	end
-Else
-	Begin
+else
+	begin
 		exec('Create schema facturacion')
 	end
 go
@@ -62,7 +62,7 @@ Begin
 	Create table socios.rol(
 		id_rol int,
 		nombre varchar(40)	UNIQUE,
-		descripcion varchar(200)	UNIQUE,
+		descripcion varchar(200),
 		Constraint Socios_rol_PK_id_rol Primary key(id_rol)
 	)
 End
@@ -77,7 +77,7 @@ Begin
 	Create table facturacion.medio_de_pago(
 		id_medio_de_pago int identity(1,1),
 		nombre_medio_pago varchar(40),
-		permite_debito_automatico bit
+		permite_debito_automatico bit --posible check para entender mejor
 		Constraint Facturacion_medio_de_pago_PK_id_medio_de_pago Primary key(id_medio_de_pago)
 	)
 End
@@ -107,7 +107,7 @@ go
 IF OBJECT_ID('socios.obra_social', 'U') IS NULL
 Begin
 	Create table socios.obra_social(
-		id_obra_social int,
+		id_obra_social int identity(1,1),
 		nombre_obra_social varchar(60) UNIQUE,
 		telefono_obra_social int
 		Constraint Socios_obra_social_PK_id_obra_social Primary key(id_obra_social)
@@ -122,11 +122,11 @@ go
 IF OBJECT_ID('socios.categoria', 'U') IS NULL
 Begin
 	Create table socios.categoria(
-		id_categoria int,
+		id_categoria int identity(1,1),
 		nombreCategoria varchar(16) UNIQUE,
 		edad_minima int,
 		edad_maxima int,
-		costo_membresía float
+		costo_membresía decimal(9,3)
 		Constraint Socios_categoria_PK_id_categoria Primary key(id_categoria)
 	)
 End
@@ -141,13 +141,13 @@ Begin
 	Create table socios.socio(
 		id_socio int identity(1,1),
 		DNI int	UNIQUE,
-		nombre varchar,
-		apellido varchar,
-		email varchar,
+		nombre varchar(40),
+		apellido varchar(40),
+		email varchar(150),
 		fecha_nacimiento date,
 		telefono_contacto int,
 		telefono_emergencia int,
-		habilitado bit,
+		habilitado bit,--posible check para entender mejor
 		id_obra_social int,
 		id_categoria int,
 		id_usuario int,
@@ -168,7 +168,7 @@ go
 IF OBJECT_ID('socios.responsable_menor', 'U') IS NULL
 Begin
 	Create table socios.responsable_menor(
-		id_socio_menor int,
+		id_socio_menor int identity(1,1),--podemos tener 2 socios con el mismo id, pero uno es menor y el otro es mayor (?)
 		id_socio_responsable int,
 		nombre varchar(40),
 		apellido varchar(40),
@@ -176,7 +176,7 @@ Begin
 		email varchar(50),
 		fecha_nacimiento date,
 		telefono int,
-		parentesco varchar(10),
+		parentesco varchar(30),
 		Constraint Socios_responsable_menor_PK_id_socio_menor
 				Primary key(id_socio_menor),
 		Constraint Socios_responsable_menor_FK_id_socio_menor
@@ -196,7 +196,7 @@ Begin
 	Create table actividades.actividad(
 		id_actividad int identity(1,1),
 		nombreActividad varchar(36) UNIQUE,
-		costo_mensual float
+		costo_mensual decimal(9,3)
 		Constraint Actividades_actividad_PK_id_actividad Primary key(id_actividad)
 	)
 End
@@ -211,7 +211,7 @@ Begin
 	Create table actividades.actividad_extra(
 		id_actividad int identity(1,1),
 		nombreActividad varchar(36) UNIQUE,
-		costo float
+		costo decimal(9,3)
 		Constraint Actividades_actividad_extra_PK_id_actividad Primary key(id_actividad)
 	)
 End
@@ -225,7 +225,7 @@ IF OBJECT_ID('actividades.horario_actividades', 'U') IS NULL
 Begin
 	Create table actividades.horario_actividades(
 		id_horario int identity(1,1),
-		dia_semana varchar(8),
+		dia_semana varchar(18),
 		hora_inicio time,
 		hora_fin time,
 		id_actividad int,
@@ -295,9 +295,9 @@ Begin
 		fecha_emision date,
 		primer_vto date,
 		segundo_vto date,
-		total float,
-		total_con_recargo float,
-		id_estado varchar,
+		total decimal(9,3),
+		total_con_recargo decimal(9,3),
+		id_estado varchar(30),---posible check para entender mejor
 		id_medio_de_pago int,
 		id_socio int
 		Constraint Facturacion_factura_PK_id_factura Primary key(id_factura),
@@ -318,9 +318,9 @@ Begin
 	Create table facturacion.pago(
 		id_pago int identity(1,1),
 		fecha_pago date,
-		montoTotal float,
+		montoTotal decimal(9,3),
 		id_factura int,
-		tipo_movimiento varchar,
+		tipo_movimiento varchar(20),
 		--id_medio_pago int,
 		Constraint Facturacion_pago_PK_id_pago Primary key(id_pago),
 		Constraint Facturacion_pago_FK_id_factura

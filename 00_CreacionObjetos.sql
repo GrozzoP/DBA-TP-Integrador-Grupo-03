@@ -60,7 +60,7 @@ go
 IF OBJECT_ID('socios.rol', 'U') IS NULL
 begin
 	Create table socios.rol(
-		id_rol int,
+		id_rol int identity(1,1),
 		nombre varchar(40)	UNIQUE,
 		descripcion varchar(200),
 		Constraint Socios_rol_PK_id_rol Primary key(id_rol)

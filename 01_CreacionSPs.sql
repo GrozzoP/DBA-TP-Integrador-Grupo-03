@@ -1,5 +1,6 @@
 Use COM5600G03
 go
+
 -- ROL
 -- Procedimiento para insertar un rol
 create or alter procedure socios.insertarRol(@nombre_rol varchar(20), @descripcion_rol varchar(50))
@@ -126,15 +127,43 @@ begin
 	if exists (select 1 from socios.socio 
 			   where dni = @dni)
 	begin
-		print 'ya existe un socio con ese dni.'
+		print 'Ya existe un socio con ese dni.'
 	end
+
+	-- Buscar si existe id_obra_social
+	else if exists (select 1 from socios.obra_social 
+					where id_obra_social = @id_obra_social)
+	begin
+		print 'No existe una obra social con ese id.'
+	end
+
+	-- Buscar si existe id_categoria
+	else if exists (select 1 from socios.categoria 
+					where id_categoria = @id_categoria)
+	begin
+		print 'No existe una categoria con ese id.'
+	end
+
+	-- Buscar si existe id_medio_de_pago
+	else if exists (select 1 from facturacion.medio_de_pago 
+					where id_medio_de_pago = @id_medio_de_pago)
+	begin
+		print 'No existe un medio de pago con esa id.'
+	end
+
+	-- Buscar si existe id_usuario
+	else if exists (select 1 from socios.usuario
+					where id_usuario = @id_usuario)
+	begin
+		print 'No existe un usuario con esa id.'
+	end
+
 	else
 	begin
 		insert into socios.socio
 		(dni, nombre, apellido, email, fecha_nacimiento, telefono_contacto, telefono_emergencia, habilitado,
 		 id_obra_social, id_categoria, id_usuario, id_medio_de_pago)
-		values
-		(@dni, @nombre, @apellido, @email, @fecha_nacimiento, @telefono_contacto, @telefono_emergencia, 1,
+		values (@dni, @nombre, @apellido, @email, @fecha_nacimiento, @telefono_contacto, @telefono_emergencia, 1,
 		 @id_obra_social, @id_categoria, @id_usuario, @id_medio_de_pago)
 	end
 end
@@ -188,8 +217,21 @@ create or alter procedure socios.insertarUsuario
 	@fecha_vigencia_contraseña date
 as
 begin
-	insert into socios.usuario(id_rol, contraseña, fecha_vigencia_contraseña)
-	values (@id_rol, @contraseña, @fecha_vigencia_contraseña)
+	
+	if not exists (select 1 from socios.usuario 
+					where id_rol = @id_rol)
+	begin
+		print 'No existe un rol con ese id.'
+	end
+	else if (CONVERT(date, GETDATE()) < @fecha_vigencia_contraseña)
+	begin
+		print 'La fecha de vigencia no puede ser anterior a la actual.'
+	end
+	else
+	begin
+		insert into socios.usuario(id_rol, contraseña, fecha_vigencia_contraseña)
+		values (@id_rol, @contraseña, @fecha_vigencia_contraseña)
+	end
 end
 go
 
@@ -226,10 +268,16 @@ begin
 	end
 	else
 	begin
-		if CONVERT(date, GETDATE()) < @fecha_vigencia_contraseña
-		update socios.usuario
-		set fecha_vigencia_contraseña = @fecha_vigencia_contraseña
-		where id_usuario = @id_usuario
+		if (CONVERT(date, GETDATE()) < @fecha_vigencia_contraseña)
+		begin
+			update socios.usuario
+			set fecha_vigencia_contraseña = @fecha_vigencia_contraseña
+			where id_usuario = @id_usuario
+		end
+		else
+		begin
+			print 'La fecha de vigencia no puede ser anterior a la actual.'
+		end
 	end
 end
 go
@@ -239,7 +287,8 @@ create or alter procedure socios.eliminarUsuario
 	@id_usuario int
 as
 begin
-	if not exists (select 1 from socios.usuario where id_usuario = @id_usuario)
+	if not exists (select 1 from socios.usuario 
+					where id_usuario = @id_usuario)
 	begin
 		print 'No existe un usuario con ese id.'
 	end
@@ -324,12 +373,12 @@ begin
 		print 'Ya existe una categoría con ese nombre.'
 	end
 
-	else if @edad_minima >= @edad_maxima
+	else if (@edad_minima >= @edad_maxima)
 	begin
 		print 'Es incoherente que la edad minima sea mayor o igual que la maxima.'
 	end
 
-	else if @costo_membresia < 0
+	else if (@costo_membresia < 0)
 	begin
 		print 'El costo de la membresia no puede ser negativo.'
 	end
@@ -425,20 +474,130 @@ begin
 end
 go
 
----Procedimiento para insertar una actividad
+-- PROCEDIMIENTO DE CREACION ALEATORIA 
+-- ROL
+create or alter procedure socios.cargaAleatoriaRol
+	@cantidad int
+as
+begin
+	-- Para no llenar la consola de mensajes debido a las inserciones
+	set nocount on
+
+	-- Indice para el while
+	declare @index int,
+			@random int,
+			@nombre_rol varchar(8),
+			@descripcion_rol varchar(50);
+	set @index = 1;
+
+	-- Creo una tabla que posea descripciones para roles
+	declare @Descripcion table (descripcion varchar(50));
+	insert into @Descripcion (descripcion)
+	values ('Usuario mas comun del sistema'),
+        ('Moderador de la aplicacion'),
+        ('Moderador de usuarios'), 
+        ('Supervisor de seguridad'),
+        ('Administrador de la aplicacion'),
+        ('Operador de soporte técnico'),
+		('Invitado de uno o mas socios');
+
+	while @index <= @cantidad
+	begin
+		begin try
+			-- Elegir de manera aleatoria el nombre del rol: Rol_####
+			set @random = ABS(CHECKSUM(NEWID())) % 10000;
+			set @nombre_rol = 'Rol_' + CAST(@random as varchar)
+
+			-- Verificar que el nombre generado de forma aleatoria, no existe dentro de la tabla
+			if not exists(
+				select 1 from socios.rol where nombre = @nombre_rol
+			)
+			begin
+
+				-- Seleccionar una descripcion aleatoria insertada en la tabla temporal creada
+				select top 1 @descripcion_rol = descripcion from @Descripcion order by NEWID();
+
+				-- Una vez seleccionados los dos valores, se insertan en la tabla
+				insert into socios.rol(nombre, descripcion)
+				values (@nombre_rol, @descripcion_rol)
+
+				-- Aumentar el indice del while, solo se aumenta si se encontro un nombre de rol nuevo
+				set @index = @index + 1
+			end
+		end try
+		begin catch
+			print 'Error en la carga de datos aleatorios: ' + ERROR_MESSAGE()
+		end catch
+	end
+
+	print 'Se han generado los roles de manera aleatoria!'
+end
+go
+
+-- CATEGORIA
+create or alter procedure socios.cargaAleatoriaCategoria
+	@cantidad int
+as
+begin
+	set nocount on
+
+	declare @index int = 1,
+			@random int,
+			@nombre_categoria varchar(16),
+			@edad_minima int,
+			@edad_maxima int,
+			@costo_membresía decimal(9,3);
+
+	while @index <= @cantidad
+	begin
+		begin try
+			-- Generar un nombre de categoria aleatorio
+			set @random = ABS(CHECKSUM(NEWID()));
+			set @nombre_categoria = 'Categoria_' + CAST(@random % 10000 as varchar)
+
+			if not exists(select 1 from socios.categoria
+								where nombre_categoria = @nombre_categoria)
+				begin
+				-- Edad minima aleatoria entre 4 y 12 años
+				set @edad_minima = (@random % (12 - 4 + 1)) + 4;
+
+				-- Edad maxima aleatoria entre 80 y 13 años
+				set @edad_maxima = (@random % (80 - 13 + 1)) + 13;
+
+				-- Establecer el costo de la categoria
+				set @costo_membresía = ROUND(RAND(@random) * (10000), 2)
+
+				-- Una vez creados los valores, se insertan en la tabla
+				insert into socios.categoria(nombre_categoria, edad_minima, edad_maxima, costo_membresía)
+				values (@nombre_categoria, @edad_minima, @edad_maxima, @costo_membresía)
+
+				-- Aumentar indice solo si el nombre de categoria no existe en la tabla
+				set @index = @index + 1
+			end
+		end try
+		begin catch
+			print 'Error en la carga de datos aleatorios: ' + ERROR_MESSAGE()
+		end catch
+	end
+	print 'Se han generado las categorias de manera aleatoria!'
+end
+go
+
+-- ACTIVIDAD
+--- Procedimiento para insertar una actividad
 create or alter procedure actividades.insertar_actividad(@nombreActividad varchar(36),@costoMensual decimal(9,3))
 as
 begin
   
    if exists(
-      select nombreActividad from actividades.actividad
-	  where nombreActividad = @nombreActividad
+      select nombre_actividad from actividades.actividad
+	  where nombre_actividad = @nombreActividad
    )begin
        print 'El nombre de la actividad ya existe'
     end
 	else
 	 begin
-	    insert into actividades.actividad(nombreActividad,costo_mensual)values(@nombreActividad,@costoMensual)
+	    insert into actividades.actividad(nombre_actividad, costo_mensual)values(@nombreActividad, @costoMensual)
 	 end
 
 end
@@ -488,14 +647,14 @@ as
 begin
   
    if exists(
-      select nombreActividad from actividades.actividad_extra
-	  where nombreActividad = @nombreActividad
+      select nombre_actividad from actividades.actividad_extra
+	  where nombre_actividad = @nombreActividad
    )begin
        print 'El nombre de la actividad extra ya existe'
     end
 	else
 	 begin
-	    insert into actividades.actividad_extra(nombreActividad,costo)values(@nombreActividad,@costo)
+	    insert into actividades.actividad_extra(nombre_actividad, costo)values(@nombreActividad, @costo)
 	 end
 
 end
@@ -540,7 +699,7 @@ begin
 end
 go
 ---Procedimiento para insertar un horario
-create procedure actividades.insertar_horario_actividad 
+create or alter procedure actividades.insertar_horario_actividad 
 		@dia_semana varchar(18),
 		@hora_inicio time,
 		@hora_fin time,
@@ -586,7 +745,7 @@ begin
 end
 go
 ---Procedimiento para eliminar un horario
-create procedure actividades.eliminar_horario_actividad(@id_horario int)
+create or alter procedure actividades.eliminar_horario_actividad(@id_horario int)
 as
 begin
    if exists(
@@ -603,7 +762,7 @@ begin
 end
 go
 ---Procedimiento para modificar un horario
-create procedure actividades.modificar_horario_actividad 
+create or alter procedure actividades.modificar_horario_actividad 
         @id_horario int,
 		@dia_semana varchar(18),
 		@hora_inicio time,
@@ -763,7 +922,7 @@ begin
 	     if(@total > 0)
 		 begin
 		     insert into facturacion.factura(fecha_emision,primer_vto,segundo_vto,total,total_con_recargo,
-			 id_estado,id_socio)
+			 estado,id_socio)
 			 values(getdate(),dateadd(day,5,getdate()),dateadd(day,10,getdate()),
 			 @total,(@total+(@total*0.1)),'NO PAGADO',@id_socio)
 		 end
@@ -777,4 +936,3 @@ begin
 	   print 'No se encontro el socio para generar la factura'
 	 end
 end
-

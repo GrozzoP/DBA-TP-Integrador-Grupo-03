@@ -934,7 +934,7 @@ begin
 end
 go
 ---Procedimiento para inscripcion a actividad extra
-create or alter procedure actividades.inscripcion_actividadExtra
+create or alter procedure actividades.inscripcion_actividad_extra
 (@id_socio int, @id_actividad_extra int, @fecha date, @hora_inicio time, @hora_fin time, @cant_invitados int)
 as
 begin
@@ -996,7 +996,7 @@ begin
 
     if exists(
 	   select id_factura from facturacion.factura
-	   where id_factura = @id_factura
+	   where id_factura = @id_factura and estado like 'NO PAGADO'
 	)
 	begin
 	    if exists(
@@ -1025,7 +1025,7 @@ begin
 	end
 	else
 	begin
-	   print 'No se encontro factura con ese id'
+	   print 'No se encontro factura con ese id o la factura ya fue abonada'
 	end
 
 

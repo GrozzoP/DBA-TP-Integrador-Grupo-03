@@ -308,10 +308,10 @@ exec socios.eliminarCategoria 'obraSocial1'
 exec eliminarYrestaurarTabla 'socios.obra_social'
 
 
+/*
 use COM5600G03
 go
 
-/*
 --dropear la base de datos y generar sps y tablas nuevamente, antes de realizar este test, pintar cada exec paso a paso
 select*from socios.rol
 select*from facturacion.medio_de_pago
@@ -353,4 +353,37 @@ select*from facturacion.pago
  select*from actividades.inscripcion_actividades
  select*from facturacion.pago
  select*from facturacion.factura
+ 
+
+ exec socios.insertarUsuario 1,'Usuario2', '24-06-2025'
+ select*from socios.usuario
+ select*from socios.socio
+ exec socios.insertarSocio 42838703,'Roberto','Gimenez','rbGM@gmail.com','08-11-2004',1131119521,1132319592,1,1,2,1
+ 
+ --se agregan actividades extra
+ exec actividades.insertar_actividad_extra 'Piscina',300.50
+ select*from actividades.actividad_extra
+
+ --se inscribe a roberto en esa actividad
+ exec actividades.inscripcion_actividad_extra 2,1,'23-05-2025','13:00','18:00',0
+
+ select*from actividades.inscripcion_act_extra
+ select*from facturacion.factura
+
+ --se incribe a roberto en esa actividad pero con 1 invitado
+
+ exec actividades.inscripcion_actividad_extra 2,1, '24-05-2025','10:00','18:00',1
+
+ --se esperan 2 facturas no pagadas
+ select*from actividades.inscripcion_act_extra
+ select*from facturacion.factura
+
+ exec facturacion.pago_factura 1,'PAGO',1 
+
+ --se espera que la factura con id 3, este pagada 
+ select*from actividades.inscripcion_act_extra
+ select*from facturacion.factura
+
+ --se espera que no te deje pagar una factura ya abonada
+ exec facturacion.pago_factura 1,'PAGO',1 
  */

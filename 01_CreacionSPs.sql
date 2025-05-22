@@ -312,6 +312,10 @@ begin
 	begin
 		print 'Ya existe una obra social con ese nombre.'
 	end
+	else if @telefono_obra_social < 0
+	begin
+		print 'El numero de telefono no puede ser negativo'
+	end
 	else
 	begin
 		insert into socios.obra_social(nombre_obra_social, telefono_obra_social)
@@ -330,6 +334,10 @@ begin
 					where nombre_obra_social = @nombre_obra_social)
 	begin
 		print 'No existe una obra social con ese nombre.'
+	end
+	else if @telefono_obra_social < 0
+	begin
+		print 'El numero de telefono no puede ser negativo'
 	end
 	else
 	begin

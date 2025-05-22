@@ -295,12 +295,9 @@ begin
 		segundo_vto date,
 		total decimal(9,3),
 		total_con_recargo decimal(9,3),
-		id_estado varchar(30),---posible check para entender mejor
-		id_medio_de_pago int,
+		estado varchar(30) check (estado like 'PAGADO' or estado LIKE 'NO PAGADO'),
 		id_socio int
 		Constraint Facturacion_factura_PK_id_factura Primary key(id_factura),
-		Constraint Facturacion_factura_FK_id_medio_de_pago
-				Foreign Key(id_medio_de_pago) References facturacion.medio_de_pago(id_medio_de_pago),
 		Constraint Facturacion_factura_FK_id_socio
 				Foreign Key(id_socio) References socios.socio(id_socio)
 	)
@@ -319,10 +316,12 @@ begin
 		monto_total decimal(9,3),
 		id_factura int,
 		tipo_movimiento varchar(20),
-		--id_medio_pago int,
+		id_medio_pago int,
 		Constraint Facturacion_pago_PK_id_pago Primary key(id_pago),
 		Constraint Facturacion_pago_FK_id_factura
-				Foreign Key(id_factura) References facturacion.factura(id_factura)
+				Foreign Key(id_factura) References facturacion.factura(id_factura),
+		Constraint Facturacion_pago_FK_id_medio_pago
+				Foreign Key(id_medio_pago) References facturacion.medio_de_pago(id_medio_de_pago)
 	)
 end
 else

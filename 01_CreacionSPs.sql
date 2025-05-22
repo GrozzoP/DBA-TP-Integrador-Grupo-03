@@ -424,3 +424,357 @@ begin
 	where id_socio_responsable = @id_socio_responsable
 end
 go
+
+---Procedimiento para insertar una actividad
+create or alter procedure actividades.insertar_actividad(@nombreActividad varchar(36),@costoMensual decimal(9,3))
+as
+begin
+  
+   if exists(
+      select nombreActividad from actividades.actividad
+	  where nombreActividad = @nombreActividad
+   )begin
+       print 'El nombre de la actividad ya existe'
+    end
+	else
+	 begin
+	    insert into actividades.actividad(nombreActividad,costo_mensual)values(@nombreActividad,@costoMensual)
+	 end
+
+end
+go
+
+---Procedimiento para eliminar una actividad
+create or alter procedure actividades.eliminar_actividad(@id_actividad int)
+as
+begin
+  
+   if exists(
+      select id_actividad from actividades.actividad
+	  where id_actividad = @id_actividad
+   )begin
+       delete actividades.actividad
+	   where id_actividad = @id_actividad
+    end
+	else
+	 begin
+	    print 'La actividad a eliminar no existe'
+	 end
+
+end
+go
+--Procedimiento para modificar una actividad
+create or alter procedure actividades.modificar_precio_actividad(@id_actividad int, @nuevoPrecio decimal(9,3))
+as
+begin
+
+   if exists(
+      select id_actividad from actividades.actividad
+	  where id_actividad = @id_actividad
+   )begin
+       update actividades.actividad
+	   set costo_mensual = @nuevoPrecio
+	   where id_actividad = @id_actividad
+    end
+	else
+	 begin
+	    print 'La actividad a modificar no existe'
+	 end
+end
+go
+---Procedimiento para insertar una actividad extra
+create or alter procedure actividades.insertar_actividad_extra(@nombreActividad varchar(36),@costo decimal(9,3))
+as
+begin
+  
+   if exists(
+      select nombreActividad from actividades.actividad_extra
+	  where nombreActividad = @nombreActividad
+   )begin
+       print 'El nombre de la actividad extra ya existe'
+    end
+	else
+	 begin
+	    insert into actividades.actividad_extra(nombreActividad,costo)values(@nombreActividad,@costo)
+	 end
+
+end
+go
+
+---Procedimiento para eliminar una actividad extra
+create or alter procedure actividades.eliminar_actividad_extra(@id_actividad_extra int)
+as
+begin
+  
+   if exists(
+      select id_actividad from actividades.actividad_extra
+	  where id_actividad = @id_actividad_extra
+   )begin
+       delete actividades.actividad_extra
+	   where id_actividad = @id_actividad_extra
+    end
+	else
+	 begin
+	    print 'La actividad extra a eliminar no existe'
+	 end
+
+end
+go
+---Procedimiento para modificar el precio a una actividad extra
+create or alter procedure actividades.modificar_precio_actividad_extra(@id_actividad_extra int, @nuevoPrecio decimal(9,3))
+as
+begin
+
+   if exists(
+      select id_actividad from actividades.actividad_extra
+	  where id_actividad = @id_actividad_extra
+   )begin
+       update actividades.actividad_extra
+	   set costo = @nuevoPrecio
+	   where id_actividad = @id_actividad_extra
+    end
+	else
+	 begin
+	    print 'La actividad extra a modificar no existe'
+	 end
+end
+go
+---Procedimiento para insertar un horario
+create procedure actividades.insertar_horario_actividad 
+		@dia_semana varchar(18),
+		@hora_inicio time,
+		@hora_fin time,
+		@id_actividad int,
+		@id_categoria int
+as
+begin
+       if exists(
+	     select id_actividad from actividades.actividad
+	     where id_actividad = @id_actividad
+	   )begin
+	       if exists(
+		        select id_categoria from socios.categoria
+				where id_categoria = @id_categoria
+		   )begin
+		       if(--pido perdon por esto
+			       @dia_semana like 'Lunes' or
+				        @dia_semana like 'Martes' or
+						     @dia_semana like'Miercoles' or 
+								 @dia_semana like'Jueves' or 
+									  @dia_semana like'Viernes' or 
+										    @dia_semana like'Sabado' or
+											    @dia_semana like  'Domingo')
+			    begin
+			      insert into actividades.horario_actividades(dia_semana,hora_inicio,hora_fin,id_actividad,id_categoria)
+				  values (@dia_semana,@hora_inicio,@hora_fin,@id_actividad,@id_categoria)
+			    end
+				else
+				begin
+				   print 'El dia no es correcto'
+				end
+		       
+		    end
+			else
+			begin
+			   print 'No se encontro la categoria con ese id'
+			end
+	    end
+		else
+		begin
+		  print 'No se encontro la actividad con ese id'
+		end
+end
+go
+---Procedimiento para eliminar un horario
+create procedure actividades.eliminar_horario_actividad(@id_horario int)
+as
+begin
+   if exists(
+      select id_horario from actividades.horario_actividades
+	  where id_horario = @id_horario
+   )begin
+         delete actividades.horario_actividades
+		 where id_horario = @id_horario
+    end
+	else
+	begin
+	     print 'No existe una actividad con ese id'
+	end
+end
+go
+---Procedimiento para modificar un horario
+create procedure actividades.modificar_horario_actividad 
+        @id_horario int,
+		@dia_semana varchar(18),
+		@hora_inicio time,
+		@hora_fin time,
+		@id_actividad int,
+		@id_categoria int
+as
+begin
+   if exists(
+      select id_horario from actividades.horario_actividades
+	  where id_horario = @id_horario
+   )
+   begin 
+       if exists(
+	     select id_actividad from actividades.actividad
+	     where id_actividad = @id_actividad
+	   )begin
+	       if exists(
+		        select id_categoria from socios.categoria
+				where id_categoria = @id_categoria
+		   )begin
+		       if(--pido perdon por esto
+			       @dia_semana like 'Lunes' or
+				        @dia_semana like 'Martes' or
+						     @dia_semana like'Miercoles' or 
+								 @dia_semana like'Jueves' or 
+									  @dia_semana like'Viernes' or 
+										    @dia_semana like'Sabado' or
+											    @dia_semana like  'Domingo')
+			    begin
+			      update actividades.horario_actividades
+				  set dia_semana = @dia_semana,
+				      hora_inicio = @hora_inicio,
+					  hora_fin = @hora_fin,
+					  id_categoria = @id_categoria,
+					  id_actividad = @id_actividad
+					  where id_horario = @id_horario
+			    end
+				else
+				begin
+				   print 'El dia no es correcto'
+				end
+		       
+		    end
+			else
+			begin
+			   print 'No se encontro la categoria con ese id'
+			end
+	    end
+		else
+		begin
+		  print 'No se encontro la actividad con ese id'
+		end
+	end
+	else
+	begin
+	  print 'No se encontro horario con ese id'
+	end
+end
+go
+
+---Procedimiento para inscribirse a una actividad
+create or alter procedure actividades.inscripcion_actividad(@id_socio int, @id_horario int, @id_actividad int)
+as
+begin
+   if exists(
+        select id_socio from socios.socio
+		where id_socio = @id_socio
+   )begin
+        if exists(
+		   select id_horario from actividades.horario_actividades
+		   where id_horario = @id_horario
+		)
+		begin
+		    if exists(
+			      select id_actividad from actividades.horario_actividades
+				  where id_actividad = @id_actividad
+			)
+			begin
+			      if exists(
+				      select * from actividades.horario_actividades
+					  where id_actividad = @id_actividad and id_horario = @id_horario
+				  )
+				  begin
+				       insert into actividades.inscripcion_actividades(id_socio,id_horario,id_actividad)
+					   values(@id_socio,@id_horario,@id_actividad)
+					   --calculos 
+					   --generacion de factura
+				  end
+				  else
+				  begin
+				     print 'No se encontro un horario para esa actividad'
+				  end
+			end
+			else
+			begin
+			   print 'No se encontro una actividad con ese id'
+			end
+		end
+		else
+		begin
+		   print 'No se encontro un horario con ese id'
+		end
+    end
+	else
+	begin
+	  print 'No se encontro el id del socio a inscribir a la actividad'
+	end
+end
+go
+---Procedimiento para inscripcion a actividad extra
+create or alter procedure actividades.inscripcion_actividad
+(@id_socio int, @id_actividad_extra int, @fecha date, @hora_inicio time, @hora_fin time, @cant_invitados int)
+as
+begin
+   if exists(
+        select id_socio from socios.socio
+		where id_socio = @id_socio
+   )begin
+		    if exists(
+			      select id_actividad from actividades.actividad_extra
+				  where id_actividad = @id_actividad_extra
+			)
+			begin
+			      if (@cant_invitados<0)
+				  begin
+				     print 'Error en la cantidad de invitados'
+				  end
+				  else
+				  begin
+					   --generacion de calculos
+					   insert into actividades.inscripcion_act_extra
+					   (id_socio,fecha,hora_inicio,hora_fin,cant_invitados,id_actividad_extra)
+					   values(@id_socio,@fecha,@hora_inicio,@hora_fin,@cant_invitados,@id_actividad_extra)
+				       --generacion de factura	  
+				  end
+			end
+			else
+			begin
+			   print 'No se encontro una actividad con ese id'
+			end
+    end
+	else
+	begin
+	  print 'No se encontro el id del socio a inscribir a la actividad'
+	end
+end
+go
+--Procedimiento para generar una factura
+create or alter procedure facturacion.crear_factura(@total decimal(9,3),@id_socio int)
+as
+begin
+	if exists(
+			select id_socio from socios.socio
+			where id_socio = @id_socio
+	)begin
+	     if(@total > 0)
+		 begin
+		     insert into facturacion.factura(fecha_emision,primer_vto,segundo_vto,total,total_con_recargo,
+			 id_estado,id_socio)
+			 values(getdate(),dateadd(day,5,getdate()),dateadd(day,10,getdate()),
+			 @total,(@total+(@total*0.1)),'NO PAGADO',@id_socio)
+		 end
+		 else
+		 begin
+		     print 'Monto ingresado no es valido'
+		 end
+	 end
+	 else
+	 begin
+	   print 'No se encontro el socio para generar la factura'
+	 end
+end
+

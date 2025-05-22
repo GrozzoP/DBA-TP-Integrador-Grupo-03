@@ -18,6 +18,7 @@ go
 use COM5600G03
 go
 
+-- Creacion del esquema de los socios
 if exists(
 	select name from sys.schemas
 	where name = 'socios'
@@ -31,6 +32,7 @@ else
 	end
 go
 
+-- Creacion del esquema de actividades
 if exists(
 	select name from sys.schemas
 	where name = 'actividades'
@@ -44,6 +46,7 @@ else
 	end
 go
 
+-- Creacion del esquema de facturacion
 if exists(
 	select name from sys.schemas
 	where name = 'facturacion'
@@ -57,6 +60,7 @@ else
 	end
 go
 
+-- Creacion de la tabla socios.rol
 IF OBJECT_ID('socios.rol', 'U') IS NULL
 begin
 	Create table socios.rol(
@@ -72,6 +76,7 @@ begin
 end
 go
 
+-- Creacion de la tabla facturacion.medio_de_pago
 IF OBJECT_ID('facturacion.medio_de_pago', 'U') IS NULL
 begin
 	Create table facturacion.medio_de_pago(
@@ -87,13 +92,14 @@ begin
 end
 go
 
+-- Creacion de la tabla socios.usuario
 IF OBJECT_ID('socios.usuario', 'U') IS NULL
 begin
 	Create table socios.usuario(
 		id_usuario int identity(1,1),
 		id_rol int,
-		contraseña varchar(40),
-		fecha_vigencia_contraseña date,
+		contraseÃ±a varchar(40),
+		fecha_vigencia_contraseÃ±a date,
 		Constraint socios_usuario_PK_id_user Primary key(id_usuario),
 		Constraint socios_usuario_FK_id_rol Foreign Key(id_rol) References socios.rol(id_rol)
 	)
@@ -104,6 +110,7 @@ begin
 end
 go
 
+-- Creacion de la tabla socios.obra_social
 IF OBJECT_ID('socios.obra_social', 'U') IS NULL
 Begin
 	Create table socios.obra_social(
@@ -119,6 +126,7 @@ begin
 end
 go
 
+-- Creacion de la tabla socios.categoria
 IF OBJECT_ID('socios.categoria', 'U') IS NULL
 Begin
 	Create table socios.categoria(
@@ -126,7 +134,7 @@ Begin
 		nombre_categoria varchar(16) UNIQUE,
 		edad_minima int,
 		edad_maxima int,
-		costo_membresía decimal(9,3)
+		costo_membresÃ­a decimal(9,3)
 		Constraint Socios_categoria_PK_id_categoria Primary key(id_categoria)
 	)
 End
@@ -136,6 +144,7 @@ begin
 end
 go
 
+-- Creacion de la tabla socios.socio
 IF OBJECT_ID('socios.socio', 'U') IS NULL
 Begin
 	Create table socios.socio(
@@ -165,6 +174,7 @@ begin
 end
 go
 
+-- Creacion de la tabla socios.responsable_menor
 IF OBJECT_ID('socios.responsable_menor', 'U') IS NULL
 Begin
 	Create table socios.responsable_menor(
@@ -189,6 +199,7 @@ begin
 end
 go
 
+-- Creacion de la tabla actividades.actividad
 IF OBJECT_ID('actividades.actividad', 'U') IS NULL
 Begin
 	Create table actividades.actividad(
@@ -204,6 +215,7 @@ begin
 end
 go
 
+-- Creacion de la tabla actividades.actividad_extra
 IF OBJECT_ID('actividades.actividad_extra', 'U') IS NULL
 Begin
 	Create table actividades.actividad_extra(
@@ -219,6 +231,7 @@ begin
 end
 go
 
+-- Creacion de la tabla actividades.horario_actividades
 if OBJECT_ID('actividades.horario_actividades', 'U') IS NULL
 begin
 	Create table actividades.horario_actividades(
@@ -241,6 +254,7 @@ begin
 end
 go
 
+-- Creacion de la tabla actividades.inscripcion_actividades
 if OBJECT_ID('actividades.inscripcion_actividades', 'U') IS NULL
 begin
 	Create table actividades.inscripcion_actividades(
@@ -263,6 +277,7 @@ begin
 end
 go
 
+-- Creacion de la tabla actividades.inscripcion_act_extra
 if OBJECT_ID('actividades.inscripcion_act_extra', 'U') IS NULL
 begin
 	create table actividades.inscripcion_act_extra(
@@ -286,6 +301,7 @@ begin
 end
 go
 
+-- Creacion de la tabla facturacion.factura
 if OBJECT_ID('facturacion.factura', 'U') IS NULL
 begin
 	Create table facturacion.factura(
@@ -308,6 +324,7 @@ begin
 end
 go
 
+-- Creacion de la tabla facturacion.pago
 if OBJECT_ID('facturacion.pago', 'U') IS NULL
 begin
 	Create table facturacion.pago(

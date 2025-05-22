@@ -218,12 +218,12 @@ create or alter procedure socios.insertarUsuario
 as
 begin
 	
-	if not exists (select 1 from socios.usuario 
+	if not exists (select 1 from socios.rol 
 					where id_rol = @id_rol)
 	begin
 		print 'No existe un rol con ese id.'
 	end
-	else if (CONVERT(date, GETDATE()) < @fecha_vigencia_contraseña)
+	else if (CONVERT(date, GETDATE()) > @fecha_vigencia_contraseña)
 	begin
 		print 'La fecha de vigencia no puede ser anterior a la actual.'
 	end

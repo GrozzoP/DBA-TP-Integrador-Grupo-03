@@ -823,94 +823,6 @@ begin
 	end
 end
 go
-
----Procedimiento para inscribirse a una actividad
-create or alter procedure actividades.inscripcion_actividad(@id_socio int, @id_horario int, @id_actividad int)
-as
-begin
-   if exists(
-        select id_socio from socios.socio
-		where id_socio = @id_socio
-   )begin
-        if exists(
-		   select id_horario from actividades.horario_actividades
-		   where id_horario = @id_horario
-		)
-		begin
-		    if exists(
-			      select id_actividad from actividades.horario_actividades
-				  where id_actividad = @id_actividad
-			)
-			begin
-			      if exists(
-				      select * from actividades.horario_actividades
-					  where id_actividad = @id_actividad and id_horario = @id_horario
-				  )
-				  begin
-				       insert into actividades.inscripcion_actividades(id_socio,id_horario,id_actividad)
-					   values(@id_socio,@id_horario,@id_actividad)
-					   --calculos 
-					   --generacion de factura
-				  end
-				  else
-				  begin
-				     print 'No se encontro un horario para esa actividad'
-				  end
-			end
-			else
-			begin
-			   print 'No se encontro una actividad con ese id'
-			end
-		end
-		else
-		begin
-		   print 'No se encontro un horario con ese id'
-		end
-    end
-	else
-	begin
-	  print 'No se encontro el id del socio a inscribir a la actividad'
-	end
-end
-go
----Procedimiento para inscripcion a actividad extra
-create or alter procedure actividades.inscripcion_actividad
-(@id_socio int, @id_actividad_extra int, @fecha date, @hora_inicio time, @hora_fin time, @cant_invitados int)
-as
-begin
-   if exists(
-        select id_socio from socios.socio
-		where id_socio = @id_socio
-   )begin
-		    if exists(
-			      select id_actividad from actividades.actividad_extra
-				  where id_actividad = @id_actividad_extra
-			)
-			begin
-			      if (@cant_invitados<0)
-				  begin
-				     print 'Error en la cantidad de invitados'
-				  end
-				  else
-				  begin
-					   --generacion de calculos
-					   insert into actividades.inscripcion_act_extra
-					   (id_socio,fecha,hora_inicio,hora_fin,cant_invitados,id_actividad_extra)
-					   values(@id_socio,@fecha,@hora_inicio,@hora_fin,@cant_invitados,@id_actividad_extra)
-				       --generacion de factura	  
-				  end
-			end
-			else
-			begin
-			   print 'No se encontro una actividad con ese id'
-			end
-    end
-	else
-	begin
-	  print 'No se encontro el id del socio a inscribir a la actividad'
-	end
-end
-go
 --Procedimiento para generar una factura
 create or alter procedure facturacion.crear_factura(@total decimal(9,3),@id_socio int)
 as
@@ -936,3 +848,161 @@ begin
 	   print 'No se encontro el socio para generar la factura'
 	 end
 end
+go
+---Procedimiento para inscribirse a una actividad
+create or alter procedure actividades.inscripcion_actividad(@id_socio int, @id_horario int, @id_actividad int)
+as
+begin
+   if exists(
+        select id_socio from socios.socio
+		where id_socio = @id_socio
+   )begin
+        if exists(
+		   select id_horario from actividades.horario_actividades
+		   where id_horario = @id_horario
+		)
+		begin
+		    if exists(
+			      select id_actividad from actividades.horario_actividades
+				  where id_actividad = @id_actividad
+			)
+			begin
+			      if exists(
+				      select * from actividades.horario_actividades
+					  where id_actividad = @id_actividad and id_horario = @id_horario
+				  )
+				  begin
+				       --generacion del monto
+				       declare @monto decimal(9,3)
+					   set @monto = (
+					                 select costo_mensual from actividades.actividad
+									 where id_actividad = @id_actividad
+					                )
+					   --inscripcion
+				       insert into actividades.inscripcion_actividades(id_socio,id_horario,id_actividad)
+					   values(@id_socio,@id_horario,@id_actividad)
+					   
+					   --generacion de factura
+					   exec facturacion.crear_factura @monto, @id_socio
+				  end
+				  else
+				  begin
+				     print 'No se encontro un horario para esa actividad'
+				  end
+			end
+			else
+			begin
+			   print 'No se encontro una actividad con ese id'
+			end
+		end
+		else
+		begin
+		   print 'No se encontro un horario con ese id'
+		end
+    end
+	else
+	begin
+	  print 'No se encontro el id del socio a inscribir a la actividad'
+	end
+end
+go
+---Procedimiento para inscripcion a actividad extra
+create or alter procedure actividades.inscripcion_actividadExtra
+(@id_socio int, @id_actividad_extra int, @fecha date, @hora_inicio time, @hora_fin time, @cant_invitados int)
+as
+begin
+   if exists(
+        select id_socio from socios.socio
+		where id_socio = @id_socio
+   )begin
+		    if exists(
+			      select id_actividad from actividades.actividad_extra
+				  where id_actividad = @id_actividad_extra
+			)
+			begin
+			      if (@cant_invitados<0)
+				  begin
+				     print 'Error en la cantidad de invitados'
+				  end
+				  else
+				  begin	
+				       --generacion de calculos
+				        declare @monto decimal(9,3)
+						declare @montoInvitado decimal(9,3)
+						set @monto = (select costo from actividades.actividad_extra
+						             where id_actividad = @id_actividad_extra)
+						set @montoInvitado = (@monto + (@monto*0.1)) --+10% invitado
+						set @monto = @monto + (@montoInvitado*@cant_invitados)
+
+					    --inscribir
+					    insert into actividades.inscripcion_act_extra
+					    (id_socio,fecha,hora_inicio,hora_fin,cant_invitados,id_actividad_extra)
+					    values(@id_socio,@fecha,@hora_inicio,@hora_fin,@cant_invitados,@id_actividad_extra)
+				        --generacion de factura	  
+
+						exec facturacion.crear_factura @monto, @id_socio
+				  end
+			end
+			else
+			begin
+			   print 'No se encontro una actividad con ese id'
+			end
+    end
+	else
+	begin
+	  print 'No se encontro el id del socio a inscribir a la actividad'
+	end
+end
+go
+
+--Procedimiento para pagar una factura
+create or alter procedure facturacion.pago_factura(
+		@id_factura int,
+		@tipo_movimiento varchar(20),--segun tipo de movimiento sumar o restar por eso lo deje como parametro, 
+		                            ---seria PAGO - PAGO A CUENTA, al usar este procedure poner una cadena random 
+		@id_medio_pago int
+)
+as
+begin
+  SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+  BEGIN TRANSACTION
+
+    if exists(
+	   select id_factura from facturacion.factura
+	   where id_factura = @id_factura
+	)
+	begin
+	    if exists(
+		  select id_medio_de_pago from facturacion.medio_de_pago
+		  where id_medio_de_pago = @id_medio_pago
+		)
+		begin
+		     declare @monto decimal(9,3)
+			 set @monto = (
+			                 select total from facturacion.factura
+							 where id_factura = @id_factura
+			              )
+			 --inserto los datos en la tabla de pago
+		     insert into facturacion.pago(id_factura,fecha_pago,monto_total,tipo_movimiento,id_medio_pago)
+			 values(@id_factura,getdate(),@monto,'PAGO',@id_medio_pago)
+			 --modifico el estado de la factura
+
+			 update facturacion.factura
+			 set estado = 'PAGADO'
+			 where id_factura = @id_factura
+		end
+		else
+		begin
+		   print 'No se encontro el id de ese medio de pago'
+		end
+	end
+	else
+	begin
+	   print 'No se encontro factura con ese id'
+	end
+
+
+  COMMIT TRANSACTION
+
+end
+go

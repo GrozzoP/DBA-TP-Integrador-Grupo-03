@@ -307,6 +307,130 @@ exec socios.eliminarCategoria 'obraSocial1'
 --Eliminando registros restantes de la prueba en la tabla
 exec eliminarYrestaurarTabla 'socios.obra_social'
 
+/*****	socios.insertarCategoria 
+						@nombre_categoria varchar(16), @edad_minima int,
+						@edad_maxima int, @costo_membresia decimal(9,3)	*****/
+
+--Preparando tabla para pruebas
+exec eliminarYrestaurarTabla 'socios.categoria'
+
+--Se espera la insercion exitosa de los siguientes registro
+exec socios.insertarCategoria 'Menor', 1, 18, 9.69
+exec socios.insertarCategoria 'Cadete', 19, 27, 1.01
+exec socios.insertarCategoria 'Mayor', 28, 35, 0
+
+--Se espera mensaje 'Ya existe una categoría con ese nombre.'
+exec socios.insertarCategoria 'Menor', 1, 18, 10.50
+
+--Se espera mensaje 'Es incoherente que la edad minima sea mayor o igual que la maxima.'
+exec socios.insertarCategoria 'Veterano', 5, 5, 10.6
+exec socios.insertarCategoria 'Sargento', 7, 5, 10.6
+
+--Se espera mensaje 'El costo de la membresia no puede ser negativo.'
+exec socios.insertarCategoria 'Veterano', 36, 45, -1.99
+
+--Eliminando registros restantes de la prueba en la tabla
+exec eliminarYrestaurarTabla 'socios.categoria'
+
+/*****	socios.modificarCostoCategoria @nombre_categoria varchar(16), @costo_membresia decimal(9,3) *****/
+
+--Preparando tabla para pruebas
+exec eliminarYrestaurarTabla 'socios.categoria'
+
+--Insertando registros para la prueba
+exec socios.insertarCategoria 'Menor', 1, 18, 9.69
+exec socios.insertarCategoria 'Cadete', 19, 27, 1.01
+exec socios.insertarCategoria 'Mayor', 28, 35, 0
+
+--Se espera la modificacion del valor de costo_membresía
+exec socios.modificarCostoCategoria 'Menor', 10.99
+exec socios.modificarCostoCategoria 'Cadete', 20.99
+
+--Se espera mensaje 'El nuevo costo de la membresia no puede ser negativo.'
+exec socios.modificarCostoCategoria 'Menor', -5.66
+
+--Se espera mensaje 'No existe una categoría con ese nombre.'
+exec socios.modificarCostoCategoria 'Sargento', 10.69
+
+--Eliminando registros restantes de la prueba en la tabla
+exec eliminarYrestaurarTabla 'socios.categoria'
+
+/******	socios.eliminarCategoria @nombre_categoria varchar(16)	*****/
+
+--Preparando tabla para pruebas
+exec eliminarYrestaurarTabla 'socios.categoria'
+
+--Insertando registros para la prueba
+exec socios.insertarCategoria 'Menor', 1, 18, 9.69
+exec socios.insertarCategoria 'Cadete', 19, 27, 1.01
+exec socios.insertarCategoria 'Mayor', 28, 35, 0
+
+--Se espera la eliminacion de los siguientes registros
+exec socios.eliminarCategoria 'Menor'
+exec socios.eliminarCategoria 'Cadete'
+exec socios.eliminarCategoria 'Mayor'
+
+--Se espera mensaje 'No existe una categoría con ese nombre.'
+exec socios.eliminarCategoria 'Sargento'
+
+--Eliminando registros restantes de la prueba en la tabla
+exec eliminarYrestaurarTabla 'socios.categoria'
+
+/***** socios.insertarSocio 
+					@dni int, @nombre varchar(40), 
+					@apellido varchar(40), @email varchar(150), 
+					@fecha_nacimiento date, @telefono_contacto int, 
+					@telefono_emergencia int, @id_obra_social int, 
+					@id_categoria int, @id_usuario int, 
+					@id_medio_de_pago int	*****/
+
+--Preparando tabla para pruebas
+exec eliminarYrestaurarTabla 'socios.socio'
+exec eliminarYrestaurarTabla 'socios.obra_social'
+exec eliminarYrestaurarTabla 'socios.categoria'
+exec eliminarYrestaurarTabla 'socios.usuario'
+exec eliminarYrestaurarTabla 'socios.rol'
+exec eliminarYrestaurarTabla 'facturacion.medio_de_pago'
+
+--Insertanto registros para la prueba
+declare @fechaDePrueba date = GETDATE();
+exec socios.insertarRol 'Cliente', @fechaDePrueba
+exec socios.insertarUsuario 1, 'passwordDeUsuario1', @fechaDePrueba
+exec socios.insertarUsuario 1, 'passwordDeUsuario2', @fechaDePrueba
+exec socios.insertarUsuario 1, 'passwordDeUsuario3', @fechaDePrueba
+exec socios.insertarCategoria 'Menor', 1, 18, 9.69
+exec socios.insertarCategoria 'Cadete', 19, 27, 1.01
+exec socios.insertarCategoria 'Mayor', 28, 35, 5
+exec socios.insertarObraSocial 'Luis Pasteur', 1111111111
+exec socios.insertarObraSocial 'OSECAC', 22222222
+exec facturacion.crearMedioPago 'Visa', 1
+
+--Se espera la insercion exitosa de los siguientes registros
+exec socios.insertarSocio 41247252, 'Pepe', 'Grillo' , 'pGrillo@gmail.com', '1999-01-19', 11223344, 55667788, 1, 1, 1, 1
+exec socios.insertarSocio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', 55667788, 11223344, 2, 2, 1, 1
+
+--Se espera mensaje 'Ya existe un socio con ese dni.'
+exec socios.insertarSocio 41247253, 'Armando', 'Losas' , 'albañilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 1, 3, 3, 1
+
+--Se espera mensaje 'No existe una obra social con ese id.'
+exec socios.insertarSocio 41247254, 'Armando', 'Losas' , 'albañilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 4, 3, 3, 1
+
+--Se espera mensaje 'No existe una categoria con ese id.'
+exec socios.insertarSocio 41247254, 'Armando', 'Losas' , 'albañilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 2, 4, 3, 1
+
+--Se espera mensaje 'No existe un medio de pago con esa id.'
+exec socios.insertarSocio 41247254, 'Armando', 'Losas' , 'albañilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 2, 4, 3, 2
+
+--Se espera mensaje 'No existe un usuario con esa id.'
+exec socios.insertarSocio 41247254, 'Armando', 'Losas' , 'albañilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 2, 3, 4, 1
+
+--Eliminando registros restantes de la prueba en la tabla
+exec eliminarYrestaurarTabla 'socios.socio'
+exec eliminarYrestaurarTabla 'socios.obra_social'
+exec eliminarYrestaurarTabla 'socios.categoria'
+exec eliminarYrestaurarTabla 'socios.usuario'
+exec eliminarYrestaurarTabla 'socios.rol'
+exec eliminarYrestaurarTabla 'facturacion.medio_de_pago'
 
 /*
 use COM5600G03

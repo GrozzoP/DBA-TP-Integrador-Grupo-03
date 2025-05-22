@@ -428,6 +428,10 @@ begin
 	begin
 		print 'No existe una categoría con ese nombre.'
 	end
+	else if @costo_membresia < 0
+	begin
+		print 'El nuevo costo de la membresia no puede ser negativo.'
+	end
 	else
 	begin
 		update socios.categoria

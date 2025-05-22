@@ -1,3 +1,14 @@
+/*
+Genere store procedures para manejar la inserción, modificado, borrado (si corresponde, 
+también debe decidir si determinadas entidades solo admitirán borrado lógico) de cada tabla. 
+Los nombres de los store procedures NO deben comenzar con “SP”.  
+Algunas operaciones implicarán store procedures que involucran varias tablas, uso de 
+transacciones, etc. Puede que incluso realicen ciertas operaciones mediante varios SPs. 
+Asegúrense de que los comentarios que acompañen al código lo expliquen. 
+Genere esquemas para organizar de forma lógica los componentes del sistema y aplique esto 
+en la creación de objetos. NO use el esquema “dbo”.  
+*/
+
 Use COM5600G03
 go
 
@@ -58,7 +69,7 @@ go
 create or alter procedure facturacion.crearMedioPago(@nombre_medio_de_pago varchar(40), @permite_debito_automatico BIT)
 as
 begin
-	if not exists(select 1 from facturacion.medio_de_pago
+	if exists(select 1 from facturacion.medio_de_pago
 				where nombre_medio_pago = @nombre_medio_de_pago)
 	begin
 		print 'El medio de pago que se quiere agregar, ya existe.'
@@ -131,28 +142,28 @@ begin
 	end
 
 	-- Buscar si existe id_obra_social
-	else if exists (select 1 from socios.obra_social 
+	else if not exists (select 1 from socios.obra_social 
 					where id_obra_social = @id_obra_social)
 	begin
 		print 'No existe una obra social con ese id.'
 	end
 
 	-- Buscar si existe id_categoria
-	else if exists (select 1 from socios.categoria 
+	else if not exists (select 1 from socios.categoria 
 					where id_categoria = @id_categoria)
 	begin
 		print 'No existe una categoria con ese id.'
 	end
 
 	-- Buscar si existe id_medio_de_pago
-	else if exists (select 1 from facturacion.medio_de_pago 
+	else if not exists (select 1 from facturacion.medio_de_pago 
 					where id_medio_de_pago = @id_medio_de_pago)
 	begin
 		print 'No existe un medio de pago con esa id.'
 	end
 
 	-- Buscar si existe id_usuario
-	else if exists (select 1 from socios.usuario
+	else if not exists (select 1 from socios.usuario
 					where id_usuario = @id_usuario)
 	begin
 		print 'No existe un usuario con esa id.'

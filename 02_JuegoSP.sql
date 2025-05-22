@@ -1,3 +1,11 @@
+/*
+Todos los SP creados deben estar acompañados de juegos de prueba. Se espera que 
+realicen validaciones básicas en los SP (p/e cantidad mayor a cero, CUIT válido, etc.) y que 
+en los juegos de prueba demuestren la correcta aplicación de las validaciones. 
+Las pruebas deben realizarse en un script separado, donde con comentarios se indique en 
+cada caso el resultado esperado 
+*/
+
 Use COM5600G03
 go
 
@@ -298,3 +306,51 @@ exec socios.eliminarCategoria 'obraSocial1'
 
 --Eliminando registros restantes de la prueba en la tabla
 exec eliminarYrestaurarTabla 'socios.obra_social'
+
+
+use COM5600G03
+go
+
+/*
+--dropear la base de datos y generar sps y tablas nuevamente, antes de realizar este test, pintar cada exec paso a paso
+select*from socios.rol
+select*from facturacion.medio_de_pago
+select*from socios.usuario
+select*from socios.obra_social
+select*from socios.categoria
+select*from socios.socio
+select*from socios.responsable_menor
+select*from actividades.actividad
+select*from actividades.actividad_extra
+select*from actividades.horario_actividades
+select*from actividades.inscripcion_actividades
+select*from actividades.inscripcion_act_extra
+select*from facturacion.factura
+select*from facturacion.pago
+--medio pago
+ exec facturacion.crearMedioPago 'Mercadolibre',1
+--rol
+ exec socios.insertarRol 'Usuario','Anda re loco por la vida'
+ --usuario
+ exec socios.insertarUsuario 1,'Oracle puto', '24-05-2025'
+ --obra social
+ exec socios.insertarObraSocial 'ObraSocialPOLO',1133589593
+ --categoria
+ exec socios.insertarCategoria 'Adulto',18,70,400.50
+ --insertar socio
+ exec socios.insertarSocio 42838702,'Ulises','Lazarte','ulazarte22@gmail.com','28-10-2000',1133589591,1133589592,1,1,1,1
+ --insertar actividad
+ exec actividades.insertar_actividad 'Futbol',900.50
+ --insertar horario
+ exec actividades.insertar_horario_actividad 'Jueves', '21:00','22:00',1,1
+ --realizar inscripcion del socio a la actividad de futbol los jueves de 21 a 22 hs
+ exec actividades.inscripcion_actividad 1,1,1
+ --se realizo la inscripcion y debe de generarse una factura en la tabla factura y la inscripcion en la tabla inscripcion
+ select*from actividades.inscripcion_actividades
+ select*from facturacion.factura
+ -- se debe de realizar el pago de la inscripcion y cambiar el estado de NO PAGADO a PAGADO
+ exec facturacion.pago_factura 1,'PAGO',1
+ select*from actividades.inscripcion_actividades
+ select*from facturacion.pago
+ select*from facturacion.factura
+ */

@@ -98,7 +98,7 @@ begin
 	Create table socios.usuario(
 		id_usuario int identity(1,1),
 		id_rol int,
-		contraseña varchar(40),
+		contraseña varchar(40) not null,
 		fecha_vigencia_contraseña date,
 		Constraint socios_usuario_PK_id_user Primary key(id_usuario),
 		Constraint socios_usuario_FK_id_rol Foreign Key(id_rol) References socios.rol(id_rol)

@@ -223,6 +223,10 @@ begin
 	begin
 		print 'No existe un rol con ese id.'
 	end
+	else if(@contraseña is null)
+	begin
+		print 'La contraseña no puede ser nula o vacia'
+	end
 	else if (CONVERT(date, GETDATE()) > @fecha_vigencia_contraseña)
 	begin
 		print 'La fecha de vigencia no puede ser anterior a la actual.'
@@ -245,6 +249,10 @@ begin
 					where id_usuario = @id_usuario)
 	begin
 		print 'No existe un usuario con ese id.'
+	end
+	else if(@contraseña is null)
+	begin
+		print 'La contraseña no puede ser nula o vacia'
 	end
 	else
 	begin

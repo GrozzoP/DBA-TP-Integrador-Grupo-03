@@ -33,7 +33,7 @@ Comision: 5600
 Numero de grupo: 03
 
 -Lazarte Ulises 42838702
--Maxi
+-Maximo Bertolin Graziano 46364320
 -Jordi Marcelo Pairo Albarez 41247253
 -Franco
 */

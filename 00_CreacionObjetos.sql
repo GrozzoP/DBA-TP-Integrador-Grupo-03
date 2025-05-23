@@ -34,7 +34,7 @@ Numero de grupo: 03
 
 -Lazarte Ulises 42838702
 -Maxi
--Jordi
+-Jordi Marcelo Pairo Albarez 41247253
 -Franco
 */
 

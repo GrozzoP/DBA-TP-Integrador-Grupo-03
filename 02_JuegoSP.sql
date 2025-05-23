@@ -492,7 +492,65 @@ exec actividades.modificar_precio_actividad 3, 99.5
 --Eliminando registros restantes de la prueba en la tabla
 exec eliminarYrestaurarTabla 'actividades.actividad'
 
-/*****	*****/
+/*****	actividades.insertar_actividad_extra(@nombreActividad varchar(36),@costo decimal(9,3))   *****/
+
+--Preparando tabla para pruebas
+exec eliminarYrestaurarTabla 'actividades.actividad_extra'
+
+--Se espera la insercion exitosa de los siguiente registros
+exec actividades.insertar_actividad_extra 'Pileta verano', 5.9 
+exec actividades.insertar_actividad_extra 'Colonia de verano', 99.5
+
+--Se espera mensaje 'El nombre de la actividad extra ya existe'
+exec actividades.insertar_actividad_extra 'Colonia de verano', 10.9
+
+--Se espera mensaje 'El costo de la actividad no puede ser negativo'
+exec actividades.insertar_actividad_extra 'Alquiler del SUM', -10.9
+
+--Eliminando registros restantes de la prueba en la tabla
+exec eliminarYrestaurarTabla 'actividades.actividad_extra'
+
+/*****	actividades.eliminar_actividad_extra(@id_actividad_extra int)	*****/
+
+--Preparando tabla para pruebas
+exec eliminarYrestaurarTabla 'actividades.actividad_extra'
+
+--Insertanto registros para la prueba
+exec actividades.insertar_actividad_extra 'Pileta verano', 5.9 
+exec actividades.insertar_actividad_extra 'Colonia de verano', 99.5
+
+--Se espera la eliminacion de los siguientes registros
+exec actividades.eliminar_actividad_extra 1
+exec actividades.eliminar_actividad_extra 2
+
+--Se espera mensaje 'La actividad extra a eliminar no existe'
+exec actividades.eliminar_actividad_extra 1
+exec actividades.eliminar_actividad_extra 3
+
+--Eliminando registros restantes de la prueba en la tabla
+exec eliminarYrestaurarTabla 'actividades.actividad_extra'
+
+/*****	actividades.modificar_precio_actividad_extra(@id_actividad_extra int, @nuevoPrecio decimal(9,3))	*****/
+
+--Preparando tabla para pruebas
+exec eliminarYrestaurarTabla 'actividades.actividad_extra'
+
+--Insertanto registros para la prueba
+exec actividades.insertar_actividad_extra 'Pileta vserano', 5.9 
+exec actividades.insertar_actividad_extra 'Colonia de verano', 99.5
+
+--Se espera la modificacion del costo de actividad_extra
+exec actividades.modificar_precio_actividad_extra 1, 5.5
+exec actividades.modificar_precio_actividad_extra 2, 6.5
+
+--Se espera mensaje 'El nuevo costo de actividad extra no puede ser negativo'
+exec actividades.modificar_precio_actividad_extra 1, -5.5
+
+--Se espera mensaje 'La actividad extra a modificar no existe'
+exec actividades.modificar_precio_actividad_extra 3, 5
+
+--Eliminando registros restantes de la prueba en la tabla
+exec eliminarYrestaurarTabla 'actividades.actividad_extra'
 
 /*
 use COM5600G03

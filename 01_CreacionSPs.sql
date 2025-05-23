@@ -692,6 +692,10 @@ begin
    )begin
        print 'El nombre de la actividad extra ya existe'
     end
+	else if @costo < 0
+	begin
+		print 'El costo de la actividad extra no puede ser negativa'
+	end
 	else
 	 begin
 	    insert into actividades.actividad_extra(nombre_actividad, costo)values(@nombreActividad, @costo)
@@ -728,9 +732,16 @@ begin
       select id_actividad from actividades.actividad_extra
 	  where id_actividad = @id_actividad_extra
    )begin
+	if @nuevoPrecio > 0
+	begin
        update actividades.actividad_extra
 	   set costo = @nuevoPrecio
 	   where id_actividad = @id_actividad_extra
+	end
+	else
+	begin
+		print 'El nuevo costo de actividad extra no puede ser negativo'
+	end
     end
 	else
 	 begin

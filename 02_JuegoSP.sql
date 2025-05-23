@@ -1,7 +1,7 @@
 /*
-Todos los SP creados deben estar acompañados de juegos de prueba. Se espera que 
-realicen validaciones básicas en los SP (p/e cantidad mayor a cero, CUIT válido, etc.) y que 
-en los juegos de prueba demuestren la correcta aplicación de las validaciones. 
+Todos los SP creados deben estar acompaÃ±ados de juegos de prueba. Se espera que 
+realicen validaciones bÃ¡sicas en los SP (p/e cantidad mayor a cero, CUIT vÃ¡lido, etc.) y que 
+en los juegos de prueba demuestren la correcta aplicaciÃ³n de las validaciones. 
 Las pruebas deben realizarse en un script separado, donde con comentarios se indique en 
 cada caso el resultado esperado 
 */
@@ -88,8 +88,8 @@ exec eliminarYrestaurarTabla 'socios.rol'
 
 /*****	socios.insertarUsuario
 						@id_rol int,
-						@contraseña varchar(40),
-						@fecha_vigencia_contraseña date	*****/
+						@contraseÃ±a varchar(40),
+						@fecha_vigencia_contraseÃ±a date	*****/
 
 --Preparando tabla para pruebas
 exec eliminarYrestaurarTabla 'socios.usuario'
@@ -102,26 +102,26 @@ exec socios.insertarRol 'c', 'c'
 
 --Se espera la insercion exitosa de los sig usuarios con roles asignados validos
 declare @fechaDePrueba date = GETDATE();
-exec socios.insertarUsuario 1, 'contraseñaDeUsuario1', @fechaDePrueba
-exec socios.insertarUsuario 2, 'contraseñaDeUsuario2', @fechaDePrueba
-exec socios.insertarUsuario 3, 'contraseñaDeUsuario3', @fechaDePrueba
-exec socios.insertarUsuario 3, 'contraseñaDeUsuario4', @fechaDePrueba
+exec socios.insertarUsuario 1, 'contraseÃ±aDeUsuario1', @fechaDePrueba
+exec socios.insertarUsuario 2, 'contraseÃ±aDeUsuario2', @fechaDePrueba
+exec socios.insertarUsuario 3, 'contraseÃ±aDeUsuario3', @fechaDePrueba
+exec socios.insertarUsuario 3, 'contraseÃ±aDeUsuario4', @fechaDePrueba
 --Se espera el mensaje 'No existe un rol con ese id.'
-exec socios.insertarUsuario 4, 'contraseñaDeUsuario5', @fechaDePrueba
+exec socios.insertarUsuario 4, 'contraseÃ±aDeUsuario5', @fechaDePrueba
 
 --Se espera el mensaje 'La fecha de vigencia no puede ser anterior a la actual.'
 set @fechaDePrueba = DATEADD(DAY, -5, @fechaDePrueba)
-exec socios.insertarUsuario 3, 'contraseñaDeUsuario5', @fechaDePrueba
+exec socios.insertarUsuario 3, 'contraseÃ±aDeUsuario5', @fechaDePrueba
 
 --Se espera la insercion exitosa del sig registro
-exec socios.insertarUsuario 3, 'contraseñaDeUsuario6', NULL
+exec socios.insertarUsuario 3, 'contraseÃ±aDeUsuario6', NULL
 
 --Eliminando registros restantes de la prueba en la tabla
 exec eliminarYrestaurarTabla 'socios.usuario'
 exec eliminarYrestaurarTabla 'socios.rol'
 go
 
-/*****	socios.modificarContraseñaUsuario @id_usuario int, @contraseña varchar(40) *****/
+/*****	socios.modificarContraseÃ±aUsuario @id_usuario int, @contraseÃ±a varchar(40) *****/
 
 --Preparando tabla para pruebas
 exec eliminarYrestaurarTabla 'socios.usuario'
@@ -134,28 +134,28 @@ exec socios.insertarRol 'Administrador', 'Supervisar operaciones diarias'
 
 DECLARE @fechaDePrueba date = GETDATE();
 
-exec socios.insertarUsuario 1, 'contraseñaOriginalDeUsuario1', @fechaDePrueba
-exec socios.insertarUsuario 2, 'contraseñaOriginalDeUsuario2', @fechaDePrueba
-exec socios.insertarUsuario 3, 'contraseñaOriginalDeUsuario3', @fechaDePrueba
-exec socios.insertarUsuario 3, 'contraseñaOriginalDeUsuario4', @fechaDePrueba
+exec socios.insertarUsuario 1, 'contraseÃ±aOriginalDeUsuario1', @fechaDePrueba
+exec socios.insertarUsuario 2, 'contraseÃ±aOriginalDeUsuario2', @fechaDePrueba
+exec socios.insertarUsuario 3, 'contraseÃ±aOriginalDeUsuario3', @fechaDePrueba
+exec socios.insertarUsuario 3, 'contraseÃ±aOriginalDeUsuario4', @fechaDePrueba
 
---Se espera la modificacion exitosa de la contraseña
-exec socios.modificarContraseñaUsuario 1, 'contraseñaModificadaDeUsuario1'
-exec socios.modificarContraseñaUsuario 2, 'contraseñaModificadaDeUsuario2'
-exec socios.modificarContraseñaUsuario 3, 'contraseñaModificadaDeUsuario3'
-exec socios.modificarContraseñaUsuario 4, 'contraseñaModificadaDeUsuario4'
-exec socios.modificarContraseñaUsuario 4, ''
-exec socios.modificarContraseñaUsuario 4, NULL
+--Se espera la modificacion exitosa de la contraseÃ±a
+exec socios.modificarContraseÃ±aUsuario 1, 'contraseÃ±aModificadaDeUsuario1'
+exec socios.modificarContraseÃ±aUsuario 2, 'contraseÃ±aModificadaDeUsuario2'
+exec socios.modificarContraseÃ±aUsuario 3, 'contraseÃ±aModificadaDeUsuario3'
+exec socios.modificarContraseÃ±aUsuario 4, 'contraseÃ±aModificadaDeUsuario4'
+exec socios.modificarContraseÃ±aUsuario 4, ''
+exec socios.modificarContraseÃ±aUsuario 4, NULL
 
 --Se espera mensaje 'No existe un usuario con ese id.'
-exec socios.modificarContraseñaUsuario 5, 'contraseñaModificadaDeUsuario5'
+exec socios.modificarContraseÃ±aUsuario 5, 'contraseÃ±aModificadaDeUsuario5'
 
 --Eliminando registros restantes de la prueba en la tabla
 exec eliminarYrestaurarTabla 'socios.usuario'
 exec eliminarYrestaurarTabla 'socios.rol'
 go
 
-/*****	socios.modificarFechaVigenciaUsuario @id_usuario int, @fecha_vigencia_contraseña date *****/
+/*****	socios.modificarFechaVigenciaUsuario @id_usuario int, @fecha_vigencia_contraseÃ±a date *****/
 
 --Preparando tabla para pruebas
 exec eliminarYrestaurarTabla 'socios.usuario'
@@ -169,15 +169,15 @@ exec socios.insertarRol 'Moderador', 'Modera usuarios'
 declare @fechaDePrueba date = GETDATE();
 declare @fechaDePruebaModificada date;
 
-exec socios.insertarUsuario 1, 'contraseñaDeUsuario1', @fechaDePrueba
-exec socios.insertarUsuario 2, 'contraseñaDeUsuario2', @fechaDePrueba
-exec socios.insertarUsuario 3, 'contraseñaDeUsuario3', @fechaDePrueba
-exec socios.insertarUsuario 3, 'contraseñaDeUsuario4', @fechaDePrueba
+exec socios.insertarUsuario 1, 'contraseÃ±aDeUsuario1', @fechaDePrueba
+exec socios.insertarUsuario 2, 'contraseÃ±aDeUsuario2', @fechaDePrueba
+exec socios.insertarUsuario 3, 'contraseÃ±aDeUsuario3', @fechaDePrueba
+exec socios.insertarUsuario 3, 'contraseÃ±aDeUsuario4', @fechaDePrueba
 
---Se espera mensaje 'La fecha de vigencia no puede ser anterior a la actual' si fecha_vigencia_contraseña nueva es igual al original
+--Se espera mensaje 'La fecha de vigencia no puede ser anterior a la actual' si fecha_vigencia_contraseÃ±a nueva es igual al original
 exec socios.modificarFechaVigenciaUsuario 1, @fechaDePrueba
 
---Se espera la modificacion exitosa de la fecha_vigencia_contraseña
+--Se espera la modificacion exitosa de la fecha_vigencia_contraseÃ±a
 set @fechaDePruebaModificada = DATEADD(DAY, 1, @fechaDePrueba)
 exec socios.modificarFechaVigenciaUsuario 1, @fechaDePruebaModificada
 exec socios.modificarFechaVigenciaUsuario 2, @fechaDePruebaModificada
@@ -210,10 +210,10 @@ exec socios.insertarRol 'Moderador', 'Modera usuarios'
 
 declare @fechaDePrueba date = GETDATE();
 
-exec socios.insertarUsuario 1, 'contraseñaDeUsuario1', @fechaDePrueba
-exec socios.insertarUsuario 2, 'contraseñaDeUsuario2', @fechaDePrueba
-exec socios.insertarUsuario 3, 'contraseñaDeUsuario3', @fechaDePrueba
-exec socios.insertarUsuario 3, 'contraseñaDeUsuario4', @fechaDePrueba
+exec socios.insertarUsuario 1, 'contraseÃ±aDeUsuario1', @fechaDePrueba
+exec socios.insertarUsuario 2, 'contraseÃ±aDeUsuario2', @fechaDePrueba
+exec socios.insertarUsuario 3, 'contraseÃ±aDeUsuario3', @fechaDePrueba
+exec socios.insertarUsuario 3, 'contraseÃ±aDeUsuario4', @fechaDePrueba
 
 --Se espera mensaje 'No existe un usuario con ese id.'
 exec socios.eliminarUsuario -1
@@ -319,7 +319,7 @@ exec socios.insertarCategoria 'Menor', 1, 18, 9.69
 exec socios.insertarCategoria 'Cadete', 19, 27, 1.01
 exec socios.insertarCategoria 'Mayor', 28, 35, 0
 
---Se espera mensaje 'Ya existe una categoría con ese nombre.'
+--Se espera mensaje 'Ya existe una categorÃ­a con ese nombre.'
 exec socios.insertarCategoria 'Menor', 1, 18, 10.50
 
 --Se espera mensaje 'Es incoherente que la edad minima sea mayor o igual que la maxima.'
@@ -342,14 +342,14 @@ exec socios.insertarCategoria 'Menor', 1, 18, 9.69
 exec socios.insertarCategoria 'Cadete', 19, 27, 1.01
 exec socios.insertarCategoria 'Mayor', 28, 35, 0
 
---Se espera la modificacion del valor de costo_membresía
+--Se espera la modificacion del valor de costo_membresÃ­a
 exec socios.modificarCostoCategoria 'Menor', 10.99
 exec socios.modificarCostoCategoria 'Cadete', 20.99
 
 --Se espera mensaje 'El nuevo costo de la membresia no puede ser negativo.'
 exec socios.modificarCostoCategoria 'Menor', -5.66
 
---Se espera mensaje 'No existe una categoría con ese nombre.'
+--Se espera mensaje 'No existe una categorÃ­a con ese nombre.'
 exec socios.modificarCostoCategoria 'Sargento', 10.69
 
 --Eliminando registros restantes de la prueba en la tabla
@@ -370,7 +370,7 @@ exec socios.eliminarCategoria 'Menor'
 exec socios.eliminarCategoria 'Cadete'
 exec socios.eliminarCategoria 'Mayor'
 
---Se espera mensaje 'No existe una categoría con ese nombre.'
+--Se espera mensaje 'No existe una categorÃ­a con ese nombre.'
 exec socios.eliminarCategoria 'Sargento'
 
 --Eliminando registros restantes de la prueba en la tabla
@@ -407,22 +407,22 @@ exec facturacion.crearMedioPago 'Visa', 1
 
 --Se espera la insercion exitosa de los siguientes registros
 exec socios.insertarSocio 41247252, 'Pepe', 'Grillo' , 'pGrillo@gmail.com', '1999-01-19', 11223344, 55667788, 1, 1, 1, 1
-exec socios.insertarSocio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', 55667788, 11223344, 2, 2, 1, 1
+exec socios.insertarSocio 41247253, 'Armando', 'Paredes' , 'albaÃ±ilParedes@gmail.com', '1990-01-19', 55667788, 11223344, 2, 2, 1, 1
 
 --Se espera mensaje 'Ya existe un socio con ese dni.'
-exec socios.insertarSocio 41247253, 'Armando', 'Losas' , 'albañilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 1, 3, 3, 1
+exec socios.insertarSocio 41247253, 'Armando', 'Losas' , 'albaÃ±ilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 1, 3, 3, 1
 
 --Se espera mensaje 'No existe una obra social con ese id.'
-exec socios.insertarSocio 41247254, 'Armando', 'Losas' , 'albañilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 4, 3, 3, 1
+exec socios.insertarSocio 41247254, 'Armando', 'Losas' , 'albaÃ±ilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 4, 3, 3, 1
 
 --Se espera mensaje 'No existe una categoria con ese id.'
-exec socios.insertarSocio 41247254, 'Armando', 'Losas' , 'albañilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 2, 4, 3, 1
+exec socios.insertarSocio 41247254, 'Armando', 'Losas' , 'albaÃ±ilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 2, 4, 3, 1
 
 --Se espera mensaje 'No existe un medio de pago con esa id.'
-exec socios.insertarSocio 41247254, 'Armando', 'Losas' , 'albañilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 2, 4, 3, 2
+exec socios.insertarSocio 41247254, 'Armando', 'Losas' , 'albaÃ±ilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 2, 4, 3, 2
 
 --Se espera mensaje 'No existe un usuario con esa id.'
-exec socios.insertarSocio 41247254, 'Armando', 'Losas' , 'albañilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 2, 3, 4, 1
+exec socios.insertarSocio 41247254, 'Armando', 'Losas' , 'albaÃ±ilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 2, 3, 4, 1
 
 --Eliminando registros restantes de la prueba en la tabla
 exec eliminarYrestaurarTabla 'socios.socio'
@@ -551,6 +551,115 @@ exec actividades.modificar_precio_actividad_extra 3, 5
 
 --Eliminando registros restantes de la prueba en la tabla
 exec eliminarYrestaurarTabla 'actividades.actividad_extra'
+
+/****actividades.insertar_horario_actividad****/
+
+--Preparando tablas para la prueba
+exec eliminarYrestaurarTabla 'actividades.horario_actividades'
+go
+exec eliminarYrestaurarTabla 'actividades.actividad'
+exec eliminarYrestaurarTabla 'socios.categoria'
+
+
+--insertando registros para la prueba
+exec socios.insertarCategoria 'Menor', 10, 14, 20000
+exec socios.insertarCategoria 'Cadete', 15, 18, 22000
+exec actividades.insertar_actividad 'futbol', 10000
+exec actividades.insertar_actividad 'voley', 10000
+exec actividades.insertar_actividad 'tenis', 13000
+
+--se espera la insercion exitosa de los siguientes registros
+exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 1
+exec actividades.insertar_horario_actividad 'Martes', '19:00:00', '20:00:00', 2, 2
+exec actividades.insertar_horario_actividad 'Jueves', '18:00:00', '19:30:00', 3, 2
+
+--Se espera un mensaje de 'El dia no es correcto'
+exec actividades.insertar_horario_actividad 'Noviembre', '18:00:00', '19:30:00', 3, 1
+
+--Se espera un mensaje de 'no se encontro la actividad con ese id'
+exec actividades.insertar_horario_actividad 'Sabado', '18:00:00', '19:30:00', 8, 2
+
+--Se espera un mensaje de 'no se encontro la categoria con ese id'
+exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 10
+
+--Eliminando registros restantes de la tabla de pruebas
+exec eliminarYrestaurarTabla 'actividades.horario_actividades'
+go
+exec eliminarYrestaurarTabla 'actividades.actividad'
+exec eliminarYrestaurarTabla 'socios.categoria'
+
+
+/*****actividades.eliminar_horario_actividad(@id_horario int)****/
+--Preparando tablas para la prueba
+exec eliminarYrestaurarTabla 'actividades.horario_actividades'
+go
+exec eliminarYrestaurarTabla 'actividades.actividad'
+exec eliminarYrestaurarTabla 'socios.categoria'
+
+
+--insertando registros para la prueba
+exec socios.insertarCategoria 'Menor', 10, 14, 20000
+exec socios.insertarCategoria 'Cadete', 15, 18, 22000
+exec actividades.insertar_actividad 'futbol', 10000
+exec actividades.insertar_actividad 'voley', 10000
+exec actividades.insertar_actividad 'tenis', 13000
+
+--se espera la insercion exitosa de los siguientes registros
+exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 1
+exec actividades.insertar_horario_actividad 'Martes', '19:00:00', '20:00:00', 2, 2
+exec actividades.insertar_horario_actividad 'Jueves', '18:00:00', '19:30:00', 3, 2
+
+--Se espera la eliminacion exitosa de los siguientes registros
+exec actividades.eliminar_horario_actividad 1
+exec actividades.eliminar_horario_actividad 2
+exec actividades.eliminar_horario_actividad 3
+
+--Se espera un mensaje de 'No existe una actividad con ese id'
+exec actividades.eliminar_horario_actividad 1
+exec actividades.eliminar_horario_actividad 7
+
+--Eliminando registros restantes de la tabla de pruebas
+exec eliminarYrestaurarTabla 'actividades.horario_actividades'
+go
+exec eliminarYrestaurarTabla 'actividades.actividad'
+exec eliminarYrestaurarTabla 'socios.categoria'
+
+/*****actividades.modificar_horario_actividad*****/
+--Preparando tablas para la prueba
+exec eliminarYrestaurarTabla 'actividades.horario_actividades'
+go
+exec eliminarYrestaurarTabla 'actividades.actividad'
+exec eliminarYrestaurarTabla 'socios.categoria'
+
+
+--insertando registros para la prueba
+exec socios.insertarCategoria 'Menor', 10, 14, 20000
+exec socios.insertarCategoria 'Cadete', 15, 18, 22000
+exec actividades.insertar_actividad 'futbol', 10000
+exec actividades.insertar_actividad 'voley', 10000
+exec actividades.insertar_actividad 'tenis', 13000
+
+--se espera la insercion exitosa de los siguientes registros
+exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 1
+exec actividades.insertar_horario_actividad 'Martes', '19:00:00', '20:00:00', 2, 2
+exec actividades.insertar_horario_actividad 'Jueves', '18:00:00', '19:30:00', 3, 2
+
+--Se espera la modificacion exitosa de los siguientes registros
+exec actividades.modificar_horario_actividad 1, 'Miercoles', '18:00:00', '19:30:00', 1, 1
+exec actividades.modificar_horario_actividad 2, 'Martes', '18:30:00', '20:00:00', 2, 2
+exec actividades.modificar_horario_actividad 3, 'Jueves', '18:00:00', '19:15:00', 3, 2
+
+--Se espera un mensaje de 'El dia no es correcto'
+exec actividades.modificar_horario_actividad 3, 'Enero', '18:00:00', '19:15:00', 3, 2
+
+--Se espera un mensaje de 'No se encontro la categoria con ese id'
+exec actividades.modificar_horario_actividad 1, 'Miercoles', '18:00:00', '19:30:00', 1, 10
+
+--Se espera un mensaje de 'No se encontro la actividad con ese id'
+exec actividades.modificar_horario_actividad 2, 'Miercoles', '18:00:00', '19:30:00', 19, 1
+
+--Se espera un mensaje de 'No se encontro horario con ese id'
+exec actividades.modificar_horario_actividad 9, 'Miercoles', '18:00:00', '19:30:00', 1, 1
 
 /*
 use COM5600G03

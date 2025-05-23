@@ -4,6 +4,17 @@ realicen validaciones básicas en los SP (p/e cantidad mayor a cero, CUIT válid
 en los juegos de prueba demuestren la correcta aplicación de las validaciones. 
 Las pruebas deben realizarse en un script separado, donde con comentarios se indique en 
 cada caso el resultado esperado 
+
+    BASE DE DATOS APLICADAS
+
+Fecha de entrega: 23-05-2025
+Comision: 5600
+Numero de grupo: 03
+
+-Lazarte Ulises 42838702
+-Maximo Bertolin Graziano 46364320
+-Jordi Marcelo Pairo Albarez 41247253
+-Franco Agustin Grosso 46024348
 */
 
 Use COM5600G03

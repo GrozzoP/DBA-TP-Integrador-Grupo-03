@@ -7,7 +7,20 @@ transacciones, etc. Puede que incluso realicen ciertas operaciones mediante vari
 Asegúrense de que los comentarios que acompañen al código lo expliquen. 
 Genere esquemas para organizar de forma lógica los componentes del sistema y aplique esto 
 en la creación de objetos. NO use el esquema “dbo”.  
+
+    BASE DE DATOS APLICADAS
+
+Fecha de entrega: 23-05-2025
+Comision: 5600
+Numero de grupo: 03
+
+-Lazarte Ulises 42838702
+-Maximo Bertolin Graziano 46364320
+-Jordi Marcelo Pairo Albarez 41247253
+-Franco Agustin Grosso 46024348
 */
+
+
 
 Use COM5600G03
 go

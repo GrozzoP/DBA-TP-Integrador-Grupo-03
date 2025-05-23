@@ -1062,7 +1062,7 @@ begin
 		print 'La inscripcion a eliminar no existe'
 	end
 end
-
+go
 ---Procedimiento para inscripcion a actividad extra
 create or alter procedure actividades.inscripcion_actividad_extra
 (@id_socio int, @id_actividad_extra int, @fecha date, @hora_inicio time, @hora_fin time, @cant_invitados int)
@@ -1128,7 +1128,7 @@ begin
 		print 'La inscripcion extra a eliminar no existe'
 	end
 end
-					
+go					
 --Procedimiento para pagar una factura
 create or alter procedure facturacion.pago_factura(
 		@id_factura int,

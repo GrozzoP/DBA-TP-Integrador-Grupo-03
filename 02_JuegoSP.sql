@@ -432,6 +432,68 @@ exec eliminarYrestaurarTabla 'socios.usuario'
 exec eliminarYrestaurarTabla 'socios.rol'
 exec eliminarYrestaurarTabla 'facturacion.medio_de_pago'
 
+/*****	actividades.insertar_actividad(@nombreActividad varchar(36),@costoMensual decimal(9,3))	*****/
+
+--Preparando tabla para pruebas
+exec eliminarYrestaurarTabla 'actividades.actividad'
+
+--Se espera la insercion exitosa de los siguientes registros
+exec actividades.insertar_actividad 'Voley', 2.9
+exec actividades.insertar_actividad 'Baile', 9999.5
+
+--Se espera mensaje 'El costo de actividad no debe ser negativo'
+exec actividades.insertar_actividad 'Futbol', -1.5
+
+--Se espera mensaje 'El nombre de la actividad extra ya existe'
+exec actividades.insertar_actividad 'Baile', 1000
+exec actividades.insertar_actividad 'Voley', 2.9
+
+--Eliminando registros restantes de la prueba en la tabla
+exec eliminarYrestaurarTabla 'actividades.actividad'
+
+/*****	actividades.eliminar_actividad(@id_actividad int)	*****/
+
+--Preparando tabla para pruebas
+exec eliminarYrestaurarTabla 'actividades.actividad'
+
+--Insertanto registros para la prueba
+exec actividades.insertar_actividad 'Voley', 2.9
+exec actividades.insertar_actividad 'Baile', 9999.5
+
+--Se espera la eliminacion de los siguiente registros
+exec actividades.eliminar_actividad 1
+exec actividades.eliminar_actividad 2
+
+--Se espera mensaje 'La actividad a eliminar no existe'
+exec actividades.eliminar_actividad 1
+exec actividades.eliminar_actividad 3
+
+--Eliminando registros restantes de la prueba en la tabla
+exec eliminarYrestaurarTabla 'actividades.actividad'
+
+/*****	actividades.modificar_precio_actividad(@id_actividad int, @nuevoPrecio decimal(9,3))	*****/
+
+--Preparando tabla para pruebas
+exec eliminarYrestaurarTabla 'actividades.actividad'
+
+--Insertanto registros para la prueba
+exec actividades.insertar_actividad 'Voley', 2.9
+exec actividades.insertar_actividad 'Baile', 9999.5
+
+--Se espera la modificacion del costo de actividad de los siguientes registros
+exec actividades.modificar_precio_actividad 1, 5.3
+exec actividades.modificar_precio_actividad 2, 3.3
+--Se espera mensaje 'El nuevo costo de actividad no puede ser negativa'
+exec actividades.modificar_precio_actividad 1, -5.3
+
+--Se espera mensaje 'La actividad a modificar no existe'
+exec actividades.modificar_precio_actividad 3, 99.5
+
+--Eliminando registros restantes de la prueba en la tabla
+exec eliminarYrestaurarTabla 'actividades.actividad'
+
+/*****	*****/
+
 /*
 use COM5600G03
 go

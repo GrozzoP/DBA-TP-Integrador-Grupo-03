@@ -626,6 +626,10 @@ begin
    )begin
        print 'El nombre de la actividad ya existe'
     end
+	else if(@costoMensual < 0)
+	begin
+		print 'El costo de actividad no debe ser negativo'
+	end
 	else
 	 begin
 	    insert into actividades.actividad(nombre_actividad, costo_mensual)values(@nombreActividad, @costoMensual)
@@ -662,12 +666,17 @@ begin
       select id_actividad from actividades.actividad
 	  where id_actividad = @id_actividad
    )begin
-       update actividades.actividad
-	   set costo_mensual = @nuevoPrecio
-	   where id_actividad = @id_actividad
-    end
-	else
-	 begin
+		if @nuevoPrecio > 0
+		begin
+		update actividades.actividad
+	    set costo_mensual = @nuevoPrecio
+	    where id_actividad = @id_actividad
+		end
+		else
+			print 'El nuevo costo de actividad no puede ser negativa'
+   end
+   else
+   begin
 	    print 'La actividad a modificar no existe'
 	 end
 end

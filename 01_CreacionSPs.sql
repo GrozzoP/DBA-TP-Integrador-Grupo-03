@@ -1,12 +1,12 @@
-/*
-Genere store procedures para manejar la inserciÛn, modificado, borrado (si corresponde, 
-tambiÈn debe decidir si determinadas entidades solo admitir·n borrado lÛgico) de cada tabla. 
-Los nombres de los store procedures NO deben comenzar con ìSPî.  
-Algunas operaciones implicar·n store procedures que involucran varias tablas, uso de 
+Ôªø/*
+Genere store procedures para manejar la inserci√≥n, modificado, borrado (si corresponde, 
+tambi√©n debe decidir si determinadas entidades solo admitir√°n borrado l√≥gico) de cada tabla. 
+Los nombres de los store procedures NO deben comenzar con ‚ÄúSP‚Äù.  
+Algunas operaciones implicar√°n store procedures que involucran varias tablas, uso de 
 transacciones, etc. Puede que incluso realicen ciertas operaciones mediante varios SPs. 
-Aseg˙rense de que los comentarios que acompaÒen al cÛdigo lo expliquen. 
-Genere esquemas para organizar de forma lÛgica los componentes del sistema y aplique esto 
-en la creaciÛn de objetos. NO use el esquema ìdboî.  
+Aseg√∫rense de que los comentarios que acompa√±en al c√≥digo lo expliquen. 
+Genere esquemas para organizar de forma l√≥gica los componentes del sistema y aplique esto 
+en la creaci√≥n de objetos. NO use el esquema ‚Äúdbo‚Äù.  
 */
 
 Use COM5600G03
@@ -14,7 +14,7 @@ go
 
 -- ROL
 -- Procedimiento para insertar un rol
-create or alter procedure socios.insertarRol(@nombre_rol varchar(20), @descripcion_rol varchar(50))
+create or alter procedure socios.insertar_rol(@nombre_rol varchar(20), @descripcion_rol varchar(50))
 as
 begin
 	if exists(select 1 from socios.rol 
@@ -30,7 +30,7 @@ end
 go
 
 -- Procedimiento para modificar un rol
-create or alter procedure socios.modificarRol(@nombre_rol varchar(20), @nueva_descripcion_rol varchar(50))
+create or alter procedure socios.modificar_rol(@nombre_rol varchar(20), @nueva_descripcion_rol varchar(50))
 as
 begin
 	if not exists(select 1 from socios.rol 
@@ -48,7 +48,7 @@ end
 go
 
 -- Procedimiento para eliminar un rol de la tabla
-create or alter procedure socios.eliminarRol(@nombre_rol varchar(20))
+create or alter procedure socios.eliminar_rol(@nombre_rol varchar(20))
 as
 begin
 	if not exists(select 1 from socios.rol 
@@ -66,7 +66,7 @@ go
 
 -- MEDIO DE PAGO
 -- Procedimiento para insertar un medio de pago
-create or alter procedure facturacion.crearMedioPago(@nombre_medio_de_pago varchar(40), @permite_debito_automatico BIT)
+create or alter procedure facturacion.insertar_medio_de_pago(@nombre_medio_de_pago varchar(40), @permite_debito_automatico BIT)
 as
 begin
 	if exists(select 1 from facturacion.medio_de_pago
@@ -83,7 +83,7 @@ end
 go
 
 -- Procedimiento para modificar un medio de pago
-create or alter procedure facturacion.modificarMedioPago(@nombre_medio_de_pago varchar(40))
+create or alter procedure facturacion.modificar_medio_de_pago(@nombre_medio_de_pago varchar(40))
 as
 begin
 	if not exists(select 1 from facturacion.medio_de_pago
@@ -103,7 +103,7 @@ end
 go
 
 -- Procedimiento para eliminar un medio de pago en la tabla
-create or alter procedure facturacion.eliminarMedioPago(@nombre_medio_de_pago varchar(40))
+create or alter procedure facturacion.eliminar_medio_de_pago(@nombre_medio_de_pago varchar(40))
 as
 begin
 	if not exists(select 1 from facturacion.medio_de_pago
@@ -120,8 +120,66 @@ end
 go
 
 -- SOCIO
+-- Funcion para crear una contrase√±a aleatoria para la cuenta del socio
+
+-- Creo esta vista para poseer un valor aleatorio que me sea util para generar la contrase√±a
+create or alter view vRandom
+as
+select valor_aleatorio = CRYPT_GEN_RANDOM(1000)
+go
+
+-- Crear funcion para generar contrase√±a de manera aleatoria
+create or alter function socios.generar_contrase√±a_aleatoria(
+	@longitud int
+)
+returns varchar(1000) as
+begin
+    declare @caracteres varchar(100),
+			@index int,
+			@password varchar(8000),
+			@indice_random int,
+			@maximo int,
+			@valor_random tinyint,
+			@bytes varbinary(1000)
+
+	-- Almaceno en una varaible todos los caracteres que me interesan para conformar la contrase√±a
+    set @caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+					+ 'abcdefghijklmnopqrstuvwxyz'
+                    + '0123456789'
+                    + '!@#$%?'
+
+	-- Seteo el valor de la contrase√±a en una cadena vacia
+    set @password = '';
+
+	-- Que el indice empiece en 0
+	set @index = 0
+
+	-- Me marca hasta donde puedo acceder en la cadena @caracteres
+	set @maximo = len(@caracteres)
+
+	-- Elegir el valor aleatorio que retorno el CRYPT_GEN_RANDOM
+	select @bytes = valor_aleatorio from vRandom
+
+	-- Bucle para generar la contrase√±a de manera aleatoria
+    while @index < @longitud
+    begin
+		-- Como no se puede usar NEWID() en una funcion, genero un numero aleatorio en base a crypt_gen_random
+		set @valor_random = cast(substring(@bytes, @index, 1) as tinyint)
+
+		-- Elijo un indice que este entre los caracteres de la variable @caracteres
+        set @indice_random = (@valor_random % @maximo) + 1;
+
+		--  Concateno el caracter encontrado con la contrase√±a
+        set @password += substring(@caracteres, @indice_random, 1);
+        set @index  += 1;
+    end
+
+    return @password;
+end
+go
+
 -- Procedimiento para insertar un socio
-create or alter procedure socios.insertarSocio
+create or alter procedure socios.insertar_socio
 	@dni int,
 	@nombre varchar(40),
 	@apellido varchar(40),
@@ -131,8 +189,8 @@ create or alter procedure socios.insertarSocio
 	@telefono_emergencia int,
 	@id_obra_social int,
 	@id_categoria int,
-	@id_usuario int,
-	@id_medio_de_pago int
+	@id_medio_de_pago int,
+	@id_rol int
 as
 begin
 	if exists (select 1 from socios.socio 
@@ -155,6 +213,13 @@ begin
 		print 'No existe una categoria con ese id.'
 	end
 
+	-- Buscar si existe id_rol
+	else if not exists (select 1 from socios.rol 
+					where id_rol = @id_rol)
+	begin
+		print 'No existe un rol con ese id.'
+	end
+
 	-- Buscar si existe id_medio_de_pago
 	else if not exists (select 1 from facturacion.medio_de_pago 
 					where id_medio_de_pago = @id_medio_de_pago)
@@ -162,26 +227,35 @@ begin
 		print 'No existe un medio de pago con esa id.'
 	end
 
-	-- Buscar si existe id_usuario
-	else if not exists (select 1 from socios.usuario
-					where id_usuario = @id_usuario)
-	begin
-		print 'No existe un usuario con esa id.'
-	end
-
 	else
 	begin
-		insert into socios.socio
-		(dni, nombre, apellido, email, fecha_nacimiento, telefono_contacto, telefono_emergencia, habilitado,
+		declare @usuario varchar(83),
+				@contrase√±a varchar(16),
+				@id_usuario int
+
+		 -- Generar un usuario y una contrase√±a de manera automatica
+		 set @usuario = @nombre + '_' + @apellido + CAST(RIGHT(@dni, 2) as varchar)
+		 select @contrase√±a = socios.generar_contrase√±a_aleatoria(16)
+
+		 -- Enviar al mail esta informacion (usuario, contrase√±a)
+		 insert into socios.usuario (usuario, contrase√±a, fecha_vigencia_contrase√±a, id_rol)
+		 values (@usuario, @contrase√±a,  DATEADD(DAY, 7, GETDATE()), @id_rol)
+
+		 -- Insertar el socio teniendo en cuenta la creacion del usuario
+		 select @id_usuario = id_usuario from socios.usuario where usuario = @usuario
+	
+		 insert into socios.socio
+		 (dni, nombre, apellido, email, fecha_nacimiento, telefono_contacto, telefono_emergencia, habilitado,
 		 id_obra_social, id_categoria, id_usuario, id_medio_de_pago)
-		values (@dni, @nombre, @apellido, @email, @fecha_nacimiento, @telefono_contacto, @telefono_emergencia, 1,
+		 values (@dni, @nombre, @apellido, @email, @fecha_nacimiento, @telefono_contacto, @telefono_emergencia, 'HABILITADO',
 		 @id_obra_social, @id_categoria, @id_usuario, @id_medio_de_pago)
+		 print 'Se ha creado de manera automatica una cuenta para que disfrutes de los servicios de los socios!'
 	end
 end
 go
 
 -- Procedimiento para modiifcar un socio
-create or alter procedure socios.modificarHabilitarSocio
+create or alter procedure socios.modificar_habilitar_socio
 	@id_socio int
 as
 begin
@@ -192,17 +266,19 @@ begin
 	end
 	else
 	begin
-		/* Como tenemos un campo de 'bit' y solo tiene dos valores posibles, si lo quiero modificar, simplemente
-		   niego el bit actual vinculado con el habilitar */
 		update socios.socio
-		set habilitado = ~habilitado
+		set habilitado =
+			case
+				when habilitado = 'HABILITADO' THEN 'NO HABILITADO'
+				else 'HABILITADO'
+			end
 		where id_socio = @id_socio
 	end
 end
 go
 
 -- Procedimiento para eliminar un socio (mediante borrado logico)
-create or alter procedure socios.eliminarSocio
+create or alter procedure socios.eliminar_socio
 	@DNI int
 as
 begin
@@ -222,10 +298,10 @@ go
 
 -- USUARIO
 -- Procedimiento para insertar un usuario
-create or alter procedure socios.insertarUsuario
+create or alter procedure socios.insertar_usuario
 	@id_rol int,
-	@contraseÒa varchar(40),
-	@fecha_vigencia_contraseÒa date
+	@contrase√±a varchar(40),
+	@fecha_vigencia_contrase√±a date
 as
 begin
 	
@@ -234,26 +310,26 @@ begin
 	begin
 		print 'No existe un rol con ese id.'
 	end
-	else if(@contraseÒa is null)
+	else if(@contrase√±a is null)
 	begin
-		print 'La contraseÒa no puede ser nula o vacia'
+		print 'La contrase√±a no puede ser nula o vacia'
 	end
-	else if (CONVERT(date, GETDATE()) > @fecha_vigencia_contraseÒa)
+	else if (CONVERT(date, GETDATE()) > @fecha_vigencia_contrase√±a)
 	begin
 		print 'La fecha de vigencia no puede ser anterior a la actual.'
 	end
 	else
 	begin
-		insert into socios.usuario(id_rol, contraseÒa, fecha_vigencia_contraseÒa)
-		values (@id_rol, @contraseÒa, @fecha_vigencia_contraseÒa)
+		insert into socios.usuario(id_rol, contrase√±a, fecha_vigencia_contrase√±a)
+		values (@id_rol, @contrase√±a, @fecha_vigencia_contrase√±a)
 	end
 end
 go
 
--- Procedimiento para modificar la contraseÒa del usuario
-create or alter procedure socios.modificarContraseÒaUsuario
+-- Procedimiento para modificar la contrase√±a del usuario
+create or alter procedure socios.modificar_contrase√±a_usuario
 	@id_usuario int,
-	@contraseÒa varchar(40)
+	@contrase√±a varchar(40)
 as
 begin
 	if not exists (select 1 from socios.usuario 
@@ -261,23 +337,23 @@ begin
 	begin
 		print 'No existe un usuario con ese id.'
 	end
-	else if(@contraseÒa is null)
+	else if(@contrase√±a is null)
 	begin
-		print 'La contraseÒa no puede ser nula o vacia'
+		print 'La contrase√±a no puede ser nula o vacia'
 	end
 	else
 	begin
 		update socios.usuario
-		set contraseÒa = @contraseÒa
+		set contrase√±a = @contrase√±a
 		where id_usuario = @id_usuario
 	end
 end
 go
 
--- Procedimiento para modificar la fecha de vigencia de la contraseÒa
-create or alter procedure socios.modificarFechaVigenciaUsuario
+-- Procedimiento para modificar la fecha de vigencia de la contrase√±a
+create or alter procedure socios.modificar_fecha_vigencia_usuario
 	@id_usuario int,
-	@fecha_vigencia_contraseÒa date
+	@fecha_vigencia_contrase√±a date
 as
 begin
 	if not exists (select 1 from socios.usuario 
@@ -287,10 +363,10 @@ begin
 	end
 	else
 	begin
-		if (CONVERT(date, GETDATE()) < @fecha_vigencia_contraseÒa)
+		if (CONVERT(date, GETDATE()) < @fecha_vigencia_contrase√±a)
 		begin
 			update socios.usuario
-			set fecha_vigencia_contraseÒa = @fecha_vigencia_contraseÒa
+			set fecha_vigencia_contrase√±a = @fecha_vigencia_contrase√±a
 			where id_usuario = @id_usuario
 		end
 		else
@@ -302,7 +378,7 @@ end
 go
 
 -- Procedimiento para eliminar usuarios
-create or alter procedure socios.eliminarUsuario
+create or alter procedure socios.eliminar_usuario
 	@id_usuario int
 as
 begin
@@ -321,7 +397,7 @@ go
 
 -- OBRA SOCIAL
 -- Procedimiento para insertar una obra social
-create or alter procedure socios.insertarObraSocial
+create or alter procedure socios.insertar_obra_social
 	@nombre_obra_social varchar(60),
 	@telefono_obra_social int
 as
@@ -344,7 +420,7 @@ end
 go
 
 -- Procedimiento para modificar una obra social
-create or alter procedure socios.modificarObraSocial
+create or alter procedure socios.modificar_obra_social
 	@nombre_obra_social varchar(60),
 	@telefono_obra_social int
 as
@@ -368,7 +444,7 @@ end
 go
 
 -- Procedimiento para eliminar una obra social
-create or alter procedure socios.eliminarObraSocial
+create or alter procedure socios.eliminar_obra_social
 	@nombre_obra_social varchar(60)
 as
 begin
@@ -387,7 +463,7 @@ go
 
 -- CATEGORIA
 -- Procedimiento para crear una categoria
-create or alter procedure socios.insertarCategoria
+create or alter procedure socios.insertar_categoria
 	@nombre_categoria varchar(16),
 	@edad_minima int,
 	@edad_maxima int,
@@ -397,7 +473,7 @@ begin
 	if exists (select 1 from socios.categoria 
 				where nombre_categoria = @nombre_categoria)
 	begin
-		print 'Ya existe una categorÌa con ese nombre.'
+		print 'Ya existe una categor√≠a con ese nombre.'
 	end
 
 	else if (@edad_minima >= @edad_maxima)
@@ -412,21 +488,21 @@ begin
 
 	else
 	begin
-		insert into socios.categoria(nombre_categoria, edad_minima, edad_maxima, costo_membresÌa)
+		insert into socios.categoria(nombre_categoria, edad_minima, edad_maxima, costo_membres√≠a)
 		values (@nombre_categoria, @edad_minima, @edad_maxima, @costo_membresia)
 	end
 end
 go
 
 -- Procedimiento para modificar el costo de una cateogira
-create or alter procedure socios.modificarCostoCategoria
+create or alter procedure socios.modificar_costo_categoria
 	@nombre_categoria varchar(16),
 	@costo_membresia decimal(9,3)
 as
 begin
 	if not exists (select 1 from socios.categoria where nombre_categoria = @nombre_categoria)
 	begin
-		print 'No existe una categorÌa con ese nombre.'
+		print 'No existe una categor√≠a con ese nombre.'
 	end
 	else if @costo_membresia < 0
 	begin
@@ -435,21 +511,21 @@ begin
 	else
 	begin
 		update socios.categoria
-		set costo_membresÌa = @costo_membresia
+		set costo_membres√≠a = @costo_membresia
 		where nombre_categoria = @nombre_categoria
 	end
 end
 go
 
 -- Procedimiento para eliminar una categoria
-create or alter procedure socios.eliminarCategoria
+create or alter procedure socios.eliminar_categoria
 	@nombre_categoria varchar(16)
 as
 begin
 	if not exists (select 1 from socios.categoria 
 					where nombre_categoria = @nombre_categoria)
 	begin
-		print 'No existe una categorÌa con ese nombre.'
+		print 'No existe una categor√≠a con ese nombre.'
 	end
 	else
 	begin
@@ -461,7 +537,7 @@ go
 
 -- RESPONSABLE MENOR
 -- Procedimiento para crear un responsable de un menor
-create or alter procedure socios.insertarResponsableMenor
+create or alter procedure socios.insertar_responsable_menor
 	@id_socio_menor int,
 	@nombre varchar(40),
 	@apellido varchar(40),
@@ -490,7 +566,7 @@ end
 go
 
 -- Procedimiento para eliminar un responsable de un menor
-create or alter procedure socios.eliminarResponsableMenor
+create or alter procedure socios.eliminar_responsable_menor
 	@id_socio_responsable int
 as
 begin
@@ -507,7 +583,7 @@ go
 
 -- PROCEDIMIENTO DE CREACION ALEATORIA 
 -- ROL
-create or alter procedure socios.cargaAleatoriaRol
+create or alter procedure socios.carga_aleatoria_rol
 	@cantidad int
 as
 begin
@@ -529,7 +605,7 @@ begin
         ('Moderador de usuarios'), 
         ('Supervisor de seguridad'),
         ('Administrador de la aplicacion'),
-        ('Operador de soporte tÈcnico'),
+        ('Operador de soporte t√©cnico'),
 		('Invitado de uno o mas socios');
 
 	while @index <= @cantidad
@@ -566,7 +642,7 @@ end
 go
 
 -- CATEGORIA
-create or alter procedure socios.cargaAleatoriaCategoria
+create or alter procedure socios.carga_aleatoria_categoria
 	@cantidad int
 as
 begin
@@ -577,7 +653,7 @@ begin
 			@nombre_categoria varchar(16),
 			@edad_minima int,
 			@edad_maxima int,
-			@costo_membresÌa decimal(9,3);
+			@costo_membres√≠a decimal(9,3);
 
 	while @index <= @cantidad
 	begin
@@ -589,18 +665,18 @@ begin
 			if not exists(select 1 from socios.categoria
 								where nombre_categoria = @nombre_categoria)
 				begin
-				-- Edad minima aleatoria entre 4 y 12 aÒos
+				-- Edad minima aleatoria entre 4 y 12 a√±os
 				set @edad_minima = (@random % (12 - 4 + 1)) + 4;
 
-				-- Edad maxima aleatoria entre 80 y 13 aÒos
+				-- Edad maxima aleatoria entre 80 y 13 a√±os
 				set @edad_maxima = (@random % (80 - 13 + 1)) + 13;
 
 				-- Establecer el costo de la categoria
-				set @costo_membresÌa = ROUND(RAND(@random) * (10000), 2)
+				set @costo_membres√≠a = ROUND(RAND(@random) * (10000), 2)
 
 				-- Una vez creados los valores, se insertan en la tabla
-				insert into socios.categoria(nombre_categoria, edad_minima, edad_maxima, costo_membresÌa)
-				values (@nombre_categoria, @edad_minima, @edad_maxima, @costo_membresÌa)
+				insert into socios.categoria(nombre_categoria, edad_minima, edad_maxima, costo_membres√≠a)
+				values (@nombre_categoria, @edad_minima, @edad_maxima, @costo_membres√≠a)
 
 				-- Aumentar indice solo si el nombre de categoria no existe en la tabla
 				set @index = @index + 1

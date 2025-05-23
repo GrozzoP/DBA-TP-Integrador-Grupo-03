@@ -35,7 +35,7 @@ Numero de grupo: 03
 -Lazarte Ulises 42838702
 -Maximo Bertolin Graziano 46364320
 -Jordi Marcelo Pairo Albarez 41247253
--Franco
+-Franco Agustin Grosso 46024348
 */
 
 /*
@@ -129,7 +129,7 @@ begin
 	Create table facturacion.medio_de_pago(
 		id_medio_de_pago int identity(1,1),
 		nombre_medio_pago varchar(40),
-		permite_debito_automatico bit --posible check para entender mejor
+		permite_debito_automatico bit 
 		Constraint Facturacion_medio_de_pago_PK_id_medio_de_pago Primary key(id_medio_de_pago)
 	)
 end
@@ -145,6 +145,7 @@ begin
 	Create table socios.usuario(
 		id_usuario int identity(1,1),
 		id_rol int,
+		usuario varchar(40),
 		contraseña varchar(40) not null,
 		fecha_vigencia_contraseña date,
 		Constraint socios_usuario_PK_id_user Primary key(id_usuario),
@@ -203,7 +204,7 @@ Begin
 		fecha_nacimiento date,
 		telefono_contacto int,
 		telefono_emergencia int,
-		habilitado bit,--posible check para entender mejor
+		habilitado varchar(15) check (habilitado like 'HABILITADO' or habilitado LIKE 'NO HABILITADO'),
 		id_obra_social int,
 		id_categoria int,
 		id_usuario int,

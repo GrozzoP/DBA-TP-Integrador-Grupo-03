@@ -746,7 +746,7 @@ begin
 		        select id_categoria from socios.categoria
 				where id_categoria = @id_categoria
 		   )begin
-		       if(--pido perdon por esto
+		       if(
 			       @dia_semana like 'Lunes' or
 				        @dia_semana like 'Martes' or
 						     @dia_semana like'Miercoles' or 
@@ -815,7 +815,7 @@ begin
 		        select id_categoria from socios.categoria
 				where id_categoria = @id_categoria
 		   )begin
-		       if(--pido perdon por esto
+		       if(
 			       @dia_semana like 'Lunes' or
 				        @dia_semana like 'Martes' or
 						     @dia_semana like'Miercoles' or 
@@ -914,7 +914,7 @@ begin
 					   values(@id_socio,@id_horario,@id_actividad)
 					   
 					   --generacion de factura
-					   exec facturacion.crear_factura @monto, @id_socio
+					   exec facturacion.crear_factura @monto, @id_socio --se llama al sp crear factura para crear la factura
 				  end
 				  else
 				  begin
@@ -971,7 +971,7 @@ begin
 					    values(@id_socio,@fecha,@hora_inicio,@hora_fin,@cant_invitados,@id_actividad_extra)
 				        --generacion de factura	  
 
-						exec facturacion.crear_factura @monto, @id_socio
+						exec facturacion.crear_factura @monto, @id_socio --se llama al sp crear factura para crear la factura
 				  end
 			end
 			else
@@ -989,8 +989,7 @@ go
 --Procedimiento para pagar una factura
 create or alter procedure facturacion.pago_factura(
 		@id_factura int,
-		@tipo_movimiento varchar(20),--segun tipo de movimiento sumar o restar por eso lo deje como parametro, 
-		                            ---seria PAGO - PAGO A CUENTA, al usar este procedure poner una cadena random 
+		@tipo_movimiento varchar(20),
 		@id_medio_pago int
 )
 as

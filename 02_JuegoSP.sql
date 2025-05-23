@@ -652,6 +652,169 @@ exec actividades.modificar_horario_actividad 2, 'Miercoles', '18:00:00', '19:30:
 --Se espera un mensaje de 'No se encontro horario con ese id'
 exec actividades.modificar_horario_actividad 9, 'Miercoles', '18:00:00', '19:30:00', 1, 1
 
+/********actividades.inscripcion_actividad(@id_socio int, @id_horario int, @id_actividad int)******/
+/********actividades.eliminar_inscripcion_actividad(@id_inscripcion int)***********/
+--Preparando tabla para pruebas
+exec eliminarYrestaurarTabla 'actividades.inscripcion_actividades'
+exec eliminarYrestaurarTabla 'facturacion.factura'
+go
+exec eliminarYrestaurarTabla 'actividades.horario_actividades'
+exec eliminarYrestaurarTabla 'socios.socio'
+go
+exec eliminarYrestaurarTabla 'socios.usuario'
+exec eliminarYrestaurarTabla 'actividades.actividad'
+go
+exec eliminarYrestaurarTabla 'socios.obra_social'
+exec eliminarYrestaurarTabla 'socios.categoria'
+exec eliminarYrestaurarTabla 'socios.rol'
+exec eliminarYrestaurarTabla 'facturacion.medio_de_pago'
+
+--Insertanto registros para la prueba
+declare @fechaDePrueba date = GETDATE();
+exec socios.insertarRol 'Cliente', @fechaDePrueba
+exec socios.insertarUsuario 1, 'passwordDeUsuario1', @fechaDePrueba
+exec socios.insertarUsuario 1, 'passwordDeUsuario2', @fechaDePrueba
+exec socios.insertarUsuario 1, 'passwordDeUsuario3', @fechaDePrueba
+exec socios.insertarCategoria 'Menor', 1, 18, 9.69
+exec socios.insertarCategoria 'Cadete', 19, 27, 1.01
+exec socios.insertarCategoria 'Mayor', 28, 35, 5
+exec socios.insertarObraSocial 'Luis Pasteur', 1111111111
+exec socios.insertarObraSocial 'OSECAC', 22222222
+exec facturacion.crearMedioPago 'Visa', 1
+
+--insercion de socios
+exec socios.insertarSocio 41247252, 'Pepe', 'Grillo' , 'pGrillo@gmail.com', '1999-01-19', 11223344, 55667788, 1, 1, 1, 1
+exec socios.insertarSocio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', 55667788, 11223344, 2, 2, 1, 1
+
+--Insercion de actividades
+exec actividades.insertar_actividad 'futbol', 10000
+exec actividades.insertar_actividad 'voley', 10000
+exec actividades.insertar_actividad 'tenis', 13000
+
+--Insercion de horarios
+exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 1
+exec actividades.insertar_horario_actividad 'Jueves', '18:00:00', '19:30:00', 3, 2
+exec actividades.insertar_horario_actividad 'Martes', '19:00:00', '20:00:00', 2, 2
+
+
+--Se deberían insertar con éxito los siguientes registros
+exec actividades.inscripcion_actividad 1, 1, 1
+exec actividades.inscripcion_actividad 1, 3, 2
+exec actividades.inscripcion_actividad 2, 3, 2
+
+--Se deberia generar un mensaje de 'No se encontro un horario para esa actividad'
+exec actividades.inscripcion_actividad 1, 3, 1
+
+--Se deberia generar un mensaje de 'No se encontro una actividad con ese id'
+exec actividades.inscripcion_actividad 1, 1, 9
+
+--Se deberia generar un mensaje de 'No se encontro un horario con ese id'
+exec actividades.inscripcion_actividad 1, 5, 1
+
+--Se deberia generar un mensaje de 'No se encontro el id del socio a inscribir a la actividad'
+exec actividades.inscripcion_actividad 15, 1, 1
+
+--Deberían eliminarse correctamente los siguientes registros
+exec actividades.eliminar_inscripcion_actividad 1
+exec actividades.eliminar_inscripcion_actividad 2
+
+--Se debería generar un mensaje de 'La inscripcion a eliminar no existe'
+exec actividades.eliminar_inscripcion_actividad 1
+exec actividades.eliminar_inscripcion_actividad 7
+
+--Eliminando registros restantes de la tabla de pruebas
+exec eliminarYrestaurarTabla 'actividades.inscripcion_actividades'
+exec eliminarYrestaurarTabla 'actividades.inscripcion_act_extra'
+exec eliminarYrestaurarTabla 'facturacion.factura'
+go
+exec eliminarYrestaurarTabla 'actividades.horario_actividades'
+exec eliminarYrestaurarTabla 'socios.socio'
+go
+exec eliminarYrestaurarTabla 'socios.usuario'
+go
+exec eliminarYrestaurarTabla 'actividades.actividad'
+exec eliminarYrestaurarTabla 'socios.obra_social'
+exec eliminarYrestaurarTabla 'socios.categoria'
+exec eliminarYrestaurarTabla 'socios.rol'
+exec eliminarYrestaurarTabla 'facturacion.medio_de_pago'
+
+
+/****actividades.inscripcion_actividad_extra*****/
+/****actividades.eliminar_inscripcion_act_extra(@id_inscripcion int)*****/
+--Preparando tabla para pruebas
+exec eliminarYrestaurarTabla 'actividades.inscripcion_act_extra'
+exec eliminarYrestaurarTabla 'actividades.inscripcion_actividades'
+exec eliminarYrestaurarTabla 'facturacion.factura'
+go
+exec eliminarYrestaurarTabla 'socios.socio'
+go
+exec eliminarYrestaurarTabla 'socios.usuario'
+exec eliminarYrestaurarTabla 'actividades.actividad_extra'
+go
+exec eliminarYrestaurarTabla 'socios.obra_social'
+exec eliminarYrestaurarTabla 'socios.categoria'
+exec eliminarYrestaurarTabla 'socios.rol'
+exec eliminarYrestaurarTabla 'facturacion.medio_de_pago'
+
+--Insertanto registros para la prueba
+declare @fechaDePrueba date = GETDATE();
+exec socios.insertarRol 'Cliente', @fechaDePrueba
+exec socios.insertarUsuario 1, 'passwordDeUsuario1', @fechaDePrueba
+exec socios.insertarUsuario 1, 'passwordDeUsuario2', @fechaDePrueba
+exec socios.insertarUsuario 1, 'passwordDeUsuario3', @fechaDePrueba
+exec socios.insertarCategoria 'Menor', 1, 18, 9.69
+exec socios.insertarCategoria 'Cadete', 19, 27, 1.01
+exec socios.insertarCategoria 'Mayor', 28, 35, 5
+exec socios.insertarObraSocial 'Luis Pasteur', 1111111111
+exec socios.insertarObraSocial 'OSECAC', 22222222
+exec facturacion.crearMedioPago 'Visa', 1
+
+--insercion de socios
+exec socios.insertarSocio 41247252, 'Pepe', 'Grillo' , 'pGrillo@gmail.com', '1999-01-19', 11223344, 55667788, 1, 1, 1, 1
+exec socios.insertarSocio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', 55667788, 11223344, 2, 2, 1, 1
+
+--Insercion de actividades extra
+exec actividades.insertar_actividad_extra 'pileta', 10000
+exec actividades.insertar_actividad_extra 'SUM', 25000
+exec actividades.insertar_actividad_extra 'Colonia', 40000
+
+--Se deberían insertar con éxito los siguientes registros
+exec actividades.inscripcion_actividad_extra 1, 1, '2025-06-12', '14:00:00', '16:00:00', 3
+exec actividades.inscripcion_actividad_extra 2, 2, '2025-06-13', '16:00:00', '17:30:00', 10
+exec actividades.inscripcion_actividad_extra 2, 3, '2025-06-14', '20:00:00', '21:00:00', 6
+
+--Se debería mostrar el mensaje 'Error en la cantidad de invitados'
+exec actividades.inscripcion_actividad_extra 1, 2, '2025-06-12', '14:00:00', '16:00:00', -2
+
+--Se debería mostrar el mensaje 'No se encontro una actividad con ese id'
+exec actividades.inscripcion_actividad_extra 1, 7, '2025-06-12', '14:00:00', '16:00:00', 3
+
+--Se debería mostrar el mensaje 'No se encontro el id del socio a inscribir a la actividad'
+exec actividades.inscripcion_actividad_extra 4, 1, '2025-06-18', '14:00:00', '16:00:00', 3
+
+--Debería eliminar con éxito los siguientes registros
+exec actividades.eliminar_inscripcion_act_extra 1
+exec actividades.eliminar_inscripcion_act_extra 2
+
+--Se debería mostrar el mensaje 'La inscripcion extra a eliminar no existe'
+exec actividades.eliminar_inscripcion_act_extra 1
+exec actividades.eliminar_inscripcion_act_extra 7
+
+--Eliminando registros restantes de la tabla de pruebas
+exec eliminarYrestaurarTabla 'actividades.inscripcion_act_extra'
+exec eliminarYrestaurarTabla 'actividades.inscripcion_actividades'
+exec eliminarYrestaurarTabla 'facturacion.factura'
+go
+exec eliminarYrestaurarTabla 'socios.socio'
+go
+exec eliminarYrestaurarTabla 'socios.usuario'
+exec eliminarYrestaurarTabla 'actividades.actividad_extra'
+go
+exec eliminarYrestaurarTabla 'socios.obra_social'
+exec eliminarYrestaurarTabla 'socios.categoria'
+exec eliminarYrestaurarTabla 'socios.rol'
+exec eliminarYrestaurarTabla 'facturacion.medio_de_pago'
+	
 /*****facturacion.crear_factura*****/
 
 -- Limpieza y preparación de las tablas necesarias

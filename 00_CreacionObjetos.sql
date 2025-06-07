@@ -360,10 +360,16 @@ begin
 		total decimal(9,3),
 		total_con_recargo decimal(9,3),
 		estado varchar(30) check (estado like 'PAGADO' or estado LIKE 'NO PAGADO'),
-		id_socio int
+		id_socio int,--cambiarlo a funcion que saca el cuil automaticamente
+		tipo_comprobante char(1) default 'B',
+		punto_venta varchar(40) default 'Club SQL Norte Janson 1145',
+		condicion_frente_iva varchar(30) default 'IVA Sujeto extento',
+		email varchar(30) default 'sqlnorte10@gmail.com',
+		cant char(1) default '1',
+		servicio varchar(60) default 'Actividad',
 		Constraint Facturacion_factura_PK_id_factura Primary key(id_factura),
 		Constraint Facturacion_factura_FK_id_socio
-				Foreign Key(id_socio) References socios.socio(id_socio)
+				Foreign Key(id_socio) References socios.socio(id_socio),
 	)
 end
 else

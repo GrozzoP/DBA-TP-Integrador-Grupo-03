@@ -655,19 +655,19 @@ exec actividades.modificar_horario_actividad 9, 'Miercoles', '18:00:00', '19:30:
 /********actividades.inscripcion_actividad(@id_socio int, @id_horario int, @id_actividad int)******/
 /********actividades.eliminar_inscripcion_actividad(@id_inscripcion int)***********/
 --Preparando tabla para pruebas
-exec eliminarYrestaurarTabla 'actividades.inscripcion_actividades'
-exec eliminarYrestaurarTabla 'facturacion.factura'
+exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades'
+exec eliminar_y_restaurar_tabla 'facturacion.factura'
 go
-exec eliminarYrestaurarTabla 'actividades.horario_actividades'
-exec eliminarYrestaurarTabla 'socios.socio'
+exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
+exec eliminar_y_restaurar_tabla 'socios.socio'
 go
-exec eliminarYrestaurarTabla 'socios.usuario'
-exec eliminarYrestaurarTabla 'actividades.actividad'
+exec eliminar_y_restaurar_tabla 'socios.usuario'
+exec eliminar_y_restaurar_tabla 'actividades.actividad'
 go
-exec eliminarYrestaurarTabla 'socios.obra_social'
-exec eliminarYrestaurarTabla 'socios.categoria'
-exec eliminarYrestaurarTabla 'socios.rol'
-exec eliminarYrestaurarTabla 'facturacion.medio_de_pago'
+exec eliminar_y_restaurar_tabla 'socios.obra_social'
+exec eliminar_y_restaurar_tabla 'socios.categoria'
+exec eliminar_y_restaurar_tabla 'socios.rol'
+exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
 
 --Insertanto registros para la prueba
 declare @fechaDePrueba date = GETDATE();
@@ -723,38 +723,38 @@ exec actividades.eliminar_inscripcion_actividad 1
 exec actividades.eliminar_inscripcion_actividad 7
 
 --Eliminando registros restantes de la tabla de pruebas
-exec eliminarYrestaurarTabla 'actividades.inscripcion_actividades'
-exec eliminarYrestaurarTabla 'actividades.inscripcion_act_extra'
-exec eliminarYrestaurarTabla 'facturacion.factura'
+exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades'
+exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra'
+exec eliminar_y_restaurar_tabla 'facturacion.factura'
 go
-exec eliminarYrestaurarTabla 'actividades.horario_actividades'
-exec eliminarYrestaurarTabla 'socios.socio'
+exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
+exec eliminar_y_restaurar_tabla 'socios.socio'
 go
-exec eliminarYrestaurarTabla 'socios.usuario'
+exec eliminar_y_restaurar_tabla 'socios.usuario'
 go
-exec eliminarYrestaurarTabla 'actividades.actividad'
-exec eliminarYrestaurarTabla 'socios.obra_social'
-exec eliminarYrestaurarTabla 'socios.categoria'
-exec eliminarYrestaurarTabla 'socios.rol'
-exec eliminarYrestaurarTabla 'facturacion.medio_de_pago'
+exec eliminar_y_restaurar_tabla 'actividades.actividad'
+exec eliminar_y_restaurar_tabla 'socios.obra_social'
+exec eliminar_y_restaurar_tabla 'socios.categoria'
+exec eliminar_y_restaurar_tabla 'socios.rol'
+exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
 
 
 /****actividades.inscripcion_actividad_extra*****/
 /****actividades.eliminar_inscripcion_act_extra(@id_inscripcion int)*****/
 --Preparando tabla para pruebas
-exec eliminarYrestaurarTabla 'actividades.inscripcion_act_extra'
-exec eliminarYrestaurarTabla 'actividades.inscripcion_actividades'
-exec eliminarYrestaurarTabla 'facturacion.factura'
+exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra'
+exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades'
+exec eliminar_y_restaurar_tabla 'facturacion.factura'
 go
-exec eliminarYrestaurarTabla 'socios.socio'
+exec eliminar_y_restaurar_tabla 'socios.socio'
 go
-exec eliminarYrestaurarTabla 'socios.usuario'
-exec eliminarYrestaurarTabla 'actividades.actividad_extra'
+exec eliminar_y_restaurar_tabla 'socios.usuario'
+exec eliminar_y_restaurar_tabla 'actividades.actividad_extra'
 go
-exec eliminarYrestaurarTabla 'socios.obra_social'
-exec eliminarYrestaurarTabla 'socios.categoria'
-exec eliminarYrestaurarTabla 'socios.rol'
-exec eliminarYrestaurarTabla 'facturacion.medio_de_pago'
+exec eliminar_y_restaurar_tabla 'socios.obra_social'
+exec eliminar_y_restaurar_tabla 'socios.categoria'
+exec eliminar_y_restaurar_tabla 'socios.rol'
+exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
 
 --Insertanto registros para la prueba
 declare @fechaDePrueba date = GETDATE();
@@ -801,19 +801,19 @@ exec actividades.eliminar_inscripcion_act_extra 1
 exec actividades.eliminar_inscripcion_act_extra 7
 
 --Eliminando registros restantes de la tabla de pruebas
-exec eliminarYrestaurarTabla 'actividades.inscripcion_act_extra'
-exec eliminarYrestaurarTabla 'actividades.inscripcion_actividades'
-exec eliminarYrestaurarTabla 'facturacion.factura'
+exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra'
+exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades'
+exec eliminar_y_restaurar_tabla 'facturacion.factura'
 go
-exec eliminarYrestaurarTabla 'socios.socio'
+exec eliminar_y_restaurar_tabla 'socios.socio'
 go
-exec eliminarYrestaurarTabla 'socios.usuario'
-exec eliminarYrestaurarTabla 'actividades.actividad_extra'
+exec eliminar_y_restaurar_tabla 'socios.usuario'
+exec eliminar_y_restaurar_tabla 'actividades.actividad_extra'
 go
-exec eliminarYrestaurarTabla 'socios.obra_social'
-exec eliminarYrestaurarTabla 'socios.categoria'
-exec eliminarYrestaurarTabla 'socios.rol'
-exec eliminarYrestaurarTabla 'facturacion.medio_de_pago'
+exec eliminar_y_restaurar_tabla 'socios.obra_social'
+exec eliminar_y_restaurar_tabla 'socios.categoria'
+exec eliminar_y_restaurar_tabla 'socios.rol'
+exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
 	
 /*****facturacion.crear_factura*****/
 

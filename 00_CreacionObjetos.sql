@@ -45,6 +45,8 @@ entregado en una sola ejecución). Incluya comentarios para indicar qué hace ca
 de código.  
 */
 
+-- DROP DATABASE [COM5600G03]
+
 use master
 go
 
@@ -192,11 +194,34 @@ begin
 end
 go
 
+-- Creacion de la tabla socios.responsable_menor
+IF OBJECT_ID('socios.responsable_menor', 'U') IS NULL
+Begin
+	Create table socios.responsable_menor(
+		id_socio_responsable int identity(1,1),
+		nombre varchar(40),
+		apellido varchar(40),
+		DNI int,
+		email varchar(50),
+		fecha_nacimiento date,
+		telefono int,
+		parentesco varchar(30),
+		Constraint Socios_responsable_menor_PK_id_socio_responsable
+		Primary key(id_socio_responsable)
+	)
+End
+else
+begin
+	print 'La tabla socios.responsable_menor ya existe'
+end
+go
+
 -- Creacion de la tabla socios.socio
 IF OBJECT_ID('socios.socio', 'U') IS NULL
 Begin
 	Create table socios.socio(
 		id_socio int identity(1,1),
+		id_responsable_menor int,
 		DNI int	UNIQUE,
 		nombre varchar(40),
 		apellido varchar(40),
@@ -213,37 +238,13 @@ Begin
 		Constraint Socios_socio_FK_id_obra_social Foreign Key(id_obra_social) References socios.obra_social(id_obra_social),
 		Constraint Socios_socio_FK_categoria Foreign Key(id_categoria) References socios.categoria(id_categoria),
 		Constraint Socios_socio_FK_usuario Foreign Key(id_usuario) References socios.usuario(id_usuario),
-		Constraint Socios_socio_FK_medio_de_pago Foreign Key(id_medio_de_pago) References facturacion.medio_de_pago(id_medio_de_pago)
+		Constraint Socios_socio_FK_medio_de_pago Foreign Key(id_medio_de_pago) References facturacion.medio_de_pago(id_medio_de_pago),
+		Constraint Socios_responsable_menor_FK_id_socio_menor Foreign key(id_responsable_menor) References socios.responsable_menor(id_socio_responsable)
 	)
 End
 else
 begin
 	print 'La tabla socios.socio ya existe'
-end
-go
-
--- Creacion de la tabla socios.responsable_menor
-IF OBJECT_ID('socios.responsable_menor', 'U') IS NULL
-Begin
-	Create table socios.responsable_menor(
-		id_socio_responsable int identity(1,1),
-		id_socio_menor int,
-		nombre varchar(40),
-		apellido varchar(40),
-		DNI int,
-		email varchar(50),
-		fecha_nacimiento date,
-		telefono int,
-		parentesco varchar(30),
-		Constraint Socios_responsable_menor_PK_id_socio_responsable
-				Primary key(id_socio_responsable),
-		Constraint Socios_responsable_menor_FK_id_socio_menor
-				Foreign key(id_socio_menor) References socios.socio(id_socio)
-	)
-End
-else
-begin
-	print 'La tabla socios.responsable_menor ya existe'
 end
 go
 

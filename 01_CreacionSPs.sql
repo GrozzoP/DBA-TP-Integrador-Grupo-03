@@ -551,7 +551,6 @@ go
 -- RESPONSABLE MENOR
 -- Procedimiento para crear un responsable de un menor
 create or alter procedure socios.insertar_responsable_menor
-	@id_socio_menor int,
 	@nombre varchar(40),
 	@apellido varchar(40),
 	@dni int,
@@ -561,18 +560,13 @@ create or alter procedure socios.insertar_responsable_menor
 	@parentesco varchar(30)
 as
 begin
-	if not exists (select 1 from socios.socio 
-					where id_socio = @id_socio_menor)
-	begin
-		print 'No existe un socio con ese id.'
-	end
 
 	insert into socios.responsable_menor (
-		id_socio_menor, nombre, apellido,
+		nombre, apellido,
 		dni, email, fecha_nacimiento, telefono, parentesco
 	)
 	values (
-		@id_socio_menor, @nombre, @apellido,
+		@nombre, @apellido,
 		@dni, @email, @fecha_nacimiento, @telefono, @parentesco
 	)
 end
@@ -584,7 +578,7 @@ create or alter procedure socios.eliminar_responsable_menor
 as
 begin
 	if not exists (select 1 from socios.responsable_menor 
-					where id_socio_menor = @id_socio_responsable)
+					where id_socio_responsable = @id_socio_responsable)
 	begin
 		print 'No existe un responsable de un menor con ese id.'
 	end

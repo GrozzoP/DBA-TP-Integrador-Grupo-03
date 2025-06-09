@@ -671,20 +671,20 @@ exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
 
 --Insertanto registros para la prueba
 declare @fechaDePrueba date = GETDATE();
-exec socios.insertarRol 'Cliente', @fechaDePrueba
-exec socios.insertarUsuario 1, 'passwordDeUsuario1', @fechaDePrueba
-exec socios.insertarUsuario 1, 'passwordDeUsuario2', @fechaDePrueba
-exec socios.insertarUsuario 1, 'passwordDeUsuario3', @fechaDePrueba
-exec socios.insertarCategoria 'Menor', 1, 18, 9.69
-exec socios.insertarCategoria 'Cadete', 19, 27, 1.01
-exec socios.insertarCategoria 'Mayor', 28, 35, 5
-exec socios.insertarObraSocial 'Luis Pasteur', 1111111111
-exec socios.insertarObraSocial 'OSECAC', 22222222
-exec facturacion.crearMedioPago 'Visa', 1
+exec socios.insertar_rol 'Cliente', @fechaDePrueba
+exec socios.insertar_usuario 1, 'passwordDeUsuario1', @fechaDePrueba
+exec socios.insertar_usuario 1, 'passwordDeUsuario2', @fechaDePrueba
+exec socios.insertar_usuario 1, 'passwordDeUsuario3', @fechaDePrueba
+exec socios.insertar_categoria 'Menor', 1, 18, 9.69
+exec socios.insertar_categoria 'Cadete', 19, 27, 1.01
+exec socios.insertar_categoria 'Mayor', 28, 35, 5
+exec socios.insertar_obra_social 'Luis Pasteur', 1111111111
+exec socios.insertar_obra_social'OSECAC', 22222222
+exec facturacion.insertar_medio_de_pago'Visa', 1
 
 --insercion de socios
-exec socios.insertarSocio 41247252, 'Pepe', 'Grillo' , 'pGrillo@gmail.com', '1999-01-19', 11223344, 55667788, 1, 1, 1, 1
-exec socios.insertarSocio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', 55667788, 11223344, 2, 2, 1, 1
+exec socios.insertar_socio 41247252, 'Pepe', 'Grillo' , 'pGrillo@gmail.com', '1999-01-19', 11223344, 55667788, 1, 1, 1, 1
+exec socios.insertar_socio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', 55667788, 11223344, 2, 2, 1, 1
 
 --Insercion de actividades
 exec actividades.insertar_actividad 'futbol', 10000
@@ -758,20 +758,20 @@ exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
 
 --Insertanto registros para la prueba
 declare @fechaDePrueba date = GETDATE();
-exec socios.insertarRol 'Cliente', @fechaDePrueba
-exec socios.insertarUsuario 1, 'passwordDeUsuario1', @fechaDePrueba
-exec socios.insertarUsuario 1, 'passwordDeUsuario2', @fechaDePrueba
-exec socios.insertarUsuario 1, 'passwordDeUsuario3', @fechaDePrueba
-exec socios.insertarCategoria 'Menor', 1, 18, 9.69
-exec socios.insertarCategoria 'Cadete', 19, 27, 1.01
-exec socios.insertarCategoria 'Mayor', 28, 35, 5
-exec socios.insertarObraSocial 'Luis Pasteur', 1111111111
-exec socios.insertarObraSocial 'OSECAC', 22222222
-exec facturacion.crearMedioPago 'Visa', 1
+exec socios.insertar_rol 'Cliente', @fechaDePrueba
+exec socios.insertar_usuario 1, 'passwordDeUsuario1', @fechaDePrueba
+exec socios.insertar_usuario 1, 'passwordDeUsuario2', @fechaDePrueba
+exec socios.insertar_usuario 1, 'passwordDeUsuario3', @fechaDePrueba
+exec socios.insertar_categoria 'Menor', 1, 18, 9.69
+exec socios.insertar_categoria 'Cadete', 19, 27, 1.01
+exec socios.insertar_categoria 'Mayor', 28, 35, 5
+exec socios.insertar_obra_social 'Luis Pasteur', 1111111111
+exec socios.insertar_obra_social 'OSECAC', 22222222
+exec facturacion.insertar_medio_de_pago 'Visa', 1
 
 --insercion de socios
-exec socios.insertarSocio 41247252, 'Pepe', 'Grillo' , 'pGrillo@gmail.com', '1999-01-19', 11223344, 55667788, 1, 1, 1, 1
-exec socios.insertarSocio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', 55667788, 11223344, 2, 2, 1, 1
+exec socios.insertar_socio 41247252, 'Pepe', 'Grillo' , 'pGrillo@gmail.com', '1999-01-19', 11223344, 55667788, 1, 1, 1, 1
+exec socios.insertar_socio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', 55667788, 11223344, 2, 2, 1, 1
 
 --Insercion de actividades extra
 exec actividades.insertar_actividad_extra 'pileta', 10000

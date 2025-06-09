@@ -561,14 +561,28 @@ create or alter procedure socios.insertar_responsable_menor
 as
 begin
 
-	insert into socios.responsable_menor (
-		nombre, apellido,
-		dni, email, fecha_nacimiento, telefono, parentesco
-	)
-	values (
-		@nombre, @apellido,
-		@dni, @email, @fecha_nacimiento, @telefono, @parentesco
-	)
+    declare @edad int = DATEDIFF(YEAR, @fecha_nacimiento, GETDATE());
+
+    if (DATEADD(YEAR, @edad, @fecha_nacimiento) > GETDATE())
+	begin
+        SET @edad = @edad - 1
+	end
+
+	if(@edad < 18)
+	begin
+		print 'El responsable no puede ser menor de edad!'
+	end
+	else
+	begin
+		insert into socios.responsable_menor (
+			nombre, apellido,
+			dni, email, fecha_nacimiento, telefono, parentesco
+		)
+		values (
+			@nombre, @apellido,
+			@dni, @email, @fecha_nacimiento, @telefono, @parentesco
+		)
+	end
 end
 go
 
@@ -582,9 +596,11 @@ begin
 	begin
 		print 'No existe un responsable de un menor con ese id.'
 	end
-
-	delete from socios.responsable_menor
-	where id_socio_responsable = @id_socio_responsable
+	else
+	begin
+		delete from socios.responsable_menor
+		where id_socio_responsable = @id_socio_responsable
+	end
 end
 go
 

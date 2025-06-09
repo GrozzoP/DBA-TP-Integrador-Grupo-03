@@ -367,6 +367,63 @@ exec socios.eliminar_categoria 'Mayor'
 exec socios.eliminar_categoria 'Sargento'
 go
 
+-- RESPONSABLE MENOR
+/***** create or alter procedure socios.insertar_responsable_menor
+	@nombre varchar(40),
+	@apellido varchar(40),
+	@dni int,
+	@email varchar(50),
+	@fecha_nacimiento date,
+	@telefono int,
+	@parentesco varchar(30) *****/
+
+--Preparando tabla para pruebas
+exec eliminar_y_restaurar_tabla 'socios.socio'
+exec eliminar_y_restaurar_tabla 'socios.obra_social'
+exec eliminar_y_restaurar_tabla 'socios.responsable_menor'
+exec eliminar_y_restaurar_tabla 'socios.categoria'
+exec eliminar_y_restaurar_tabla 'socios.usuario'
+exec eliminar_y_restaurar_tabla 'socios.rol'
+exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
+
+--Insertanto registros para la prueba
+declare @fechaDePrueba date = GETDATE();
+exec socios.insertar_rol 'Cliente', @fechaDePrueba
+exec socios.insertar_usuario 1, 'passwordDeUsuario1', @fechaDePrueba
+exec socios.insertar_usuario 1, 'passwordDeUsuario2', @fechaDePrueba
+exec socios.insertar_usuario 1, 'passwordDeUsuario3', @fechaDePrueba
+exec socios.insertar_categoria 'Menor', 1, 18, 9.69
+exec socios.insertar_categoria 'Cadete', 19, 27, 1.01
+exec socios.insertar_categoria 'Mayor', 28, 35, 5
+exec socios.insertar_obra_social 'Luis Pasteur', 1111111111
+exec socios.insertar_obra_social 'OSECAC', 22222222
+exec facturacion.insertar_medio_de_pago 'Visa', 1
+
+-- Se espera la insercion exitosa de los siguientes registros
+exec socios.insertar_socio 47247252, 'Armando', 'Giunta' , 'blas-armando@gmail.com', '2007-02-23', 11223344, 55667788, 1, 1, 1, 1
+exec socios.insertar_responsable_menor 'Juan', 'Pérez', 12345678, 'juan.perez@email.com', '1980-05-15', 1122334455, 'Padre'
+
+-- Se muestra el mensaje "El responsable no puede ser menor de edad!"
+exec socios.insertar_responsable_menor 'Lucía', 'González', 56789123, 'lucia.gonzalez@email.com', '2010-08-15', 1144556677, 'Madre';
+
+/***** create or alter procedure socios.eliminar_responsable_menor
+	@id_socio_responsable int *****/
+
+-- Se muestra el mensaje "No existe un responsable de un menor con ese id."
+exec socios.eliminar_responsable_menor 2
+
+-- Se borra el registro de manera exitosa
+exec socios.eliminar_responsable_menor 1
+
+--Eliminando registros restantes de la prueba en la tabla
+exec eliminar_y_restaurar_tabla 'socios.socio'
+exec eliminar_y_restaurar_tabla 'socios.obra_social'
+exec eliminar_y_restaurar_tabla 'socios.responsable_menor'
+exec eliminar_y_restaurar_tabla 'socios.usuario'
+exec eliminar_y_restaurar_tabla 'socios.rol'
+exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
+go
+
 /***** socios.insertar_socio 
 					@dni int, @nombre varchar(40), 
 					@apellido varchar(40), @email varchar(150), 

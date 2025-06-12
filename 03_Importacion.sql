@@ -268,4 +268,160 @@ GO
 
 -- EXEC administracion.cargar_tarifas_pileta @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
 SELECT * FROM administracion.tarifas_piletas;
+GO
 -- DELETE FROM administracion.tarifas_piletas;
+
+
+----------------------------------------------------
+--1)
+create or alter procedure socios.importar_obra_social(@ruta nvarchar(max))
+as
+begin 
+    declare @bulkInsertar nvarchar(max)
+	set @bulkInsertar =    'bulk insert #responsablesdepago
+							from ''' + @ruta + '''
+							with(
+							   fieldterminator = '''+';'+''',
+							   rowterminator = '''+'\n'+''',
+							   codepage = ''' + 'ACP' + ''',
+							   firstrow = 2)'
+
+	create table #responsablesdepago(
+	  nrosocio varchar(256),
+	  nombre varchar(256),
+	  apellido varchar(256),
+	  dni varchar(256),
+	  email varchar(256),
+	  fnacimiento varchar(256),
+	  telcontacto varchar(256),
+	  telcontactoemergencia varchar(256),
+	  nombreobraciocial varchar(256),
+	  nrosocioobrasocial varchar(256),
+	  telemergenciacontactoObraSocial varchar(256)
+    )
+
+	exec sp_executesql @bulkInsertar
+
+	
+	insert into obra_social(nombre_obra_social,telefono_obra_social)
+	select nombreobraciocial,telemergenciacontactoObraSocial from #responsablesdepago
+	group by nombreobraciocial, telemergenciacontactoObraSocial
+	
+	drop table #responsablesdepago
+end
+go
+
+--exec socios.importar_obra_social 'C:\Users\ulaza\OneDrive\Escritorio\imp\Datos socios 1(Responsables de Pago).csv'
+--select*from socios.obra_social
+
+--sp de socios
+
+create or alter procedure socios.importar_socios(@ruta nvarchar(max))
+as
+begin 
+    declare @bulkInsertar nvarchar(max)
+	set @bulkInsertar =    'bulk insert #responsablesdepago
+							from ''' + @ruta + '''
+							with(
+							   fieldterminator = '''+';'+''',
+							   rowterminator = '''+'\n'+''',
+							   codepage = ''' + 'ACP' + ''',
+							   firstrow = 2)'
+	declare @dniduplicado nvarchar(max)
+	set @dniduplicado = 'with cte(nombre,apellido,dni,duplicada)
+							as
+							(
+							  select nombre,apellido,dni, row_number() over(partition by dni order by dni) as repetida
+							  from #responsablesdepago
+							)
+							update cte
+							set dni = NULL
+							where duplicada > 1'
+
+	create table #responsablesdepago(
+	  nrosocio varchar(256),
+	  nombre varchar(256),
+	  apellido varchar(256),
+	  dni varchar(256),
+	  email varchar(256),
+	  fnacimiento varchar(256),
+	  telcontacto varchar(256),
+	  telcontactoemergencia varchar(256),
+	  nombreobraciocial varchar(256),
+	  nrosocioobrasocial varchar(256),
+	  telemergenciacontactoObraSocial varchar(256)
+    )
+
+	
+	exec sp_executesql @bulkInsertar
+	exec sp_executesql @dniduplicado
+
+	update #responsablesdepago
+	set fnacimiento = replace(fnacimiento,'19','09')
+	where dni = '293367480'
+
+	insert into socios.socio(DNI, nombre, apellido, email, fecha_nacimiento, telefono_contacto, telefono_emergencia,
+	habilitado,nro_socio_obrasocial)
+	select dni,nombre,apellido,email, convert(date, fnacimiento, 103),telcontacto,telcontactoemergencia,
+	'HABILITADO',nrosocioobrasocial from #responsablesdepago
+	order by nrosocio asc
+	
+	drop table #responsablesdepago
+end
+go
+
+--select*from socios.socio
+--exec socios.importar_socios 'C:\Users\ulaza\OneDrive\Escritorio\imp\Datos socios 1(Responsables de Pago).csv'
+
+IF OBJECT_ID('socios.pago_cuotas_historico', 'U') IS NULL
+Begin
+	CREATE TABLE socios.pago_cuotas_historico(
+    id_pago char(200),
+	fecha_pago date,
+	id_socio int,
+	monto decimal(9,2),
+	medio_pago varchar(100)
+)
+End
+else
+begin
+	print 'La tabla socios.pago_cuotas_historico ya existe'
+end
+go
+
+create or alter procedure socios.insertar_pago_couta_historico(@ruta nvarchar(MAX))
+as
+begin
+	declare @bulkInsertar nvarchar(max)
+	set @bulkInsertar =    'bulk insert #pagocuotas
+							from ''' + @ruta + '''
+							with(
+							   fieldterminator = '''+';'+''',
+							   rowterminator = '''+'\n'+''',
+							   codepage = ''' + 'ACP' + ''',
+							   firstrow = 2)'
+	
+  create table #pagocuotas(
+	   idpago varchar(250),
+	   fechapago varchar(250),
+	   responsablepagoidsocio varchar(250),
+	   monto varchar(250),
+	   mediopago varchar(250)
+   )
+
+   exec sp_executesql @bulkInsertar
+
+   update #pagocuotas
+   set responsablepagoidsocio = SUBSTRING(responsablepagoidsocio,5,CHARINDEX('-',responsablepagoidsocio))
+
+   insert into socios.pago_cuotas_historico(id_pago,fecha_pago,id_socio,monto,medio_pago)
+   select idpago,cast(fechapago as date),cast(responsablepagoidsocio as int),cast(monto as decimal(9,2)),mediopago
+   from #pagocuotas
+
+   drop table #pagocuotas
+
+end
+go
+
+--exec socios.insertar_pago_couta_historico 'C:\Users\ulaza\OneDrive\Escritorio\imp\Datos socios 1(pago cuotas).csv'
+--select*from socios.pago_cuotas_historico

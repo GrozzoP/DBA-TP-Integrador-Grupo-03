@@ -24,8 +24,35 @@ with(
   firstrow = 2
 )
 go
+update #responsablesdepago
+set nrosocio = SUBSTRING(nrosocio,5,CHARINDEX('-',nrosocio))
+
+select fnacimiento from #responsablesdepago
+where dni = '293367480'
+
+update #responsablesdepago
+set fnacimiento = replace(fnacimiento,'19','09')
+where dni = '293367480'
 
 select*from #responsablesdepago
+order by nrosocio asc
+
+drop table #responsablesdepago
+
+
+insert into obra_social(nombre_obra_social,telefono_obra_social)
+select nombreobraciocial,telemergenciacontactoObraSocial from #responsablesdepago
+group by nombreobraciocial, telemergenciacontactoObraSocial
+
+Create table obra_social(
+		id_obra_social int identity(1,1),
+		nombre_obra_social varchar(60) UNIQUE,
+		telefono_obra_social varchar(100)
+		Constraint Socios_obra_social_PK_id_obra_social Primary key(id_obra_social)
+	)
+
+select*from obra_social
+--drop table obra_social
 
 with cte(nombre,apellido,dni,duplicada)
 as
@@ -47,7 +74,7 @@ create table #pagocuotas(
 )
 
 --drop table pagocuotas
-select*from #pagocuotas
+--select*from #pagocuotas
 
 bulk insert #pagocuotas
 from 'C:\Users\ulaza\OneDrive\Escritorio\imp\Datos socios 1(pago cuotas).csv'
@@ -59,15 +86,28 @@ with(
 )
 go
 
-with cte(idpago,duplicada)
-as
-(
- select idpago, row_number() over(partition by idpago order by idpago) as dupli
- from #pagocuotas
+update #pagocuotas
+set responsablepagoidsocio = SUBSTRING(responsablepagoidsocio,5,CHARINDEX('-',responsablepagoidsocio))
+
+CREATE TABLE pago_historico(
+    id_pago char(200),
+	fecha_pago date,
+	id_socio int,
+	monto decimal(9,2),
+	medio_pago varchar(100)
 )
-select*from cte
-where duplicada > 1
---no hay idpago duplicados en la importacion
+
+select*from pago_historico
+drop table pago_historico
+
+insert into pago_historico(id_pago,fecha_pago,id_socio,monto,medio_pago)
+select idpago,
+   cast(fechapago as date),
+   cast(responsablepagoidsocio as int),
+   cast(monto as decimal(9,2)),
+   mediopago
+from #pagocuotas
+
 
 --de pago cuotas puedo sacar todos los socios que obtengo
 select*from #pagocuotas
@@ -81,10 +121,9 @@ set responsablepagoidsocio = SUBSTRING(responsablepagoidsocio,5,CHARINDEX('-',re
 select responsablepagoidsocio from #pagocuotas
 group by responsablepagoidsocio
 
-
-
+--de esta manera hay que insertar los socios
 select*from #responsablesdepago
-order by nrosocio desc
+order by nrosocio asc
 
 update #responsablesdepago
 set nrosocio = SUBSTRING(nrosocio,5,CHARINDEX('-',nrosocio))

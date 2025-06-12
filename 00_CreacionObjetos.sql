@@ -166,7 +166,7 @@ Begin
 	Create table socios.obra_social(
 		id_obra_social int identity(1,1),
 		nombre_obra_social varchar(60) UNIQUE,
-		telefono_obra_social int
+		telefono_obra_social varchar(100)
 		Constraint Socios_obra_social_PK_id_obra_social Primary key(id_obra_social)
 	)
 End
@@ -227,10 +227,11 @@ Begin
 		apellido varchar(40),
 		email varchar(150),
 		fecha_nacimiento date,
-		telefono_contacto int,
-		telefono_emergencia int,
+		telefono_contacto char(30),
+		telefono_emergencia char(30),
 		habilitado varchar(15) check (habilitado like 'HABILITADO' or habilitado LIKE 'NO HABILITADO'),
 		id_obra_social int,
+		nro_socio_obrasocial char(50),
 		id_categoria int,
 		id_usuario int,
 		id_medio_de_pago int,

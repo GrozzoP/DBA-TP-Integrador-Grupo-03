@@ -1,26 +1,26 @@
-USE COM5600G03
+﻿use COM5600G03
 go
 
--- CREACION DE ESQUEMAS Y TABLAS PARA LA administracion
+-- CREACION DE ESQUEMAS Y TABLAS PARA LA IMPORTACION
 
 if exists(
 	select name from sys.schemas
-	where name = 'administracion'
+	where name = 'importacion'
 )
 	begin
-		print 'El esquema de administracion ya existe'
+		print 'El esquema de importacion ya existe'
 	end
 else
 	begin
-		exec('Create schema administracion')
+		exec('create schema importacion')
 	end
 go
 
 -- TABLA DE TARIFAS (ACTIVIDADES, 1ra TABLA)
 
-IF OBJECT_ID('administracion.tarifas_actividades', 'U') IS NULL
+if object_id('importacion.tarifas_actividades', 'U') is null
 begin
-	Create table administracion.tarifas_actividades (
+	create table importacion.tarifas_actividades (
 		Actividad VARCHAR(15),
 		[Valor por mes] INT,
 		[Vigente hasta] DATE
@@ -28,17 +28,17 @@ begin
 end
 else
 begin
-	print 'La tabla administracion.tarifas_actividades ya existe'
+	print 'La tabla importacion.tarifas_actividades ya existe'
 end
 go
 
--- DROP TABLE administracion.tarifas_actividades
+-- DROP TABLE importacion.tarifas_actividades
 
 -- TABLA DE TARIFAS (CUOTAS, 2da TABLA)
 
-IF OBJECT_ID('administracion.cuotas_socios', 'U') IS NULL
+if object_id('importacion.cuotas_socios', 'U') is null
 begin
-	Create table administracion.cuotas_socios (
+	create table importacion.cuotas_socios (
 		[Categoria socio] VARCHAR(15),
 		[Valor cuota] INT,
 		[Vigente hasta] DATE
@@ -46,231 +46,412 @@ begin
 end
 else
 begin
-	print 'La tabla administracion.cuotas_socios ya existe'
+	print 'La tabla importacion.cuotas_socios ya existe'
 end
 go
 
--- DROP TABLE administracion.cuotas_socios
+-- DROP TABLE importacion.cuotas_socios
 
 -- TABLA DE TARIFAS (PILETA, 3ra TABLA)
 
-IF OBJECT_ID('administracion.tarifas_piletas','U') IS NULL
-BEGIN
-    CREATE TABLE administracion.tarifas_piletas (
-        Concepto      VARCHAR(50),
-        Categoria     VARCHAR(30),
-        [Valor Socios]   DECIMAL(9,2),
-        [Valor Invitados] DECIMAL(9,2),
-        [Vigente hasta]  DATE
-    );
-END
-ELSE
-BEGIN
-	print 'La tabla administracion.tarifas_piletas ya existe'
-END
-GO
+if object_id('importacion.tarifas_piletas','U') is null
+begin
+	create table importacion.tarifas_piletas (
+		Concepto      VARCHAR(50),
+		Categoria     VARCHAR(30),
+		[Valor Socios]   DECIMAL(9,2),
+		[Valor Invitados] DECIMAL(9,2),
+		[Vigente hasta]  DATE
+	);
+end
+else
+begin
+	print 'La tabla importacion.tarifas_piletas ya existe'
+end
+go
 
--- DROP TABLE administracion.tarifas_piletas
+-- DROP TABLE importacion.tarifas_piletas
 
 /* CONFIGURACION BASICA PARA QUE FUNCIONE EL SERVIDOR, Y NO SUCEDA EL ERROR DE
    'The OLE DB provider "Microsoft.ACE.OLEDB.12.0" for linked server"',
    esto para no configurarlo manualmente y hacer todo desde el codigo */
 
 sp_configure 'show advanced options', 1
-GO
-RECONFIGURE WITH OverRide
-GO
-sp_configure 'Ad Hoc Distributed Queries', 1
-GO
-RECONFIGURE WITH OverRide
-GO
-EXEC master.dbo.sp_MSset_oledb_prop N'Microsoft.ACE.OLEDB.12.0' , N'DynamicParameters' , 1
-GO
-EXEC master.dbo.sp_MSset_oledb_prop N'Microsoft.ACE.OLEDB.12.0', N'DisallowAdHocAccess', 1
-GO
+go
+reconfigure with override
+go
+sp_configure 'ad hoc distributed queries', 1
+go
+reconfigure with override
+go
+exec master.dbo.sp_MSset_oledb_prop N'Microsoft.ACE.OLEDB.12.0', N'DynamicParameters', 1
+go
+exec master.dbo.sp_MSset_oledb_prop N'Microsoft.ACE.OLEDB.12.0', N'DisallowAdHocAccess', 1
+go
+exec master.dbo.sp_MSset_oledb_prop N'Microsoft.ACE.OLEDB.16.0', N'AllowInProcess', 1 
+go
 
 -- IMPORTAR DE 'Datos socios.xlsx', en 'Tarifas', la primer tabla
 
-CREATE OR ALTER PROCEDURE administracion.cargar_tarifas @file VARCHAR(MAX)
-AS
-BEGIN
-	SET NOCOUNT ON
+create or alter procedure importacion.cargar_tarifas @file VARCHAR(MAX)
+as
+begin
+	set nocount on
 
-	BEGIN TRY
-	IF OBJECT_ID('tempdb..#TEMP_TARIFAS') IS NULL 
-	CREATE TABLE #TEMP_TARIFAS (
-		Actividad VARCHAR(16),
-		[Valor por mes] INT,
-		[Vigente hasta] CHAR(9)
-	);
+	begin try
+		if object_id('tempdb..#TEMP_TARIFAS') is null 
+			create table #TEMP_TARIFAS (
+				Actividad VARCHAR(16),
+				[Valor por mes] INT,
+				[Vigente hasta] CHAR(9)
+			);
 
-	DECLARE @sql NVARCHAR(MAX);
+		declare @sql NVARCHAR(MAX);
 
-    SET @sql = N'
-	INSERT INTO #TEMP_TARIFAS (Actividad, [Valor Por Mes], [Vigente hasta])
-	SELECT 
-			Actividad,
-            CAST([Valor por mes] AS INT)        AS ValorPorMes,
-            CAST([Vigente hasta]    AS DATE)   AS VigenteHasta
-	FROM OPENROWSET(
-            ''Microsoft.ACE.OLEDB.12.0'', 
-            ''Excel 12.0;HDR=YES;IMEX=1;Database=' + REPLACE(@file, '''', '''''') + ''', 
-            ''SELECT [Actividad], [Valor por mes], [Vigente hasta] 
-              FROM [Tarifas$B2:D8]''
-    ) AS X;';
+		set @sql = N'
+		insert into #TEMP_TARIFAS (Actividad, [Valor Por Mes], [Vigente hasta])
+		select 
+				Actividad,
+				cast([Valor por mes] as int)        as ValorPorMes,
+				cast([Vigente hasta]    as date)   as VigenteHasta
+		from openrowset(
+				''Microsoft.ACE.OLEDB.12.0'', 
+				''Excel 12.0;HDR=YES;IMEX=1;Database=' + replace(@file, '''', '''''') + ''', 
+				''SELECT [Actividad], [Valor por mes], [Vigente hasta] 
+				  FROM [Tarifas$B2:D8]''
+		) as x;';
 
-	EXEC sp_executesql @sql;
+		exec sp_executesql @sql;
 
-	INSERT INTO administracion.tarifas_actividades(Actividad, [Valor por mes], [Vigente hasta]) 
-	SELECT Actividad, 
-		   [Valor por mes], 
-		   CONVERT(DATETIME, [Vigente hasta], 103) AS [DD/MM/YYYY]
-	FROM #TEMP_TARIFAS;
+		insert into importacion.tarifas_actividades(Actividad, [Valor por mes], [Vigente hasta]) 
+		select Actividad, 
+			   [Valor por mes], 
+			   convert(datetime, [Vigente hasta], 103)
+		from #TEMP_TARIFAS;
 
-	PRINT 'El dataset fue cargado exitosamente!';
-	DROP TABLE #TEMP_TARIFAS;
-	END TRY
+		print 'El dataset de Tarifas fue cargado exitosamente!';
+		drop table #TEMP_TARIFAS;
+	end try
 
-	BEGIN CATCH
-		DECLARE @ErrorMessage VARCHAR(4000) = ERROR_MESSAGE(),
-				@ErrorLine INT = ERROR_LINE()
+	begin catch
+		declare @ErrorMessage VARCHAR(4000) = error_message(),
+				@ErrorLine INT = error_line();
 
-		PRINT 'Ocurrio un error en la carga del dataset: ' + @ErrorMessage + ' (L�nea ' + CAST(@ErrorLine AS VARCHAR(5)) + ')';
-	END CATCH
-END
-GO
+		print 'Ocurrio un error en la carga del dataset: ' + @ErrorMessage + ' (L�nea ' + cast(@ErrorLine as varchar(5)) + ')';
+	end catch
+end
+go
 
--- EXEC administracion.cargar_tarifas  @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
-SELECT * FROM administracion.tarifas_actividades;
--- DELETE FROM administracion.tarifas_actividades;
-
-GO
+-- exec importacion.cargar_tarifas  @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+-- select * from importacion.tarifas_actividades;
+-- delete from importacion.tarifas_actividades;
+go
 
 -- IMPORTAR DE 'Datos socios.xlsx', en 'Tarifas', la segunda tabla
-CREATE OR ALTER PROCEDURE administracion.cargar_cuotas_socios @file VARCHAR(MAX)
-AS
-BEGIN
-	SET NOCOUNT ON
 
-	BEGIN TRY
-	IF OBJECT_ID('tempdb..#TEMP_CUOTA_SOCIOS') IS NULL 
-	CREATE TABLE #TEMP_CUOTA_SOCIOS (
-		[Categoria socio] VARCHAR(15),
-		[Valor cuota] INT,
-		[Vigente hasta] CHAR(9)
-	);
+create or alter procedure importacion.cargar_cuotas_socios @file VARCHAR(MAX)
+as
+begin
+	set nocount on
 
-	DECLARE @sql NVARCHAR(MAX);
+	begin try
+		if object_id('tempdb..#TEMP_CUOTA_SOCIOS') is null 
+			create table #TEMP_CUOTA_SOCIOS (
+				[Categoria socio] VARCHAR(15),
+				[Valor cuota] INT,
+				[Vigente hasta] CHAR(9)
+			);
 
-    SET @sql = N'
-	INSERT INTO #TEMP_CUOTA_SOCIOS ([Categoria socio], [Valor cuota], [Vigente hasta])
-	SELECT 
-			[Categoria socio],
-            CAST([Valor cuota] AS INT),
-            CAST([Vigente hasta]    AS DATE)
-	FROM OPENROWSET(
-            ''Microsoft.ACE.OLEDB.12.0'', 
-            ''Excel 12.0;HDR=YES;IMEX=1;Database=' + REPLACE(@file, '''', '''''') + ''', 
-            ''SELECT [Categoria socio], [Valor cuota], [Vigente hasta] 
-              FROM [Tarifas$B10:D13]''
-    ) AS X;';
+		declare @sql NVARCHAR(MAX);
 
-	EXEC sp_executesql @sql;
+		set @sql = N'
+		insert into #TEMP_CUOTA_SOCIOS ([Categoria socio], [Valor cuota], [Vigente hasta])
+		select 
+				[Categoria socio],
+				cast([Valor cuota] as int),
+				cast([Vigente hasta]    as date)
+		from openrowset(
+				''Microsoft.ACE.OLEDB.12.0'', 
+				''Excel 12.0;HDR=YES;IMEX=1;Database=' + replace(@file, '''', '''''') + ''', 
+				''SELECT [Categoria socio], [Valor cuota], [Vigente hasta] 
+				  FROM [Tarifas$B10:D13]''
+		) as x;';
 
-	INSERT INTO administracion.cuotas_socios([Categoria socio], [Valor cuota], [Vigente hasta]) 
-	SELECT [Categoria socio], 
-		   [Valor cuota], 
-		   CONVERT(DATETIME, [Vigente hasta], 103) AS [DD/MM/YYYY]
-	FROM #TEMP_CUOTA_SOCIOS;
+		exec sp_executesql @sql;
 
-	PRINT 'El dataset fue cargado exitosamente!';
-	DROP TABLE #TEMP_CUOTA_SOCIOS;
-	END TRY
+		insert into importacion.cuotas_socios([Categoria socio], [Valor cuota], [Vigente hasta]) 
+		select [Categoria socio], 
+			   [Valor cuota], 
+			   convert(datetime, [Vigente hasta], 103)
+		from #TEMP_CUOTA_SOCIOS;
 
-	BEGIN CATCH
-		DECLARE @ErrorMessage VARCHAR(4000) = ERROR_MESSAGE(),
-				@ErrorLine INT = ERROR_LINE()
+		print 'El dataset de Cuotas Socios fue cargado exitosamente!';
+		drop table #TEMP_CUOTA_SOCIOS;
+	end try
 
-		PRINT 'Ocurrio un error en la carga del dataset: ' + @ErrorMessage + ' (L�nea ' + CAST(@ErrorLine AS VARCHAR(5)) + ')';
-	END CATCH
-END
-GO
+	begin catch
+		declare @ErrorMessage VARCHAR(4000) = error_message(),
+				@ErrorLine INT = error_line();
 
--- EXEC administracion.cargar_cuotas_socios @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
-SELECT * FROM administracion.cuotas_socios;
--- DELETE FROM administracion.cuotas_socios;
-GO
+		print 'Ocurrio un error en la carga del dataset: ' + @ErrorMessage + ' (Linea ' + cast(@ErrorLine as varchar(5)) + ')';
+	end catch
+end
+go
+
+-- exec importacion.cargar_cuotas_socios @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+-- select * from importacion.cuotas_socios;
+-- delete from importacion.cuotas_socios;
+go
 
 -- IMPORTAR DE 'Datos socios.xlsx', en 'Tarifas', la tercer tabla
-CREATE OR ALTER PROCEDURE administracion.cargar_tarifas_pileta @file VARCHAR(MAX)
-AS
-BEGIN
-	SET NOCOUNT ON;
-	BEGIN TRY
-    IF OBJECT_ID('tempdb..#TEMP_RAW_TABLE') IS NULL
-      CREATE TABLE #TEMP_RAW_TABLE (
-        COL1     VARCHAR(2000) ,
-        COL2     VARCHAR(2000),
-        COL3     VARCHAR(2000),
-        COL4     VARCHAR(2000),
-        COL5     VARCHAR(2000)
+
+create or alter procedure importacion.cargar_tarifas_pileta @file VARCHAR(MAX)
+as
+begin
+	set nocount on;
+	begin try
+		if object_id('tempdb..#TEMP_RAW_TABLE') is null
+			create table #TEMP_RAW_TABLE (
+				COL1     VARCHAR(2000),
+				COL2     VARCHAR(2000),
+				COL3     VARCHAR(2000),
+				COL4     VARCHAR(2000),
+				COL5     VARCHAR(2000)
+			);
+
+		declare @sql NVARCHAR(MAX) = N'
+			insert into #TEMP_RAW_TABLE (COL1,COL2,COL3,COL4,COL5)
+			select *
+			from openrowset(
+				''Microsoft.ACE.OLEDB.12.0'',
+				''Excel 12.0;HDR=NO;IMEX=1;Database=' + replace(@file,'''','''''') + ''',
+				''SELECT * FROM [Tarifas$B16:F22]''
+			) as x;
+		';
+
+		exec sp_executesql @sql;
+
+		with temp_numerado as (
+			select row_number() over (order by (select null)) as rn,
+				   COL1, COL2, COL3, COL4, COL5
+			from #TEMP_RAW_TABLE
+		),
+		temp_llenar as (
+			-- Si el valor actual es nulo, elige el anterior, de lo contrario, conserva el valor que posee
+			select coalesce(COL1, lag(COL1) over (order by rn)) as Concepto,
+				   COL2 as Categoria,
+				   /* Sacar el simbolo $, sacar el punto de los miles porque no va en el formato, y reemplazar la coma por el punto que representa
+					  la separacion entre los enteros y decimales */
+				   try_cast(replace(replace(replace(COL3, '$', ''), '.', ''), ',', '.') as decimal(9,2)) as [Valor Socios],
+				   -- Lo mismo que el caso anterior
+				   try_cast(replace(replace(replace(COL4, '$', ''), '.', ''), ',', '.') as decimal(9,2)) as [Valor Invitados],
+				   COL5 as [Vigente hasta]
+			from temp_numerado
+			where rn > 1
+		)
+
+		insert into importacion.tarifas_piletas(Concepto, Categoria, [Valor Socios], [Valor Invitados], [Vigente hasta])
+		select Concepto,
+			   Categoria,
+			   [Valor Socios],
+			   [Valor Invitados],
+			   convert(datetime, [Vigente hasta], 103)
+		from temp_llenar;
+
+		drop table #TEMP_RAW_TABLE;
+
+		print 'El dataset de Tarifas Pileta fue cargado exitosamente!';
+	end try
+	begin catch
+		print 'Error en cargar_tarifas_pileta: ' + error_message();
+	end catch
+end
+go
+
+-- exec importacion.cargar_tarifas_pileta @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+-- select * from importacion.tarifas_piletas;
+-- delete from importacion.tarifas_piletas;
+go
+
+-- TABLA 'RESPONSABLES PAGO'
+create or alter procedure importacion.cargar_responsables_de_pago
+    @file varchar(max)
+as
+begin
+    set nocount on;
+    begin try
+        if object_id('tempdb..#TEMP_SOCIOS') is null
+            create table #TEMP_SOCIOS (
+                [Nro de Socio] varchar(20),
+                [Nombre] varchar(50),
+                [Apellido] varchar(50),
+                [DNI] varchar(20),
+                [Email personal] varchar(100),
+                [Fecha de nacimiento] varchar(50),
+                [Telefono de contacto] INT,
+                [Telefono de contacto emerge] INT,
+                [Nombre obra social] varchar(100),
+                [Nro de socio obra social] varchar(100),
+                [Telefono emergencia Obra Social] varchar(100)
+            );
+
+        declare @sql nvarchar(max) = N'
+		insert into #TEMP_SOCIOS
+		select 
+			cast([Nro de Socio] as varchar(20)),
+			[Nombre],
+			[ apellido],
+			cast([ DNI] as varchar(20)),
+			[ email personal],
+			cast([ fecha de nacimiento] as varchar(50)),
+			cast([ teléfono de contacto] as INT),
+			cast([ teléfono de contacto emergencia] as INT),
+			[ Nombre de la obra social o prepaga],
+			cast([nro# de socio obra social/prepaga ] as varchar(100)),
+			cast([teléfono de contacto de emergencia] as varchar(100))
+		 from openrowset(
+			''Microsoft.ACE.OLEDB.12.0'',
+			''Excel 12.0;HDR=YES;IMEX=1;Database=' + replace(@file, '''', '''''') + ''',
+			''SELECT * FROM [Responsables de Pago$A1:K121]''
+		) as x;'
+
+        exec sp_executesql @sql;
+
+		insert into socios.obra_social (nombre_obra_social, telefono_obra_social)
+		select distinct
+			s.[Nombre obra social],
+			s.[Telefono emergencia Obra Social]
+		from #TEMP_SOCIOS s
+		where s.[Nombre obra social] is not null
+			and not exists (
+				select 1
+				from socios.obra_social os
+				where os.nombre_obra_social = s.[Nombre obra social]
+		)
+
+		delete ts from #TEMP_SOCIOS ts
+		join (
+			select [DNI], row_number() over(partition by [DNI] order by [Nombre]) as rn
+			from #TEMP_SOCIOS
+			where [DNI] is not null
+		) dup on dup.[DNI] = ts.[DNI]
+		where dup.rn > 1;
+
+		SET IDENTITY_INSERT socios.socio ON
+
+		insert into socios.socio (
+			id_socio,
+			dni,
+			nombre,
+			apellido,
+			email,
+			fecha_nacimiento,
+			telefono_contacto,
+			telefono_emergencia,
+			id_obra_social,
+			nro_socio_obra_social,
+			habilitado
+		)
+		select
+			CAST(PARSENAME(REPLACE(s.[Nro de Socio], '-', '.'), 1) as int),
+			TRY_CAST(s.[DNI] as int),
+			s.[Nombre],
+			s.[Apellido],
+			s.[Email personal],
+			CONVERT(date, s.[Fecha de nacimiento], 103),
+			s.[Telefono de contacto],
+			s.[Telefono de contacto emerge],
+			os.id_obra_social,
+			s.[Nro de socio obra social],
+			'HABILITADO'             
+		from #TEMP_SOCIOS s
+		inner join socios.obra_social os
+		on os.nombre_obra_social = s.[Nombre obra social]
+		where TRY_CAST(s.[DNI] as int) is not null
+		and not exists (
+		  select 1 from socios.socio ss where ss.dni = TRY_CAST(s.[DNI] as int)
+		)
+
+		SET IDENTITY_INSERT socios.socio OFF
+
+        drop table #TEMP_SOCIOS;
+
+        print 'Se ha importado correctamente el dataset de responsables de pago!';
+    end try
+    begin catch
+        print 'Error en importacion.cargar_responsables_de_pago: ' + error_message();
+    end catch
+end
+go
+
+exec importacion.cargar_responsables_de_pago @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx'
+go
+
+-- select * from socios.socio
+-- select * from socios.obra_social
+-- TABLA 'GRUPO FAMILIAR'
+create or alter procedure importacion.cargar_grupo_familiar @file varchar(max)
+as
+begin
+  set nocount on;
+
+  begin try
+    -- si no existe, creo la temp donde volcaré el Excel
+    if object_id('tempdb..#TEMP_GRUPO_FAMILIAR') is null
+    begin
+      create table #TEMP_GRUPO_FAMILIAR (
+        [Nro de Socio]                     varchar(50),
+        [Nro de socio responsable]         varchar(50),
+        Nombre                             varchar(100),
+        Apellido                           varchar(100),
+        DNI                                INT,
+        [Email personal]                   varchar(200),
+        [Fecha de nacimiento]              varchar(50),
+        [Telefono de contacto]             varchar(100),
+        [Telefono de contacto emergencia]  INT,
+        [Nombre de la obra social/prepag]  varchar(200),
+        [Nro. de socio obra social/prepag] varchar(50),
+        [Telefono de contacto de emergencia] varchar(100)
       );
+    end
 
-    DECLARE @sql NVARCHAR(MAX) = N'
-      INSERT INTO #TEMP_RAW_TABLE (COL1,COL2,COL3,COL4,COL5)
-      SELECT *
-      FROM OPENROWSET(
+    declare @sql nvarchar(max) = N'
+      insert into #TEMP_GRUPO_FAMILIAR
+      select *
+      from openrowset(
         ''Microsoft.ACE.OLEDB.12.0'',
-        ''Excel 12.0;HDR=NO;IMEX=1;Database=' + REPLACE(@file,'''','''''') + ''',
-        ''SELECT * FROM [Tarifas$B16:F22]''
-      ) AS X;
-    ';
+        ''Excel 12.0;HDR=YES;IMEX=1;Database=' + replace(@file,'''','''''') + ''',
+        ''select * from [Grupo Familiar$A2:L35]''
+      ) as x;'
 
-    EXEC sp_executesql @sql;
+    exec sp_executesql @sql;
 
-	WITH temp_numerado AS (
-		SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) as rn,
-		COL1, COL2, COL3, COL4, COL5
-		FROM #TEMP_RAW_TABLE
-	),
-	temp_llenar AS (
-		-- Si el valor actual es nulo, elige el anterior, de lo contrario, conserva el valor que posee
-		SELECT Concepto = COALESCE(COL1, LAG(COL1) OVER (ORDER BY rn)),
-		-- La categoria es un varchar, asi que no hace falta modificarlo
-		COL2 AS Categoria, 
-		/* Sacar el simbolo $, sacar el punto de los miles porque no va en el formato, y reemplazar la coma por el punto que representa
-		   la separacion entre los enteros y decimales */
-		TRY_CAST(REPLACE(REPLACE(REPLACE(COL3, '$', ''), '.', ''), ',', '.') AS DECIMAL(9,2)) AS [Valor Socios],
-		-- Lo mismo que el caso anterior
-		TRY_CAST(REPLACE(REPLACE(REPLACE(COL4, '$', ''), '.', ''), ',', '.') AS DECIMAL(9,2)) AS [Valor Invitados],
-		COL5 as [Vigente hasta]
-		FROM temp_numerado
-		WHERE rn > 1
-	)
+	update #TEMP_GRUPO_FAMILIAR
+    set [Nro de Socio] = CAST(PARSENAME(REPLACE([Nro de Socio], '-', '.'), 1) as int)
 
-	INSERT INTO administracion.tarifas_piletas(Concepto, Categoria, [Valor Socios], [Valor Invitados], [Vigente hasta]) 
-	SELECT Concepto, 
-		   Categoria, 
-		   [Valor Socios],
-		   [Valor Invitados],
-		   CONVERT(DATETIME, [Vigente hasta], 103) AS [DD/MM/YYYY]
-	FROM temp_llenar;
+    update #TEMP_GRUPO_FAMILIAR
+    set [Nro de socio responsable] = CAST(PARSENAME(REPLACE([Nro de socio responsable], '-', '.'), 1) as int)
 
-	DROP TABLE #TEMP_RAW_TABLE;
+	SELECT * FROM #TEMP_GRUPO_FAMILIAR;
 
-    PRINT 'El dataset fue cargado exitosamente!';
-	END TRY
-	BEGIN CATCH
-		PRINT 'Error en cargar_tarifas_piletas: ' + ERROR_MESSAGE();
-	END CATCH
-END
-GO
+	SET IDENTITY_INSERT socios.socio ON
 
--- EXEC administracion.cargar_tarifas_pileta @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
-SELECT * FROM administracion.tarifas_piletas;
-GO
--- DELETE FROM administracion.tarifas_piletas;
+	SET IDENTITY_INSERT socios.socio OFF
 
+    print 'El dataset de Grupo Familiar fue cargado exitosamente!';
+
+    drop table #TEMP_GRUPO_FAMILIAR;
+  end try
+  begin catch
+    print 'Error en cargar_grupo_familiar: ' + error_message();
+  end catch
+end
+go
+
+-- exec importacion.cargar_grupo_familiar @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+
+-- SELECT * FROM socios.socio
+go
 
 ----------------------------------------------------
 --1)
@@ -370,7 +551,7 @@ begin
 end
 go
 
---select*from socios.socio
+--select * from socios.socio
 --exec socios.importar_socios 'C:\Users\ulaza\OneDrive\Escritorio\imp\Datos socios 1(Responsables de Pago).csv'
 
 IF OBJECT_ID('socios.pago_cuotas_historico', 'U') IS NULL

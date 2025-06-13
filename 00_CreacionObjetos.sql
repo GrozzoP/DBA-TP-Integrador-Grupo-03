@@ -166,7 +166,7 @@ Begin
 	Create table socios.obra_social(
 		id_obra_social int identity(1,1),
 		nombre_obra_social varchar(60) UNIQUE,
-		telefono_obra_social varchar(100)
+		telefono_obra_social varchar(30)
 		Constraint Socios_obra_social_PK_id_obra_social Primary key(id_obra_social)
 	)
 End
@@ -175,6 +175,7 @@ begin
 	print 'La tabla socios.obra_social ya existe'
 end
 go
+
 
 -- Creacion de la tabla socios.categoria
 IF OBJECT_ID('socios.categoria', 'U') IS NULL
@@ -194,6 +195,8 @@ begin
 end
 go
 
+/*
+-- Para cambiar el esquema hacia uno que pueda aceptar la importacion de manera adecuada, vamos a obviar esta tabla
 -- Creacion de la tabla socios.responsable_menor
 IF OBJECT_ID('socios.responsable_menor', 'U') IS NULL
 Begin
@@ -204,7 +207,7 @@ Begin
 		DNI int,
 		email varchar(50),
 		fecha_nacimiento date,
-		telefono int,
+		telefono char(18),
 		parentesco varchar(30),
 		Constraint Socios_responsable_menor_PK_id_socio_responsable
 		Primary key(id_socio_responsable)
@@ -215,23 +218,23 @@ begin
 	print 'La tabla socios.responsable_menor ya existe'
 end
 go
+*/
 
 -- Creacion de la tabla socios.socio
 IF OBJECT_ID('socios.socio', 'U') IS NULL
 Begin
 	Create table socios.socio(
-		id_socio int identity(1,1),
-		id_responsable_menor int,
+		id_socio int IDENTITY(1, 1),
 		DNI int	UNIQUE,
 		nombre varchar(40),
 		apellido varchar(40),
 		email varchar(150),
 		fecha_nacimiento date,
-		telefono_contacto char(30),
-		telefono_emergencia char(30),
+		telefono_contacto char(18),
+		telefono_emergencia char(18),
 		habilitado varchar(15) check (habilitado like 'HABILITADO' or habilitado LIKE 'NO HABILITADO'),
 		id_obra_social int,
-		nro_socio_obrasocial char(50),
+		nro_socio_obra_social char(50),
 		id_categoria int,
 		id_usuario int,
 		id_medio_de_pago int,
@@ -239,13 +242,30 @@ Begin
 		Constraint Socios_socio_FK_id_obra_social Foreign Key(id_obra_social) References socios.obra_social(id_obra_social),
 		Constraint Socios_socio_FK_categoria Foreign Key(id_categoria) References socios.categoria(id_categoria),
 		Constraint Socios_socio_FK_usuario Foreign Key(id_usuario) References socios.usuario(id_usuario),
-		Constraint Socios_socio_FK_medio_de_pago Foreign Key(id_medio_de_pago) References facturacion.medio_de_pago(id_medio_de_pago),
-		Constraint Socios_responsable_menor_FK_id_socio_menor Foreign key(id_responsable_menor) References socios.responsable_menor(id_socio_responsable)
+		Constraint Socios_socio_FK_medio_de_pago Foreign Key(id_medio_de_pago) References facturacion.medio_de_pago(id_medio_de_pago)
 	)
 End
 else
 begin
 	print 'La tabla socios.socio ya existe'
+end
+go
+
+-- Creacion de la tabla socios.grupo_familiar
+IF OBJECT_ID('socios.grupo_familiar', 'U') IS NULL
+Begin
+	Create table socios.grupo_familiar(
+		id_socio_menor int,
+		id_responsable int,
+		parentesco varchar(15),
+		Constraint Grupo_familiar_id_socio_y_responsable Primary key (id_socio_menor, id_responsable),
+		Constraint Grupo_familiar_fk_responsable foreign key (id_responsable) references socios.socio(id_socio),
+		Constraint Grupo_familiar_fk_socio_menor foreign key (id_socio_menor) references socios.socio(id_socio)
+	)
+End
+else
+begin
+	print 'La tabla socios.grupo_familiar ya existe'
 end
 go
 

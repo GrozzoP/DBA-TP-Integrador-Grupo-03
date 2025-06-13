@@ -198,14 +198,25 @@ create or alter procedure socios.insertar_socio
 	@apellido varchar(40),
 	@email varchar(150),
 	@fecha_nacimiento date,
-	@telefono_contacto int,
-	@telefono_emergencia int,
+	@telefono_contacto char(18),
+	@telefono_emergencia char(18),
 	@id_obra_social int,
-	@id_categoria int,
+	@nro_socio_obra_social varchar(40),
 	@id_medio_de_pago int,
-	@id_rol int
+	@id_rol int,
+	@id_responsable_menor int = 0,
+	@parentesco varchar(15) = ''
 as
 begin
+	set nocount on;
+
+	declare @edad int = DATEDIFF(YEAR, @fecha_nacimiento, GETDATE());
+
+	if (DATEADD(YEAR, @edad, @fecha_nacimiento) > GETDATE())
+	begin
+        SET @edad = @edad - 1
+	end
+
 	if exists (select 1 from socios.socio 
 			   where dni = @dni)
 	begin
@@ -217,13 +228,6 @@ begin
 					where id_obra_social = @id_obra_social)
 	begin
 		print 'No existe una obra social con ese id.'
-	end
-
-	-- Buscar si existe id_categoria
-	else if not exists (select 1 from socios.categoria 
-					where id_categoria = @id_categoria)
-	begin
-		print 'No existe una categoria con ese id.'
 	end
 
 	-- Buscar si existe id_rol
@@ -240,13 +244,23 @@ begin
 		print 'No existe un medio de pago con esa id.'
 	end
 
+	else if (@edad < 18 AND NOT EXISTS (
+			select 1 from socios.socio
+			where id_socio = @id_responsable_menor))
+	begin
+		print 'El socio al ser menor de edad, debe estar vinculado con un responsable ya registrado.'
+	end
+
 	else
 	begin
 		declare @usuario varchar(83),
 				@contraseña varchar(16),
-				@id_usuario int
+				@id_usuario int,
+				@responsable_menor int,
+				@id_categoria int,
+				@nuevo_id_socio int
 
-		 -- Generar un usuario y una contraseña de manera automatica
+		-- Generar un usuario y una contraseña de manera automatica
 		 set @usuario = @nombre + '_' + @apellido + CAST(RIGHT(@dni, 2) as varchar)
 		 select @contraseña = socios.generar_contraseña_aleatoria(16)
 
@@ -256,12 +270,27 @@ begin
 
 		 -- Insertar el socio teniendo en cuenta la creacion del usuario
 		 select @id_usuario = id_usuario from socios.usuario where usuario = @usuario
-	
+
+		 -- Elegimos la categoria segun la edad del socio
+		 select @id_categoria = @id_categoria from socios.categoria
+		 where @edad BETWEEN edad_minima AND edad_maxima
+
 		 insert into socios.socio
 		 (dni, nombre, apellido, email, fecha_nacimiento, telefono_contacto, telefono_emergencia, habilitado,
-		 id_obra_social, id_categoria, id_usuario, id_medio_de_pago)
+		 id_obra_social, nro_socio_obra_social, id_categoria, id_usuario, id_medio_de_pago)
 		 values (@dni, @nombre, @apellido, @email, @fecha_nacimiento, @telefono_contacto, @telefono_emergencia, 'HABILITADO',
-		 @id_obra_social, @id_categoria, @id_usuario, @id_medio_de_pago)
+		 @id_obra_social, @nro_socio_obra_social, @id_categoria, @id_usuario, @id_medio_de_pago)
+
+		 set @nuevo_id_socio = SCOPE_IDENTITY();
+
+		 if(@edad < 18)
+		 begin
+			insert into socios.grupo_familiar (id_responsable, id_socio_menor, parentesco)
+			values (@id_responsable_menor, 
+					@nuevo_id_socio, 
+					@parentesco)
+		 end
+
 		 print 'Se ha creado de manera automatica una cuenta para que disfrutes de los servicios de los socios!'
 	end
 end
@@ -295,6 +324,8 @@ create or alter procedure socios.eliminar_socio
 	@DNI int
 as
 begin
+	set nocount on
+
 	if not exists (select 1 from socios.socio 
 					where DNI = @DNI)
 	begin
@@ -304,7 +335,8 @@ begin
 	begin
 		-- Borrado logico
 		update socios.socio 
-		set habilitado = 0
+		set habilitado = 'NO HABILITADO'
+		where DNI = @DNI
 	end
 end
 go
@@ -412,17 +444,13 @@ go
 -- Procedimiento para insertar una obra social
 create or alter procedure socios.insertar_obra_social
 	@nombre_obra_social varchar(60),
-	@telefono_obra_social int
+	@telefono_obra_social char(18)
 as
 begin
 	if exists (select 1 from socios.obra_social 
 				where nombre_obra_social = @nombre_obra_social)
 	begin
 		print 'Ya existe una obra social con ese nombre.'
-	end
-	else if @telefono_obra_social < 0
-	begin
-		print 'El numero de telefono no puede ser negativo'
 	end
 	else
 	begin
@@ -435,7 +463,7 @@ go
 -- Procedimiento para modificar una obra social
 create or alter procedure socios.modificar_obra_social
 	@nombre_obra_social varchar(60),
-	@telefono_obra_social int
+	@telefono_obra_social char(18)
 as
 begin
 	if not exists (select 1 from socios.obra_social 
@@ -548,6 +576,117 @@ begin
 end
 go
 
+-- GRUPO FAMILIAR
+-- Insertar un grupo familiar
+create or alter procedure socios.insertar_grupo_familiar
+	@id_socio_menor int,
+	@id_responsable int,
+	@parentesco varchar(15) = 'Familiar'
+as
+begin
+	set nocount on;
+
+	if exists(select 1 from socios.socio
+			  where id_socio = @id_responsable)
+	begin
+		declare @fecha_nacimiento_responsable date,
+				@fecha_nacimiento_menor date,
+				@edad_responsable int,
+				@edad_menor int;
+
+		-- Obtener fecha nacimiento responsable
+		select @fecha_nacimiento_responsable = fecha_nacimiento
+		from socios.socio where id_socio = @id_responsable;
+
+		set @edad_responsable = DATEDIFF(YEAR, @fecha_nacimiento_responsable, GETDATE());
+
+		if (DATEADD(YEAR, @edad_responsable, @fecha_nacimiento_responsable) > GETDATE())
+		begin
+			set @edad_responsable = @edad_responsable - 1;
+		end
+
+		if @edad_responsable < 18
+		begin
+			print 'El socio responsable no puede ser menor de edad.';
+			return;
+		end
+		else
+		begin
+			-- Verificar existencia del menor
+			if not exists (select 1 from socios.socio where id_socio = @id_socio_menor)
+			begin
+				print 'No existe un socio menor con ese id.';
+				return;
+			end
+
+			-- Obtener fecha nacimiento menor
+			select @fecha_nacimiento_menor = fecha_nacimiento
+			from socios.socio where id_socio = @id_socio_menor
+
+			set @edad_menor = DATEDIFF(YEAR, @fecha_nacimiento_menor, GETDATE());
+
+			if (DATEADD(YEAR, @edad_menor, @fecha_nacimiento_menor) > GETDATE())
+			begin
+				set @edad_menor = @edad_menor - 1
+			end
+
+			if @edad_menor >= 18
+			begin
+				print 'El socio menor no es menor de edad.'
+				return
+			end
+
+			-- Verificar si ya existe la relación
+			if exists (
+				select 1 
+				from socios.grupo_familiar 
+				where id_socio_menor = @id_socio_menor 
+				  and id_responsable = @id_responsable
+			)
+			begin
+				print 'Ya existe una relación entre este menor y este responsable.'
+				return
+			end
+
+			-- Insertar relación
+			insert into socios.grupo_familiar (id_socio_menor, id_responsable, parentesco)
+			values (@id_socio_menor, @id_responsable, @parentesco)
+
+			print 'Grupo familiar insertado correctamente.'
+		end
+	end
+	else
+	begin
+		print 'No existe un socio responsable con ese id.'
+	end
+end
+go
+
+-- Insertar un grupo familiar
+create or alter procedure socios.eliminar_grupo_familiar
+	@id_socio_menor int,
+	@id_responsable int
+as
+begin
+	if exists (
+		select 1 
+		from socios.grupo_familiar
+		where id_socio_menor = @id_socio_menor 
+		  and id_responsable = @id_responsable
+	)
+	begin
+		delete from socios.grupo_familiar
+		where id_socio_menor = @id_socio_menor 
+		and id_responsable = @id_responsable
+	end
+	else
+	begin
+		print 'No existe una relación entre ese socio menor y ese responsable.'
+	end
+end
+go
+/* 
+-- Para cambiar el esquema hacia uno que pueda aceptar la importacion de manera adecuada, vamos a obviar esta tabla
 -- RESPONSABLE MENOR
 -- Procedimiento para crear un responsable de un menor
 create or alter procedure socios.insertar_responsable_menor
@@ -556,7 +695,7 @@ create or alter procedure socios.insertar_responsable_menor
 	@dni int,
 	@email varchar(50),
 	@fecha_nacimiento date,
-	@telefono int,
+	@telefono VARCHAR(18),
 	@parentesco varchar(30)
 as
 begin
@@ -603,6 +742,7 @@ begin
 	end
 end
 go
+*/
 
 -- PROCEDIMIENTO DE CREACION ALEATORIA 
 -- ROL

@@ -1,4 +1,36 @@
-use importacion
+use master
+go
+
+-- Creacion de la base de datos
+if exists (
+	select name from master.dbo.sysdatabases
+	where name = 'COM5600G03'
+)
+	begin
+		print 'La base de datos ya existe'
+	end
+else
+	begin
+		Create database COM5600G03
+	end
+go
+
+use COM5600G03
+go
+
+-- CREACION DE ESQUEMAS Y TABLAS PARA LA administracion
+
+if exists(
+	select name from sys.schemas
+	where name = 'importacion'
+)
+	begin
+		print 'El esquema de importacion ya existe'
+	end
+else
+	begin
+		exec('Create schema importacion')
+	end
 go
 
 create table #responsablesdepago(

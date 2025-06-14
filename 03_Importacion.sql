@@ -725,7 +725,7 @@ BEGIN
 END
 go
 
---EXEC importacion.importarArchivosMetorologicos 'C:\Users\Maximo\Downloads\open-meteo-buenosaires_2024.csv', ',', '\n', 'ACP', 'char', 4
---EXEC importacion.importarArchivosMetorologicos 'C:\Users\Maximo\Downloads\open-meteo-buenosaires_2025.csv', ',', '\n', 'ACP', 'char', 4
+--EXEC importacion.importar_archivos_metorologicos 'C:\Users\Maximo\Downloads\open-meteo-buenosaires_2024.csv', ',', '\n', 'ACP', 'char', 4
+--EXEC importacion.importar_archivos_metorologicos 'C:\Users\Maximo\Downloads\open-meteo-buenosaires_2025.csv', ',', '\n', 'ACP', 'char', 4
 
---SELECT * FROM facturacion.diasLluviosos D ORDER BY D.fecha
+--SELECT * FROM facturacion.dias_lluviosos D ORDER BY D.fecha

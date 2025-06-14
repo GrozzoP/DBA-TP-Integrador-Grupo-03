@@ -665,3 +665,67 @@ go
 
 --exec socios.insertar_pago_couta_historico 'C:\Users\ulaza\OneDrive\Escritorio\imp\Datos socios 1(pago cuotas).csv'
 --select*from socios.pago_cuotas_historico
+
+
+-- Procedimiento para la importacion de los archivos con datos meteorológicos
+
+CREATE OR ALTER PROCEDURE importacion.importarArchivosMetorologicos(@ruta varchar(MAX),
+								@fieldTerminator VARCHAR(3),
+								@rowterminator VARCHAR(5),
+								@codepage VARCHAR(20),
+								@datafiletype VARCHAR(20),
+								@firstRow INT)
+AS
+BEGIN
+	IF OBJECT_ID('COM5600G03.facturacion.#tablaTempMeteo') IS NULL
+	BEGIN
+		Create table facturacion.#tablaTempMeteo(
+		fecha VARCHAR(100),
+		temperatura DECIMAL(3,1),
+		precipitaciones DECIMAL(4,2),
+		humedad INT,
+		viento DECIMAL(4,2)
+		)
+	END
+	ELSE
+	BEGIN
+		DELETE facturacion.#tablaTempMeteo
+	END
+
+	IF OBJECT_ID('COM5600G03.facturacion.diasLluviosos') IS NULL
+	BEGIN
+		CREATE TABLE facturacion.diasLluviosos(
+			fecha DATE PRIMARY KEY,
+			lluvia BIT
+		)
+	END
+
+	DECLARE @SQL VARCHAR(500)
+	SET @SQL = 'Bulk insert facturacion.#tablaTempMeteo
+	From ''' + @ruta +'''
+	with (
+	firstrow = ' + CAST(@firstRow AS VARCHAR(6)) + ',
+	rowterminator = ''' + @rowterminator + ''',
+	fieldterminator = ''' + @fieldterminator+''',
+	codepage = ''' + @codepage + ''',
+	DATAFILETYPE = ''' + @datafiletype + ''')'
+
+	EXEC sp_sqlexec @SQL
+
+	INSERT INTO facturacion.diasLluviosos
+	SELECT	CONVERT(DATE, dia),
+		CASE
+			WHEN SUM(precipitaciones) > 0 THEN 1
+			ELSE 0
+		END AS hubo_lluvia
+	FROM	(SELECT CAST(REPLACE(fecha, 'T', ' ')AS DATETIME) as dia, precipitaciones
+			FROM facturacion.#tablaTempMeteo) T
+	GROUP BY CONVERT(DATE, dia)
+	ORDER BY CONVERT(DATE, dia)
+END
+go
+
+--EXEC importacion.importarArchivosMetorologicos 'C:\Users\Maximo\Downloads\open-meteo-buenosaires_2024.csv', ',', '\n', 'ACP', 'char', 4
+--EXEC importacion.importarArchivosMetorologicos 'C:\Users\Maximo\Downloads\open-meteo-buenosaires_2025.csv', ',', '\n', 'ACP', 'char', 4
+
+--SELECT * FROM facturacion.diasLluviosos D ORDER BY D.fecha

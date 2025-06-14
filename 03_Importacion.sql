@@ -669,7 +669,7 @@ go
 
 -- Procedimiento para la importacion de los archivos con datos meteorológicos
 
-CREATE OR ALTER PROCEDURE importacion.importarArchivosMetorologicos(@ruta varchar(MAX),
+CREATE OR ALTER PROCEDURE importacion.importar_archivos_metorologicos(@ruta varchar(MAX),
 								@fieldTerminator VARCHAR(3),
 								@rowterminator VARCHAR(5),
 								@codepage VARCHAR(20),
@@ -677,9 +677,9 @@ CREATE OR ALTER PROCEDURE importacion.importarArchivosMetorologicos(@ruta varcha
 								@firstRow INT)
 AS
 BEGIN
-	IF OBJECT_ID('COM5600G03.facturacion.#tablaTempMeteo') IS NULL
+	IF OBJECT_ID('COM5600G03.facturacion.#tabla_temp_meteo') IS NULL
 	BEGIN
-		Create table facturacion.#tablaTempMeteo(
+		Create table facturacion.#tabla_temp_meteo(
 		fecha VARCHAR(100),
 		temperatura DECIMAL(3,1),
 		precipitaciones DECIMAL(4,2),
@@ -689,19 +689,19 @@ BEGIN
 	END
 	ELSE
 	BEGIN
-		DELETE facturacion.#tablaTempMeteo
+		DELETE facturacion.#tabla_temp_meteo
 	END
 
-	IF OBJECT_ID('COM5600G03.facturacion.diasLluviosos') IS NULL
+	IF OBJECT_ID('COM5600G03.facturacion.dias_lluviosos') IS NULL
 	BEGIN
-		CREATE TABLE facturacion.diasLluviosos(
+		CREATE TABLE facturacion.dias_lluviosos(
 			fecha DATE PRIMARY KEY,
 			lluvia BIT
 		)
 	END
 
 	DECLARE @SQL VARCHAR(500)
-	SET @SQL = 'Bulk insert facturacion.#tablaTempMeteo
+	SET @SQL = 'Bulk insert facturacion.#tabla_temp_meteo
 	From ''' + @ruta +'''
 	with (
 	firstrow = ' + CAST(@firstRow AS VARCHAR(6)) + ',
@@ -712,14 +712,14 @@ BEGIN
 
 	EXEC sp_sqlexec @SQL
 
-	INSERT INTO facturacion.diasLluviosos
+	INSERT INTO facturacion.dias_lluviosos
 	SELECT	CONVERT(DATE, dia),
 		CASE
 			WHEN SUM(precipitaciones) > 0 THEN 1
 			ELSE 0
 		END AS hubo_lluvia
 	FROM	(SELECT CAST(REPLACE(fecha, 'T', ' ')AS DATETIME) as dia, precipitaciones
-			FROM facturacion.#tablaTempMeteo) T
+			FROM facturacion.#tabla_temp_meteo) T
 	GROUP BY CONVERT(DATE, dia)
 	ORDER BY CONVERT(DATE, dia)
 END

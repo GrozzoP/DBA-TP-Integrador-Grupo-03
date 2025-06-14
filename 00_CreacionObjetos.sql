@@ -428,6 +428,7 @@ begin
 end
 go
 
+--Creacion de la tabla facturacion.reembolso
 if OBJECT_ID('facturacion.reembolso', 'U') IS NULL
 begin
 	Create table facturacion.reembolso(
@@ -453,3 +454,29 @@ begin
 end
 go
 
+--Creacion de la tabla facturacion_dias_lluviosos
+IF OBJECT_ID('COM5600G03.facturacion.dias_lluviosos') IS NULL
+BEGIN
+	CREATE TABLE facturacion.dias_lluviosos(
+		fecha DATE PRIMARY KEY,
+		lluvia BIT
+	)
+END
+ELSE
+BEGIN
+	print 'la tabla facturacion.dias_lluviosos ya existe'
+END
+go
+
+--Creacion del trigger facturacion.inserta_dias_lluviosos para la tabla facturacion.dias_lluviosos
+CREATE OR ALTER TRIGGER facturacion.inserta_dias_lluviosos ON facturacion.dias_lluviosos INSTEAD OF INSERT
+AS BEGIN
+	UPDATE facturacion.dias_lluviosos
+	SET lluvia = (SELECT I.lluvia FROM inserted I WHERE I.fecha = facturacion.dias_lluviosos.fecha)
+	WHERE EXISTS (SELECT 1 FROM inserted I WHERE facturacion.dias_lluviosos.fecha = I.fecha)
+
+	INSERT INTO facturacion.dias_lluviosos SELECT I.fecha, I.lluvia
+								FROM inserted I
+								WHERE I.fecha NOT IN (SELECT DF.fecha FROM facturacion.dias_lluviosos DF)
+END
+go

@@ -150,6 +150,7 @@ begin
 		usuario varchar(40),
 		contraseña varchar(40) not null,
 		fecha_vigencia_contraseña date,
+		saldo decimal(9,2) default 0,
 		Constraint socios_usuario_PK_id_user Primary key(id_usuario),
 		Constraint socios_usuario_FK_id_rol Foreign Key(id_rol) References socios.rol(id_rol)
 	)
@@ -159,6 +160,7 @@ begin
 	print 'La tabla socios.usuario ya existe'
 end
 go
+
 
 -- Creacion de la tabla socios.obra_social
 IF OBJECT_ID('socios.obra_social', 'U') IS NULL
@@ -410,11 +412,14 @@ begin
 		id_factura int,
 		tipo_movimiento varchar(20),
 		id_medio_pago int,
+		id_socio int,
 		Constraint Facturacion_pago_PK_id_pago Primary key(id_pago),
 		Constraint Facturacion_pago_FK_id_factura
 				Foreign Key(id_factura) References facturacion.factura(id_factura),
 		Constraint Facturacion_pago_FK_id_medio_pago
-				Foreign Key(id_medio_pago) References facturacion.medio_de_pago(id_medio_de_pago)
+				Foreign Key(id_medio_pago) References facturacion.medio_de_pago(id_medio_de_pago),
+		Constraint Facturacion_pago_FK_id_socio
+				Foreign Key(id_socio) References socios.socio(id_socio)
 	)
 end
 else
@@ -422,3 +427,29 @@ begin
 	print 'La tabla facturacion.pago ya existe'
 end
 go
+
+if OBJECT_ID('facturacion.reembolso', 'U') IS NULL
+begin
+	Create table facturacion.reembolso(
+		id_factura int primary key,
+		fecha_emision date,
+		primer_vto date,
+		segundo_vto date,
+		monto decimal(9,3),
+		estado varchar(30) default 'REEMBOLSO',
+		id_socio int,
+		id_medio_pago int,
+		tipo_comprobante char(1) default 'B',
+		punto_venta varchar(40) default 'Club SQL Norte Janson 1145',
+		condicion_frente_iva varchar(30) default 'IVA Sujeto extento',
+		email varchar(30) default 'sqlnorte10@gmail.com',
+		cant char(1) default '1',
+		servicio varchar(60) default 'Actividad'
+	)
+end
+else
+begin
+	print 'La tabla facturacion.reembolso ya existe'
+end
+go
+

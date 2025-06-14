@@ -1278,7 +1278,8 @@ begin
 		print 'La inscripcion extra a eliminar no existe'
 	end
 end
-go					
+go		
+
 --Procedimiento para pagar una factura
 create or alter procedure facturacion.pago_factura(
 		@id_factura int,
@@ -1290,6 +1291,8 @@ begin
   SET TRANSACTION ISOLATION LEVEL READ COMMITTED
   BEGIN TRANSACTION
 
+    declare @monto decimal(9,3)
+
     if exists(
 	   select id_factura from facturacion.factura
 	   where id_factura = @id_factura and estado like 'NO PAGADO'
@@ -1300,19 +1303,55 @@ begin
 		  where id_medio_de_pago = @id_medio_pago
 		)
 		begin
-		     declare @monto decimal(9,3)
-			 set @monto = (
-			                 select total from facturacion.factura
-							 where id_factura = @id_factura
-			              )
-			 --inserto los datos en la tabla de pago
-		     insert into facturacion.pago(id_factura,fecha_pago,monto_total,tipo_movimiento,id_medio_pago)
-			 values(@id_factura,getdate(),@monto,'PAGO',@id_medio_pago)
-			 --modifico el estado de la factura
+			 if exists(
+			   select primer_vto from facturacion.factura
+			   where primer_vto >= GETDATE()
+			 ) 
+			 begin
+			      set @monto = (
+								 select total from facturacion.factura
+								 where id_factura = @id_factura
+			                    )
+			 end
+			 else
+			 begin
+			    if exists(
+				   select segundo_vto from facturacion.factura
+				   where segundo_vto >= GETDATE()
+				)
+				  begin
+				  set @monto = (
+								 select total_con_recargo from facturacion.factura
+								 where id_factura = @id_factura
+			                    )
+				  end
+				  else
+				  begin
+				      set @monto = -1
+				  end
+			 end
 
-			 update facturacion.factura
-			 set estado = 'PAGADO'
-			 where id_factura = @id_factura
+			 if(@monto = -1)
+			 begin
+			     print 'La factura ya excedio la fecha de pago'
+			 end
+			 else
+			 begin
+			     declare @id_socio int
+				 set @id_socio = (
+				      select id_socio from facturacion.factura
+					  where id_factura = @id_factura
+				 )
+
+			     --inserto los datos en la tabla de pago
+				 insert into facturacion.pago(id_factura,id_socio,fecha_pago,monto_total,tipo_movimiento,id_medio_pago)
+				 values(@id_factura, @id_socio,getdate(),@monto,'PAGO',@id_medio_pago)
+				 --modifico el estado de la factura
+
+				 update facturacion.factura
+				 set estado = 'PAGADO'
+				 where id_factura = @id_factura
+			 end		 
 		end
 		else
 		begin
@@ -1324,8 +1363,80 @@ begin
 	   print 'No se encontro factura con ese id o la factura ya fue abonada'
 	end
 
-
   COMMIT TRANSACTION
 
 end
 go
+
+create or alter procedure facturacion.pago_a_cuenta(@id_socio int,@monto_reembolo decimal(9,3),@porcentaje float)
+-- Se hace uso del float para establecer porcentajes 0.1, 0.05, 0.2, 0.5
+as
+begin
+    declare @monto_final decimal(9,3)
+    declare @id_user int
+
+
+	set @monto_final = (@monto_reembolo*@porcentaje)
+
+	set @id_user = (
+	     select id_usuario from socios.socio
+		 where id_socio = @id_socio
+	)
+
+	update socios.usuario
+	set saldo = (saldo + @monto_final)
+	where id_usuario = @id_user
+
+end
+go
+
+create or alter procedure facturacion.reembolsar_pago(@id_factura int)
+as
+begin
+  SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+  BEGIN TRANSACTION
+     if exists(
+	    select id_factura from facturacion.pago
+		where id_factura = @id_factura
+	 )
+	 begin
+	    
+		 declare @monto_a_reembolsar decimal(9,3)
+		 declare @id_socio_reembolso int
+		 set @monto_a_reembolsar = (
+
+				 select monto_total from facturacion.pago
+				 where id_factura = @id_factura     
+
+		 )
+		 set @id_socio_reembolso = (
+
+				 select id_socio from facturacion.pago
+				 where id_factura = @id_factura     
+
+		 )
+	     
+		 insert into facturacion.reembolso(id_factura,id_socio,fecha_emision,primer_vto,segundo_vto,id_medio_pago,monto) 
+		 select f.id_factura,f.id_socio,f.fecha_emision,
+		 f.primer_vto , f.segundo_vto ,p.id_medio_pago,p.monto_total from facturacion.factura f
+		 join facturacion.pago p
+		 on p.id_factura = f.id_factura
+		 where p.id_factura = @id_factura	 
+
+		 -------Eliminar el pago en la tabla facturacion.pago porque ese pago ya no es valido
+		 update facturacion.pago
+		 set tipo_movimiento = 'REEMBOLSO'
+		 where id_factura = @id_factura
+		 -------Pago a cuenta en la tabla usuarios
+		 exec facturacion.pago_a_cuenta @id_socio_reembolso, @monto_a_reembolsar,1
+
+	 end
+	 else
+	 begin
+	    print 'No es posible reembolsar esa factura'
+	 end
+  
+  COMMIT TRANSACTION
+end
+go
+

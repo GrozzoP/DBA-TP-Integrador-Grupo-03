@@ -1081,3 +1081,64 @@ exec facturacion.pago_factura 1, 'PAGO', 1
 
 -- Se espera mensaje: 'No se encontro el id de ese medio de pago'
 exec facturacion.pago_factura 1, 'PAGO', 999
+
+
+
+/*****facturacion.reembolsar_pago*****/
+
+-- Limpieza y preparación de las tablas necesarias
+exec eliminar_y_restaurar_tabla 'facturacion.pago'
+go
+exec eliminar_y_restaurar_tabla 'facturacion.factura'
+go
+exec eliminar_y_restaurar_tabla 'socios.socio'
+go
+exec eliminar_y_restaurar_tabla 'socios.usuario'
+go
+exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
+go
+exec eliminar_y_restaurar_tabla 'socios.categoria'
+go
+exec eliminar_y_restaurar_tabla 'socios.obra_social'
+go
+exec eliminar_y_restaurar_tabla 'socios.rol'
+go
+exec eliminar_y_restaurar_tabla 'facturacion.reembolso'
+go
+
+-- Inserción de datos requeridos para relaciones
+exec socios.insertar_categoria 'Adulto', 18, 65, 25000
+go
+exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
+go
+exec facturacion.insertar_medio_de_pago 'Transferencia', 1
+go
+exec socios.insertar_obra_social 'OSDE', 1134225566
+go
+
+-- Se espera inserción exitosa del socio
+exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', 1133445566, 1133445577, 1, 1, 1, 1
+
+-- Se espera creación exitosa de una factura NO PAGADA
+exec facturacion.crear_factura 10000.000, 1
+
+-- Se espera que la factura no haga un reembolso porque ese id factura no fue pagada
+exec facturacion.reembolsar_pago 1
+
+-- Se espera que el pago se realice exitosamente y se actualice el estado de la factura
+exec facturacion.pago_factura 1, 'PAGO', 1
+
+-- Se espera que la factura no haga un reembolso porque ese id factura no existe
+exec facturacion.reembolsar_pago 5
+
+-- Se espera que la factura haga un reembolso exitosamente,se inserte el reembolso en la tabla facturacion.reembolso
+-- Se cambie el tipo de movimiento en la tabla facturacion.pago
+-- El saldo en usuario aumente porque es un reembolso, en este caso el 100%
+exec facturacion.reembolsar_pago 1
+
+
+select*from facturacion.factura
+select*from facturacion.pago
+select*from facturacion.reembolso
+select*from socios.usuario
+

@@ -384,7 +384,7 @@ begin
 end
 go
 
-exec importacion.cargar_responsables_de_pago @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx'
+-- exec importacion.cargar_responsables_de_pago @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx'
 go
 
 -- select * from socios.socio
@@ -400,18 +400,18 @@ begin
     if object_id('tempdb..#TEMP_GRUPO_FAMILIAR') is null
     begin
       create table #TEMP_GRUPO_FAMILIAR (
-        [Nro de Socio]                     varchar(50),
-        [Nro de socio responsable]         varchar(50),
-        Nombre                             varchar(100),
-        Apellido                           varchar(100),
-        DNI                                INT,
-        [Email personal]                   varchar(200),
-        [Fecha de nacimiento]              varchar(50),
-        [Telefono de contacto]             varchar(100),
-        [Telefono de contacto emergencia]  INT,
-        [Nombre de la obra social/prepag]  varchar(200),
-        [Nro. de socio obra social/prepag] varchar(50),
-        [Telefono de contacto de emergencia] varchar(100)
+        [Nro de Socio] varchar(50),
+        [Nro de socio responsable] varchar(50),
+        [Nombre] varchar(100),
+        [Apellido] varchar(100),
+        [DNI] INT,
+        [Email personal] varchar(200),
+        [Fecha de nacimiento] varchar(50),
+        [Telefono de contacto] varchar(100),
+        [Telefono de contacto emergencia] INT,
+        [Nombre obra social] varchar(200),
+        [Nro obra social] varchar(50),
+        [Telefono contacto de emergencia obra social] varchar(100)
       );
     end
 
@@ -432,11 +432,67 @@ begin
     update #TEMP_GRUPO_FAMILIAR
     set [Nro de socio responsable] = CAST(PARSENAME(REPLACE([Nro de socio responsable], '-', '.'), 1) as int)
 
-	SELECT * FROM #TEMP_GRUPO_FAMILIAR;
+
+	-- INSERTO LAS OBRAS SOCIALES (QUE NO ESTEN YA EN LA TABLA)
+
+	insert into socios.obra_social (nombre_obra_social, telefono_obra_social)
+	select distinct
+		[Nombre obra social],
+		[Telefono contacto de emergencia obra social]
+	from #TEMP_GRUPO_FAMILIAR
+	where [Nombre obra social] is not null
+			and not exists (
+				select 1
+				from socios.obra_social os
+				where os.nombre_obra_social = [Nombre obra social]
+	)
+
+	-- INSERTO LOS SOCIOS MENORES DE EDAD
 
 	SET IDENTITY_INSERT socios.socio ON
-
+	insert into socios.socio (
+		id_socio,
+		dni,
+		nombre,
+		apellido,
+		email,
+		fecha_nacimiento,
+		telefono_contacto,
+		telefono_emergencia,
+		id_obra_social,
+		nro_socio_obra_social,
+		habilitado
+	)
+	select
+		[Nro de Socio],
+		[DNI],
+		[Nombre],
+		[Apellido],
+		[Email personal],
+		CONVERT(date, [Fecha de nacimiento], 103),
+		[Telefono de contacto],
+		[Telefono de contacto emergencia],
+		os.id_obra_social,
+		[Nro obra social],
+		'HABILITADO'
+		from #TEMP_GRUPO_FAMILIAR s
+		inner join socios.obra_social os
+		on os.nombre_obra_social = s.[Nombre obra social]
+		where TRY_CAST(s.[DNI] as int) is not null
+		and not exists (
+		  select 1 from socios.socio ss where ss.dni = TRY_CAST(s.[DNI] as int)
+		)
 	SET IDENTITY_INSERT socios.socio OFF
+
+	insert into socios.grupo_familiar (id_socio_menor, id_responsable, parentesco)
+	select
+		[Nro de Socio],
+		[Nro de socio responsable],
+		'Familiar'
+	from #TEMP_GRUPO_FAMILIAR tf
+	join socios.socio s1 on s1.id_socio = tf.[Nro de Socio]
+	join socios.socio s2 on s2.id_socio = tf.[Nro de socio responsable]
+	where tf.[Nro de socio responsable] is not null;
 
     print 'El dataset de Grupo Familiar fue cargado exitosamente!';
 
@@ -451,6 +507,9 @@ go
 -- exec importacion.cargar_grupo_familiar @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
 
 -- SELECT * FROM socios.socio
+-- SELECT * FROM socios.obra_social
+-- SELECT * FROM socios.grupo_familiar
+
 go
 
 ----------------------------------------------------
@@ -542,7 +601,7 @@ begin
 	where dni = '293367480'
 
 	insert into socios.socio(DNI, nombre, apellido, email, fecha_nacimiento, telefono_contacto, telefono_emergencia,
-	habilitado,nro_socio_obrasocial)
+	habilitado,nro_socio_obra_social)
 	select dni,nombre,apellido,email, convert(date, fnacimiento, 103),telcontacto,telcontactoemergencia,
 	'HABILITADO',nrosocioobrasocial from #responsablesdepago
 	order by nrosocio asc

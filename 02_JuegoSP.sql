@@ -22,14 +22,35 @@ go
 
 --
 /*** SP auxiliares ***/
-create or alter procedure eliminar_y_restaurar_tabla @nombreDeTabla varchar(50)
+create or alter procedure eliminar_y_restaurar_tabla @tabla nvarchar(512)
 as
 begin
-	declare @consulta varchar(max)
-	set @consulta = 'delete from ' + @nombreDeTabla
-	exec(@consulta)
-	DBCC CHECKIDENT (@nombreDeTabla, RESEED, 0);
-end
+    declare @schema sysname = parsename(@tabla, 2),
+            @name sysname = parsename(@tabla, 1),
+            @sql nvarchar(max);
+
+	-- Si el esquema es nulo, entonces usar por default el dbo
+    if @schema is null 
+		set @schema = 'dbo';
+
+    -- Eliminar los registros relativos a la tabla
+    set @sql = 'delete from ' + quotename(@schema) + '.' + quotename(@name);
+    exec sp_executesql @sql;
+
+    -- resetear identidad si existe columna identity
+    if exists (
+        select 1 from sys.identity_columns ic
+        where ic.object_id = object_id(@schema + '.' + @name)
+    )
+    begin
+        -- reseed a 0 para que próximo valor sea 1
+        set @sql = 'dbcc checkident(''' + @schema + '.' + @name + ''', reseed, 0)';
+        exec sp_executesql @sql;
+    end
+end;
+go
+
+
 /*** Fin de SP auxiliares ***/
 go
 
@@ -248,9 +269,9 @@ exec eliminar_y_restaurar_tabla 'socios.obra_social'
 
 --Se espera la insercion exitosa de los sig registros
 exec socios.insertar_obra_social '', 0
-exec socios.insertar_obra_social 'obraSocial1', 0
-exec socios.insertar_obra_social 'obraSocial2', 0
-exec socios.insertar_obra_social 'obraSocial3', 0
+exec socios.insertar_obra_social 'obraSocial1', '0'
+exec socios.insertar_obra_social 'obraSocial2', '0'
+exec socios.insertar_obra_social 'obraSocial3', '0'
 exec socios.insertar_obra_social NULL, NULL
 
 --Se espera un mensaje 'El numero de telefono no puede ser negativo'
@@ -258,9 +279,9 @@ exec socios.insertar_obra_social 'obraSocial5', -1
 
 --Se espera mensaje 'Ya existe una obra social con ese nombre.'
 exec socios.insertar_obra_social '', 0
-exec socios.insertar_obra_social 'obraSocial1', 11111111
-exec socios.insertar_obra_social 'obraSocial2', 11111111
-exec socios.insertar_obra_social 'obraSocial3', 11111111
+exec socios.insertar_obra_social 'obraSocial1', '11111111'
+exec socios.insertar_obra_social 'obraSocial2', '11111111'
+exec socios.insertar_obra_social 'obraSocial3', '11111111'
 
 --Eliminando registros restantes de la prueba en la tabla
 exec eliminar_y_restaurar_tabla 'socios.obra_social'
@@ -271,24 +292,21 @@ exec eliminar_y_restaurar_tabla 'socios.obra_social'
 exec eliminar_y_restaurar_tabla 'socios.obra_social'
 
 --Insertando registros para prueba
-exec socios.insertar_obra_social 'obraSocial1', 11111111
-exec socios.insertar_obra_social 'obraSocial2', 22222222
-exec socios.insertar_obra_social 'obraSocial3', 33333333
-exec socios.insertar_obra_social 'obraSocial4', 44444444
+exec socios.insertar_obra_social 'obraSocial1', '11111111'
+exec socios.insertar_obra_social 'obraSocial2', '22222222'
+exec socios.insertar_obra_social 'obraSocial3', '33333333'
+exec socios.insertar_obra_social 'obraSocial4', '44444444'
 
 --Se espera la modificacion del @telefono_obra_social de los siguientes registros con exito
-exec socios.modificar_obra_social 'obraSocial1', 0
-exec socios.modificar_obra_social 'obraSocial2', 0
-exec socios.modificar_obra_social 'obraSocial3', 0
-exec socios.modificar_obra_social 'obraSocial4', 0
+exec socios.modificar_obra_social 'obraSocial1', '0'
+exec socios.modificar_obra_social 'obraSocial2', '0'
+exec socios.modificar_obra_social 'obraSocial3', '0'
+exec socios.modificar_obra_social 'obraSocial4', '0'
 
 --Se espera mensaje 'No existe una obra social con ese nombre.'
-exec socios.modificar_obra_social 'obraSocial6', 0
-exec socios.modificar_obra_social 'obraSocial7', 0
-exec socios.modificar_obra_social 'obraSocial8', 0
-
---Se espera mensaje 'El numero de telefono no puede ser negativo'
-exec socios.modificar_obra_social 'obraSocial1', -1
+exec socios.modificar_obra_social 'obraSocial6', '0'
+exec socios.modificar_obra_social 'obraSocial7', '0'
+exec socios.modificar_obra_social 'obraSocial8', '0'
 
 --Eliminando registros restantes de la prueba en la tabla
 exec eliminar_y_restaurar_tabla 'socios.obra_social'
@@ -299,10 +317,10 @@ exec eliminar_y_restaurar_tabla 'socios.obra_social'
 exec eliminar_y_restaurar_tabla 'socios.obra_social'
 
 --Insertando registros para prueba
-exec socios.insertar_obra_social 'obraSocial1', 11111111
-exec socios.insertar_obra_social 'obraSocial2', 22222222
-exec socios.insertar_obra_social 'obraSocial3', 33333333
-exec socios.insertar_obra_social 'obraSocial4', 44444444
+exec socios.insertar_obra_social 'obraSocial1', '11111111'
+exec socios.insertar_obra_social 'obraSocial2', '22222222'
+exec socios.insertar_obra_social 'obraSocial3', '33333333'
+exec socios.insertar_obra_social 'obraSocial4', '44444444'
 --Se espera la eliminacion de los siguientes registros
 exec socios.eliminar_obra_social 'obraSocial1'
 exec socios.eliminar_obra_social 'obraSocial2'
@@ -367,6 +385,9 @@ exec socios.eliminar_categoria 'Mayor'
 exec socios.eliminar_categoria 'Sargento'
 go
 
+
+-- Hasta que nos enteremos del posible cambio, dejamos esta tabla a un lado
+/*
 -- RESPONSABLE MENOR
 /***** create or alter procedure socios.insertar_responsable_menor
 	@nombre varchar(40),
@@ -395,16 +416,16 @@ exec socios.insertar_usuario 1, 'passwordDeUsuario3', @fechaDePrueba
 exec socios.insertar_categoria 'Menor', 1, 18, 9.69
 exec socios.insertar_categoria 'Cadete', 19, 27, 1.01
 exec socios.insertar_categoria 'Mayor', 28, 35, 5
-exec socios.insertar_obra_social 'Luis Pasteur', 1111111111
-exec socios.insertar_obra_social 'OSECAC', 22222222
+exec socios.insertar_obra_social 'Luis Pasteur', '1111111111'
+exec socios.insertar_obra_social 'OSECAC', '22222222'
 exec facturacion.insertar_medio_de_pago 'Visa', 1
 
 -- Se espera la insercion exitosa de los siguientes registros
-exec socios.insertar_socio 47247252, 'Armando', 'Giunta' , 'blas-armando@gmail.com', '2007-02-23', 11223344, 55667788, 1, 1, 1, 1
-exec socios.insertar_responsable_menor 'Juan', 'Pérez', 12345678, 'juan.perez@email.com', '1980-05-15', 1122334455, 'Padre'
+exec socios.insertar_socio 47247252, 'Armando', 'Giunta' , 'blas-armando@gmail.com', '2007-02-23', '11223344', '55667788', 1, 250, 1, 1, 1
+exec socios.insertar_responsable_menor 'Juan', 'Pérez', 12345678, 'juan.perez@email.com', '1980-05-15', '1122334455', 'Padre'
 
 -- Se muestra el mensaje "El responsable no puede ser menor de edad!"
-exec socios.insertar_responsable_menor 'Lucía', 'González', 56789123, 'lucia.gonzalez@email.com', '2010-08-15', 1144556677, 'Madre';
+exec socios.insertar_responsable_menor 'Lucía', 'González', 56789123, 'lucia.gonzalez@email.com', '2010-08-15', '1144556677', 'Madre';
 
 /***** create or alter procedure socios.eliminar_responsable_menor
 	@id_socio_responsable int *****/
@@ -422,17 +443,27 @@ exec eliminar_y_restaurar_tabla 'socios.responsable_menor'
 exec eliminar_y_restaurar_tabla 'socios.usuario'
 exec eliminar_y_restaurar_tabla 'socios.rol'
 exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
-go
+go*/
 
 /***** socios.insertar_socio 
-					@dni int, @nombre varchar(40), 
-					@apellido varchar(40), @email varchar(150), 
-					@fecha_nacimiento date, @telefono_contacto int, 
-					@telefono_emergencia int, @id_obra_social int, 
-					@id_categoria int, @id_usuario int, 
-					@id_medio_de_pago int	*****/
+						@dni int,
+						@nombre varchar(40),
+						@apellido varchar(40),
+						@email varchar(150),
+						@fecha_nacimiento date,
+						@telefono_contacto char(18),
+						@telefono_emergencia char(18),
+						@id_obra_social int,
+						@nro_socio_obra_social int,
+						@id_medio_de_pago int,
+						@id_rol int,
+						@id_responsable_menor int = 0,
+						@parentesco varchar(15) = ''	*****/
 
 --Preparando tabla para pruebas
+exec eliminar_y_restaurar_tabla 'facturacion.pago'
+exec eliminar_y_restaurar_tabla 'facturacion.factura'
+exec eliminar_y_restaurar_tabla 'socios.grupo_familiar'
 exec eliminar_y_restaurar_tabla 'socios.socio'
 exec eliminar_y_restaurar_tabla 'socios.obra_social'
 exec eliminar_y_restaurar_tabla 'socios.categoria'
@@ -440,49 +471,162 @@ exec eliminar_y_restaurar_tabla 'socios.usuario'
 exec eliminar_y_restaurar_tabla 'socios.rol'
 exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
 
---Insertanto registros para la prueba
-declare @fechaDePrueba date = GETDATE();
-exec socios.insertar_rol 'Cliente', @fechaDePrueba
-exec socios.insertar_usuario 1, 'passwordDeUsuario1', @fechaDePrueba
-exec socios.insertar_usuario 1, 'passwordDeUsuario2', @fechaDePrueba
-exec socios.insertar_usuario 1, 'passwordDeUsuario3', @fechaDePrueba
-exec socios.insertar_categoria 'Menor', 1, 18, 9.69
-exec socios.insertar_categoria 'Cadete', 19, 27, 1.01
-exec socios.insertar_categoria 'Mayor', 28, 35, 5
-exec socios.insertar_obra_social 'Luis Pasteur', 1111111111
-exec socios.insertar_obra_social 'OSECAC', 22222222
-exec facturacion.insertar_medio_de_pago 'Visa', 1
+-- roles
+insert into socios.rol (nombre, descripcion) values ('Usuario', 'Rol comun'), ('Admin', 'Administracion')
 
---Se espera la insercion exitosa de los siguientes registros
-exec socios.insertar_socio 41247252, 'Pepe', 'Grillo' , 'pGrillo@gmail.com', '1999-01-19', 11223344, 55667788, 1, 1, 1, 1
+-- medios de pago
+insert into facturacion.medio_de_pago (nombre_medio_pago) values ('Mercadopago'), ('Tarjeta')
 
-exec socios.insertar_socio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', 55667788, 11223344, 2, 2, 1, 1
+-- obras sociales
+insert into socios.obra_social (nombre_obra_social) values ('OSDE'), ('GALENO')
 
---Se espera mensaje 'Ya existe un socio con ese dni.'
-exec socios.insertar_socio 41247253, 'Armando', 'Losas' , 'albañilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 1, 3, 1, 1
+-- categorias por edad
+insert into socios.categoria (edad_minima, edad_maxima, nombre_categoria) values (1, 17, 'menor'), (18, 64, 'adulto'), (65, 85, 'mayor')
+go
 
---Se espera mensaje 'No existe una obra social con ese id.'
-exec socios.insertar_socio 41247254, 'Armando', 'Losas' , 'albañilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 4, 3, 1, 1
+-- Insercion exitosa de un socio adulto, 'Se ha creado de manera automatica una cuenta para que disfrutes de los servicios de los socios!'
+exec socios.insertar_socio
+    @dni = 10001,
+    @nombre = 'ana',
+    @apellido = 'perez',
+    @email = 'ana.perez@mail.com',
+    @fecha_nacimiento = '1990-05-10',
+    @telefono_contacto = '0000000001',
+    @telefono_emergencia = '0000000002',
+    @id_obra_social = 1,
+    @nro_socio_obra_social = 'a100',
+    @id_medio_de_pago = 1,
+    @id_rol = 1;
 
---Se espera mensaje 'No existe una categoria con ese id.'
-exec socios.insertar_socio 41247254, 'Armando', 'Losas' , 'albañilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 2, 4, 1, 1
+exec socios.insertar_socio
+    @dni = 20010,
+    @nombre = 'martin',
+    @apellido = 'gutierrez',
+    @email = 'martin.gutierrez@mail.com',
+    @fecha_nacimiento = '1989-04-12',
+    @telefono_contacto = '01112345678',
+    @telefono_emergencia = '01187654321',
+    @id_obra_social = 2,
+    @nro_socio_obra_social = 'm350',
+    @id_medio_de_pago = 2,
+    @id_rol = 1;
 
---Se espera mensaje 'No existe un medio de pago con esa id.'
-exec socios.insertar_socio 41247254, 'Armando', 'Losas' , 'albañilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 2, 4, 2, 1
+-- Insercion fallida, 'Ya existe un socio con ese dni.'
+exec socios.insertar_socio
+    @dni = 10001,
+    @nombre = 'luis',
+    @apellido = 'gomez',
+    @email = 'luis.gomez@mail.com',
+    @fecha_nacimiento = '1985-07-20',
+    @telefono_contacto = '0000000003',
+    @telefono_emergencia = '0000000004',
+    @id_obra_social = 1,
+    @nro_socio_obra_social = 'a101',
+    @id_medio_de_pago = 2,
+    @id_rol = 1;
 
---Se espera mensaje 'No existe un usuario con esa id.'
-exec socios.insertar_socio 41247254, 'Armando', 'Losas' , 'albañilLosas@gmail.com', '1990-01-19', 55667788, 11223344, 2, 3, 1, 1
+-- Insercion invalida, 'No existe una obra social con ese id.'
+exec socios.insertar_socio
+    @dni = 10002,
+    @nombre = 'maria',
+    @apellido = 'lopez',
+    @email = 'maria.lopez@mail.com',
+    @fecha_nacimiento = '1988-03-15',
+    @telefono_contacto = '0000000005',
+    @telefono_emergencia = '0000000006',
+    @id_obra_social = 99,
+    @nro_socio_obra_social = 'b200',
+    @id_medio_de_pago = 1,
+    @id_rol = 1;
 
---Eliminando registros restantes de la prueba en la tabla
-exec eliminar_y_restaurar_tabla 'socios.socio'
-exec eliminar_y_restaurar_tabla 'socios.obra_social'
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'socios.rol'
-exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
+-- No se pudo insertar un socio menor de edad, 'El socio al ser menor de edad, debe estar vinculado con un responsable ya registrado.'
+exec socios.insertar_socio
+    @dni = 10003,
+    @nombre = 'jose',
+    @apellido = 'diaz',
+    @email = 'jose.diaz@mail.com',
+    @fecha_nacimiento = '2010-09-01',
+    @telefono_contacto = '0000000007',
+    @telefono_emergencia = '0000000008',
+    @id_obra_social = 1,
+    @nro_socio_obra_social = 'c300',
+    @id_medio_de_pago = 1,
+    @id_rol = 1;
+
+-- El menor se inserta con un responsable adulto, 'Se ha creado de manera automatica una cuenta para que disfrutes de los servicios de los socios!' 
+exec socios.insertar_socio
+    @dni = 54348952,
+    @nombre = 'carlos',
+    @apellido = 'martinez',
+    @email = 'carlos.m@mail.com',
+    @fecha_nacimiento = '2010-01-01',
+    @telefono_contacto = '0000000009',
+    @telefono_emergencia = '0000000010',
+    @id_obra_social = 1,
+    @nro_socio_obra_social = 'd400',
+	@id_responsable_menor = 1,
+    @id_medio_de_pago = 2,
+    @id_rol = 1;
+go
+
+/***** create or alter procedure socios.modificar_habilitar_socio
+			@id_socio int *****/
+
+-- Cambiar el campo de 'habilitado'
+exec socios.modificar_habilitar_socio @id_socio = 1;
+
+-- Lo vuelvo a cambiar al campo de 'habilitado'
+exec socios.modificar_habilitar_socio @id_socio = 1;
+
+-- El mensaje que me devuelve, es que el socio que se busca no existe
+exec socios.modificar_habilitar_socio @id_socio = 999;
+go
+
+/***** create or alter procedure socios.eliminar_socio
+			@DNI int *****/
+
+-- Se elimina un socio mediante el DNI
+exec socios.eliminar_socio @dni = 54348952;
+
+-- Indica que 'No existe un socio con ese dni.'
+exec socios.eliminar_socio @dni = 88888;
+go
+
+-- GRUPO FAMILIAR
+-- Insertar un grupo familiar
+/*****
+create or alter procedure socios.insertar_grupo_familiar
+	@id_socio_menor int,
+	@id_responsable int,
+	@parentesco varchar(15) = 'Familiar'
+as *****/
+
+-- Responsable menor de edad
+exec socios.insertar_grupo_familiar @id_socio_menor = 2, @id_responsable = 3;
+
+-- No existe el menor, 'No existe un socio menor con ese id.'
+exec socios.insertar_grupo_familiar @id_socio_menor = 4, @id_responsable = 2;
+
+-- El responsable no existe, 'No existe un socio responsable con ese id.'
+exec socios.insertar_grupo_familiar @id_socio_menor = 2, @id_responsable = 888;
+
+-- Relacion duplicada, 'Ya existe una relación entre este menor y este responsable.'
+exec socios.insertar_grupo_familiar @id_socio_menor = 3, @id_responsable = 1;
+go
+
+/***** pruebas de socios.eliminar_grupo_familiar *****/
+
+-- Eliminar una relacion que no existe, 'No existe una relación entre ese socio menor y ese responsable.'
+exec socios.eliminar_grupo_familiar @id_socio_menor = 5, @id_responsable = 3;
+
+-- Eliminar relacion de forma exitosa
+exec socios.eliminar_grupo_familiar @id_socio_menor = 3, @id_responsable = 1;
+go
 
 /*****	actividades.insertar_actividad(@nombreActividad varchar(36),@costoMensual decimal(9,3))	*****/
 
 --Preparando tabla para pruebas
+exec eliminar_y_restaurar_tabla 'socios.grupo_familiar'
 exec eliminar_y_restaurar_tabla 'actividades.actividad'
 
 --Se espera la insercion exitosa de los siguientes registros
@@ -735,13 +879,13 @@ exec socios.insertar_usuario 1, 'passwordDeUsuario3', @fechaDePrueba
 exec socios.insertar_categoria 'Menor', 1, 18, 9.69
 exec socios.insertar_categoria 'Cadete', 19, 27, 1.01
 exec socios.insertar_categoria 'Mayor', 28, 35, 5
-exec socios.insertar_obra_social 'Luis Pasteur', 1111111111
-exec socios.insertar_obra_social'OSECAC', 22222222
+exec socios.insertar_obra_social 'Luis Pasteur', '1111111111'
+exec socios.insertar_obra_social'OSECAC', '22222222'
 exec facturacion.insertar_medio_de_pago'Visa', 1
 
 --insercion de socios
-exec socios.insertar_socio 41247252, 'Pepe', 'Grillo' , 'pGrillo@gmail.com', '1999-01-19', 11223344, 55667788, 1, 1, 1, 1
-exec socios.insertar_socio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', 55667788, 11223344, 2, 2, 1, 1
+exec socios.insertar_socio 41247252, 'Pepe', 'Grillo' , 'pGrillo@gmail.com', '1999-01-19', '11223344', '55667788', 1, 41, 1, 1, 1
+exec socios.insertar_socio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', '55667788', '11223344', 2, 45, 2, 1, 1
 
 --Insercion de actividades
 exec actividades.insertar_actividad 'futbol', 10000
@@ -822,13 +966,13 @@ exec socios.insertar_usuario 1, 'passwordDeUsuario3', @fechaDePrueba
 exec socios.insertar_categoria 'Menor', 1, 18, 9.69
 exec socios.insertar_categoria 'Cadete', 19, 27, 1.01
 exec socios.insertar_categoria 'Mayor', 28, 35, 5
-exec socios.insertar_obra_social 'Luis Pasteur', 1111111111
-exec socios.insertar_obra_social 'OSECAC', 22222222
+exec socios.insertar_obra_social 'Luis Pasteur', '1111111111'
+exec socios.insertar_obra_social 'OSECAC', '22222222'
 exec facturacion.insertar_medio_de_pago 'Visa', 1
 
 --insercion de socios
-exec socios.insertar_socio 41247252, 'Pepe', 'Grillo' , 'pGrillo@gmail.com', '1999-01-19', 11223344, 55667788, 1, 1, 1, 1
-exec socios.insertar_socio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', 55667788, 11223344, 2, 2, 1, 1
+exec socios.insertar_socio 41247252, 'Pepe', 'Grillo' , 'pGrillo@gmail.com', '1999-01-19', '11223344', '55667788', 1, 21, 1, 1, 1
+exec socios.insertar_socio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', '55667788', '11223344', 2, 35, 2, 1, 1
 
 --Insercion de actividades extra
 exec actividades.insertar_actividad_extra 'pileta', 10000
@@ -888,10 +1032,10 @@ exec eliminar_y_restaurar_tabla 'socios.rol'
 exec socios.insertar_categoria 'Adulto', 18, 65, 25000
 exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
 exec facturacion.insertar_medio_de_pago 'Tarjeta de crédito', 1
-exec socios.insertar_obra_social 'OSDE', 1134225566
+exec socios.insertar_obra_social 'OSDE', '1134225566'
 
 -- Se espera inserción exitosa del socio
-exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', 1133445566, 1133445577, 1, 1, 1, 1
+exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', '1133445566', '1133445577', 1, 12, 1, 1, 1
 
 -- Se espera que se cree correctamente una nueva factura
 exec facturacion.crear_factura 10000.000, 1
@@ -921,10 +1065,10 @@ exec eliminar_y_restaurar_tabla 'socios.rol'
 exec socios.insertar_categoria 'Adulto', 18, 65, 25000
 exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
 exec facturacion.insertar_medio_de_pago 'Transferencia', 1
-exec socios.insertar_obra_social 'OSDE', 1134225566
+exec socios.insertar_obra_social 'OSDE', '1134225566'
 
 -- Se espera inserción exitosa del socio
-exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', 1133445566, 1133445577, 1, 1, 1, 1
+exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', '1133445566', '1133445577', 1, 22, 1, 1, 1
 
 -- Se espera creación exitosa de una factura NO PAGADA
 exec facturacion.crear_factura 10000.000, 1

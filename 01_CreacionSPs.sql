@@ -20,8 +20,6 @@ Numero de grupo: 03
 -Franco Agustin Grosso 46024348
 */
 
-
-
 Use COM5600G03
 go
 
@@ -508,9 +506,12 @@ create or alter procedure socios.insertar_categoria
 	@nombre_categoria varchar(16),
 	@edad_minima int,
 	@edad_maxima int,
-	@costo_membresia decimal(9,3)
+	@costo_membresia decimal(9,3),
+	@vigencia_hasta date
 as
 begin
+	set nocount on
+
 	if exists (select 1 from socios.categoria 
 				where nombre_categoria = @nombre_categoria)
 	begin
@@ -529,21 +530,32 @@ begin
 
 	else
 	begin
-		insert into socios.categoria(nombre_categoria, edad_minima, edad_maxima, costo_membresía)
-		values (@nombre_categoria, @edad_minima, @edad_maxima, @costo_membresia)
+		declare @id_categoria_nueva int
+
+		-- Insertar la categoria
+		insert into socios.categoria(nombre_categoria, edad_minima, edad_maxima)
+		values (@nombre_categoria, @edad_minima, @edad_maxima)
+			
+		set @id_categoria_nueva = SCOPE_IDENTITY()
+			
+		-- Insertar el monto en los precios de las categorias
+		insert into socios.categoria_precios(id_categoria, fecha_vigencia_desde, fecha_vigencia_hasta, costo_membresia)
+		values (@id_categoria_nueva, GETDATE(),  @vigencia_hasta, @costo_membresia)
 	end
 end
 go
 
 -- Procedimiento para modificar el costo de una cateogira
 create or alter procedure socios.modificar_costo_categoria
-	@nombre_categoria varchar(16),
+	@id_categoria int,
 	@costo_membresia decimal(9,3)
 as
 begin
-	if not exists (select 1 from socios.categoria where nombre_categoria = @nombre_categoria)
+	set nocount on
+
+	if not exists (select 1 from socios.categoria where id_categoria = @id_categoria)
 	begin
-		print 'No existe una categoría con ese nombre.'
+		print 'No existe una categoría con ese id.'
 	end
 	else if @costo_membresia < 0
 	begin
@@ -551,28 +563,93 @@ begin
 	end
 	else
 	begin
-		update socios.categoria
-		set costo_membresía = @costo_membresia
-		where nombre_categoria = @nombre_categoria
+		update socios.categoria_precios
+		set costo_membresia = @costo_membresia
+		where id_categoria = @id_categoria
+	end
+end
+go
+
+-- Procedimiento para modificar la fecha de vigencia de una cateogira
+create or alter procedure socios.modificar_fecha_vigencia_categoria
+	@id_categoria int,
+	@costo_membresia decimal(9,3),
+	@vigencia_hasta date
+as
+begin
+	set nocount on
+
+	if not exists (select 1 from socios.categoria where id_categoria = @id_categoria)
+	begin
+		print 'No existe una categoría con ese id.'
+	end
+	else if @costo_membresia < 0
+	begin
+		print 'El nuevo costo de la membresia no puede ser negativo.'
+	end
+	else if(@vigencia_hasta < GETDATE())
+	begin
+		print 'La nueva fecha limite no puede ser menor a la actual'
+	end
+	else
+	begin
+		update socios.categoria_precios
+		set fecha_vigencia_hasta = @vigencia_hasta,
+			costo_membresia = @costo_membresia
+		where id_categoria = @id_categoria
 	end
 end
 go
 
 -- Procedimiento para eliminar una categoria
 create or alter procedure socios.eliminar_categoria
-	@nombre_categoria varchar(16)
+	@id_categoria int
 as
 begin
 	if not exists (select 1 from socios.categoria 
-					where nombre_categoria = @nombre_categoria)
+					where id_categoria = @id_categoria)
 	begin
 		print 'No existe una categoría con ese nombre.'
 	end
 	else
 	begin
+		delete from socios.categoria_precios
+		where id_categoria = @id_categoria
+
 		delete from socios.categoria
-		where nombre_categoria = @nombre_categoria
+		where id_categoria = @id_categoria
 	end
+end
+go
+
+-- Obtener el precio actual dada una id
+create or alter procedure socios.obtener_precio_actual
+    @id_categoria int,
+    @precio_actual decimal(9,3) output,
+    @fecha_vigencia_desde date output,
+    @fecha_vigencia_hasta date output
+as
+begin
+    set nocount on;
+    
+    select 
+        @precio_actual = costo_membresia,
+        @fecha_vigencia_desde = fecha_vigencia_desde,
+        @fecha_vigencia_hasta = fecha_vigencia_hasta
+    from socios.categoria_precios
+    where id_categoria = @id_categoria
+	/*
+      and fecha_vigencia_desde <= getdate()
+      and (fecha_vigencia_hasta is null or fecha_vigencia_hasta >= getdate())*/
+    order by fecha_vigencia_desde desc;
+    
+    -- En el caso de no encontrar una coincidencia, selecciono valores por default
+    if @precio_actual is null
+    begin
+        set @precio_actual = 0;
+        set @fecha_vigencia_desde = null;
+        set @fecha_vigencia_hasta = null;
+    end
 end
 go
 
@@ -685,64 +762,6 @@ begin
 	end
 end
 go
-/* 
--- Para cambiar el esquema hacia uno que pueda aceptar la importacion de manera adecuada, vamos a obviar esta tabla
--- RESPONSABLE MENOR
--- Procedimiento para crear un responsable de un menor
-create or alter procedure socios.insertar_responsable_menor
-	@nombre varchar(40),
-	@apellido varchar(40),
-	@dni int,
-	@email varchar(50),
-	@fecha_nacimiento date,
-	@telefono VARCHAR(18),
-	@parentesco varchar(30)
-as
-begin
-
-    declare @edad int = DATEDIFF(YEAR, @fecha_nacimiento, GETDATE());
-
-    if (DATEADD(YEAR, @edad, @fecha_nacimiento) > GETDATE())
-	begin
-        SET @edad = @edad - 1
-	end
-
-	if(@edad < 18)
-	begin
-		print 'El responsable no puede ser menor de edad!'
-	end
-	else
-	begin
-		insert into socios.responsable_menor (
-			nombre, apellido,
-			dni, email, fecha_nacimiento, telefono, parentesco
-		)
-		values (
-			@nombre, @apellido,
-			@dni, @email, @fecha_nacimiento, @telefono, @parentesco
-		)
-	end
-end
-go
-
--- Procedimiento para eliminar un responsable de un menor
-create or alter procedure socios.eliminar_responsable_menor
-	@id_socio_responsable int
-as
-begin
-	if not exists (select 1 from socios.responsable_menor 
-					where id_socio_responsable = @id_socio_responsable)
-	begin
-		print 'No existe un responsable de un menor con ese id.'
-	end
-	else
-	begin
-		delete from socios.responsable_menor
-		where id_socio_responsable = @id_socio_responsable
-	end
-end
-go
-*/
 
 -- PROCEDIMIENTO DE CREACION ALEATORIA 
 -- ROL
@@ -816,7 +835,8 @@ begin
 			@nombre_categoria varchar(16),
 			@edad_minima int,
 			@edad_maxima int,
-			@costo_membresía decimal(9,3);
+			@costo_membresia decimal(9,3),
+			@id_categoria_nueva int
 
 	while @index <= @cantidad
 	begin
@@ -835,11 +855,17 @@ begin
 				set @edad_maxima = (@random % (80 - 13 + 1)) + 13;
 
 				-- Establecer el costo de la categoria
-				set @costo_membresía = ROUND(RAND(@random) * (10000), 2)
+				set @costo_membresia = ROUND(RAND(@random) * (10000), 2)
 
 				-- Una vez creados los valores, se insertan en la tabla
-				insert into socios.categoria(nombre_categoria, edad_minima, edad_maxima, costo_membresía)
-				values (@nombre_categoria, @edad_minima, @edad_maxima, @costo_membresía)
+				insert into socios.categoria(nombre_categoria, edad_minima, edad_maxima)
+				values (@nombre_categoria, @edad_minima, @edad_maxima)
+
+				set @id_categoria_nueva = SCOPE_IDENTITY()
+
+				insert into socios.categoria_precios(id_categoria, fecha_vigencia_desde, fecha_vigencia_hasta, costo_membresia)
+				values (@id_categoria_nueva, GETDATE(), 
+						dateadd(day, abs(checksum(newid())) % 30, getdate()), @costo_membresia)
 
 				-- Aumentar indice solo si el nombre de categoria no existe en la tabla
 				set @index = @index + 1

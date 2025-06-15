@@ -34,24 +34,6 @@ go
 
 -- DROP TABLE importacion.tarifas_actividades
 
--- TABLA DE TARIFAS (CUOTAS, 2da TABLA)
-
-if object_id('importacion.cuotas_socios', 'U') is null
-begin
-	create table importacion.cuotas_socios (
-		[Categoria socio] VARCHAR(15),
-		[Valor cuota] INT,
-		[Vigente hasta] DATE
-	)
-end
-else
-begin
-	print 'La tabla importacion.cuotas_socios ya existe'
-end
-go
-
--- DROP TABLE importacion.cuotas_socios
-
 -- TABLA DE TARIFAS (PILETA, 3ra TABLA)
 
 if object_id('importacion.tarifas_piletas','U') is null
@@ -179,11 +161,21 @@ begin
 
 		exec sp_executesql @sql;
 
-		insert into importacion.cuotas_socios([Categoria socio], [Valor cuota], [Vigente hasta]) 
-		select [Categoria socio], 
-			   [Valor cuota], 
-			   convert(datetime, [Vigente hasta], 103)
-		from #TEMP_CUOTA_SOCIOS;
+		-- Inserto las categorias si no existen, lo pongo generico de 1 a 99 porque se supone que ya deberian estar
+		insert into socios.categoria(nombre_categoria, edad_minima, edad_maxima)
+		select t.[Categoria socio], 1, 99
+		from #TEMP_CUOTA_SOCIOS t
+		where not exists (
+			select 1 from socios.categoria c
+			where c.nombre_categoria = t.[Categoria socio]
+		)
+		group by t.[Categoria socio]
+
+		-- Inserto los precios de las categorias
+		insert into socios.categoria_precios (id_categoria, fecha_vigencia_desde, fecha_vigencia_hasta, costo_membresia)
+        select c.id_categoria, GETDATE(), convert(datetime, t.[Vigente hasta], 103), t.[Valor cuota]
+        from #TEMP_CUOTA_SOCIOS t
+        join socios.categoria c on c.nombre_categoria = t.[Categoria socio];
 
 		print 'El dataset de Cuotas Socios fue cargado exitosamente!';
 		drop table #TEMP_CUOTA_SOCIOS;
@@ -199,8 +191,9 @@ end
 go
 
 -- exec importacion.cargar_cuotas_socios @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
--- select * from importacion.cuotas_socios;
--- delete from importacion.cuotas_socios;
+-- select * from socios.categoria
+-- select * from socios.categoria_precios
+
 go
 
 -- IMPORTAR DE 'Datos socios.xlsx', en 'Tarifas', la tercer tabla

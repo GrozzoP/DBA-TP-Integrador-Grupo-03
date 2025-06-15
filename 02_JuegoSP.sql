@@ -328,122 +328,115 @@ exec socios.eliminar_obra_social 'obraSocial3'
 exec socios.eliminar_obra_social 'obraSocial4'
 
 --Se espera mensaje 'No existe una obra social con ese nombre.'
-exec socios.eliminar_categoria 'obraSocial1'
+exec socios.eliminar_obra_social 'obraSocial1'
 
---Eliminando registros restantes de la prueba en la tabla
-exec eliminar_y_restaurar_tabla 'socios.obra_social'
 
-/*****	socios.insertar_categoria 
-						@nombre_categoria varchar(16), @edad_minima int,
-						@edad_maxima int, @costo_membresia decimal(9,3)	*****/
-
---Se espera la insercion exitosa de los siguientes registro
-exec socios.insertar_categoria 'Menor', 1, 18, 9.69
-exec socios.insertar_categoria 'Cadete', 19, 27, 1.01
-exec socios.insertar_categoria 'Mayor', 28, 35, 0
-
---Se espera mensaje 'Ya existe una categoría con ese nombre.'
-exec socios.insertar_categoria 'Menor', 1, 18, 10.50
-
---Se espera mensaje 'Es incoherente que la edad minima sea mayor o igual que la maxima.'
-exec socios.insertar_categoria 'Veterano', 5, 5, 10.6
-exec socios.insertar_categoria 'Sargento', 7, 5, 10.6
-
---Se espera mensaje 'El costo de la membresia no puede ser negativo.'
-exec socios.insertar_categoria 'Veterano', 36, 45, -1.99
-
-/*****	socios.modificar_costo_categoria @nombre_categoria varchar(16), @costo_membresia decimal(9,3) *****/
-
---Insertando registros para la prueba
-exec socios.insertar_categoria 'Menor', 1, 18, 9.69
-exec socios.insertar_categoria 'Cadete', 19, 27, 1.01
-exec socios.insertar_categoria 'Mayor', 28, 35, 0
-
---Se espera la modificacion del valor de costo_membresía
-exec socios.modificar_costo_categoria 'Menor', 10.99
-exec socios.modificar_costo_categoria 'Cadete', 20.99
-
---Se espera mensaje 'El nuevo costo de la membresia no puede ser negativo.'
-exec socios.modificar_costo_categoria 'Menor', -5.66
-
---Se espera mensaje 'No existe una categoría con ese nombre.'
-exec socios.modificar_costo_categoria 'Sargento', 10.69
-
-/******	socios.eliminar_categoria @nombre_categoria varchar(16)	*****/
-
---Insertando registros para la prueba
-exec socios.insertar_categoria 'Menor', 1, 18, 9.69
-exec socios.insertar_categoria 'Cadete', 19, 27, 1.01
-exec socios.insertar_categoria 'Mayor', 28, 35, 0
-
---Se espera la eliminacion de los siguientes registros
-exec socios.eliminar_categoria 'Menor'
-exec socios.eliminar_categoria 'Cadete'
-exec socios.eliminar_categoria 'Mayor'
-
---Se espera mensaje 'No existe una categoría con ese nombre.'
-exec socios.eliminar_categoria 'Sargento'
+-- Limpiar datos de pruebas anteriores
+exec eliminar_y_restaurar_tabla 'socios.categoria'
+exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
 go
 
+/*****	socios.insertar_categoria 
+		@nombre_categoria varchar(16), 
+		@edad_minima int,
+		@edad_maxima int, 
+		@costo_membresia decimal(9,3), 
+		@vigencia_hasta date	*****/
 
--- Hasta que nos enteremos del posible cambio, dejamos esta tabla a un lado
+--Se espera la insercion exitosa de los siguientes registros
+exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
+exec socios.insertar_categoria 'Cadete', 19, 27, 1.01, '2026-01-15'  
+exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
+
 /*
--- RESPONSABLE MENOR
-/***** create or alter procedure socios.insertar_responsable_menor
-	@nombre varchar(40),
-	@apellido varchar(40),
-	@dni int,
-	@email varchar(50),
-	@fecha_nacimiento date,
-	@telefono int,
-	@parentesco varchar(30) *****/
+select c.id_categoria, c.nombre_categoria, c.edad_minima, c.edad_maxima,
+       p.costo_membresia, p.fecha_vigencia_desde, p.fecha_vigencia_hasta
+from socios.categoria c
+inner join socios.categoria_precios p on c.id_categoria = p.id_categoria
+order by c.id_categoria */
 
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'socios.socio'
-exec eliminar_y_restaurar_tabla 'socios.obra_social'
-exec eliminar_y_restaurar_tabla 'socios.responsable_menor'
-exec eliminar_y_restaurar_tabla 'socios.categoria'
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'socios.rol'
-exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
+--Se espera mensaje 'Ya existe una categoría con ese nombre.'
+exec socios.insertar_categoria 'Menor', 1, 18, 10.50, '2025-12-31'
 
---Insertanto registros para la prueba
-declare @fechaDePrueba date = GETDATE();
-exec socios.insertar_rol 'Cliente', @fechaDePrueba
-exec socios.insertar_usuario 1, 'passwordDeUsuario1', @fechaDePrueba
-exec socios.insertar_usuario 1, 'passwordDeUsuario2', @fechaDePrueba
-exec socios.insertar_usuario 1, 'passwordDeUsuario3', @fechaDePrueba
-exec socios.insertar_categoria 'Menor', 1, 18, 9.69
-exec socios.insertar_categoria 'Cadete', 19, 27, 1.01
-exec socios.insertar_categoria 'Mayor', 28, 35, 5
-exec socios.insertar_obra_social 'Luis Pasteur', '1111111111'
-exec socios.insertar_obra_social 'OSECAC', '22222222'
-exec facturacion.insertar_medio_de_pago 'Visa', 1
+--Se espera mensaje 'Es incoherente que la edad minima sea mayor o igual que la maxima.'
+exec socios.insertar_categoria 'Veterano', 5, 5, 10.6, '2025-12-31'
+exec socios.insertar_categoria 'Sargento', 7, 5, 10.6, '2025-12-31'
 
--- Se espera la insercion exitosa de los siguientes registros
-exec socios.insertar_socio 47247252, 'Armando', 'Giunta' , 'blas-armando@gmail.com', '2007-02-23', '11223344', '55667788', 1, 250, 1, 1, 1
-exec socios.insertar_responsable_menor 'Juan', 'Pérez', 12345678, 'juan.perez@email.com', '1980-05-15', '1122334455', 'Padre'
+--Se espera mensaje 'El costo de la membresia no puede ser negativo.'
+exec socios.insertar_categoria 'Veterano', 36, 45, -1.99, '2025-12-31'
 
--- Se muestra el mensaje "El responsable no puede ser menor de edad!"
-exec socios.insertar_responsable_menor 'Lucía', 'González', 56789123, 'lucia.gonzalez@email.com', '2010-08-15', '1144556677', 'Madre';
+--Se espera mensaje sobre fecha de vigencia invalida
+exec socios.insertar_categoria 'Veterano', 36, 45, 15.99, '2020-01-01'
+go
 
-/***** create or alter procedure socios.eliminar_responsable_menor
-	@id_socio_responsable int *****/
+/*****	socios.modificar_costo_categoria @id_categoria int, @costo_membresia decimal(9,3) *****/
 
--- Se muestra el mensaje "No existe un responsable de un menor con ese id."
-exec socios.eliminar_responsable_menor 2
+exec socios.modificar_costo_categoria 1, 10.99  -- ID de 'Menor'
+exec socios.modificar_costo_categoria 2, 20.99  -- ID de 'Cadete'
 
--- Se borra el registro de manera exitosa
-exec socios.eliminar_responsable_menor 1
+/*
+select c.id_categoria, c.nombre_categoria, p.costo_membresia
+from socios.categoria c
+inner join socios.categoria_precios p on c.id_categoria = p.id_categoria
+order by c.id_categoria*/
 
---Eliminando registros restantes de la prueba en la tabla
-exec eliminar_y_restaurar_tabla 'socios.socio'
-exec eliminar_y_restaurar_tabla 'socios.obra_social'
-exec eliminar_y_restaurar_tabla 'socios.responsable_menor'
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'socios.rol'
-exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
-go*/
+-- Se espera mensaje 'El nuevo costo de la membresia no puede ser negativo.'
+exec socios.modificar_costo_categoria 1, -5.66
+
+-- Se espera mensaje 'No existe una categoria con ese id.'
+exec socios.modificar_costo_categoria 999, 10.69
+
+go
+
+/*****	socios.modificar_fecha_vigencia_categoria 
+		@id_categoria int, @costo_membresia decimal(9,3), @vigencia_hasta date *****/
+
+-- Se cambia de manera exitosa segun la nueva fecha de vigencia
+exec socios.modificar_fecha_vigencia_categoria 1, 12.50, '2026-06-30'
+exec socios.modificar_fecha_vigencia_categoria 2, 25.00, '2026-12-31'
+
+/*
+select c.id_categoria, c.nombre_categoria, p.costo_membresia, 
+       p.fecha_vigencia_desde, p.fecha_vigencia_hasta
+from socios.categoria c
+inner join socios.categoria_precios p on c.id_categoria = p.id_categoria
+order by c.id_categoria*/
+
+-- Se espera mensaje 'La nueva fecha limite no puede ser menor a la actual'
+exec socios.modificar_fecha_vigencia_categoria 1, 15.00, '2020-01-01'
+
+-- Se espera mensaje 'El nuevo costo de la membresia no puede ser negativo'
+exec socios.modificar_fecha_vigencia_categoria 1, -10.00, '2026-12-31'
+
+-- Se espera mensaje 'No existe una categoría con ese id'
+exec socios.modificar_fecha_vigencia_categoria 999, 20.00, '2026-12-31'
+go
+
+/******	socios.eliminar_categoria @id_categoria int	*****/
+
+--Se espera la eliminacion de los siguientes registros
+exec socios.eliminar_categoria 1
+exec socios.eliminar_categoria 2   
+exec socios.eliminar_categoria 3
+
+--Se espera mensaje 'No existe una categoría con ese id.'
+exec socios.eliminar_categoria 999
+go
+
+-- Insertar datos para pruebas adicionales
+exec socios.insertar_categoria 'TestCategoria', 18, 65, 50.00, '2025-12-31'
+
+declare @precio decimal(9,3),
+		@fecha_desde date, 
+		@fecha_hasta date;
+
+exec socios.obtener_precio_actual
+	@id_categoria = 5,
+	@precio_actual = @precio output,
+	@fecha_vigencia_desde = @fecha_desde output,
+	@fecha_vigencia_hasta = @fecha_hasta output
+
+-- select @precio as precio, @fecha_desde as fecha_desde, @fecha_hasta as fecha_hasta
 
 /***** socios.insertar_socio 
 						@dni int,
@@ -466,6 +459,7 @@ exec eliminar_y_restaurar_tabla 'facturacion.factura'
 exec eliminar_y_restaurar_tabla 'socios.grupo_familiar'
 exec eliminar_y_restaurar_tabla 'socios.socio'
 exec eliminar_y_restaurar_tabla 'socios.obra_social'
+exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
 exec eliminar_y_restaurar_tabla 'socios.categoria'
 exec eliminar_y_restaurar_tabla 'socios.usuario'
 exec eliminar_y_restaurar_tabla 'socios.rol'
@@ -748,14 +742,14 @@ exec eliminar_y_restaurar_tabla 'actividades.actividad_extra'
 
 --Preparando tablas para la prueba
 exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
-go
 exec eliminar_y_restaurar_tabla 'actividades.actividad'
 exec eliminar_y_restaurar_tabla 'socios.categoria'
 
 
 --insertando registros para la prueba
-exec socios.insertar_categoria 'Menor', 10, 14, 20000
-exec socios.insertar_categoria 'Cadete', 15, 18, 22000
+exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
+exec socios.insertar_categoria 'Cadete', 19, 27, 1.01, '2026-01-15'  
+exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
 exec actividades.insertar_actividad 'futbol', 10000
 exec actividades.insertar_actividad 'voley', 10000
 exec actividades.insertar_actividad 'tenis', 13000
@@ -776,8 +770,8 @@ exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 
 
 --Eliminando registros restantes de la tabla de pruebas
 exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
-go
 exec eliminar_y_restaurar_tabla 'actividades.actividad'
+exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
 exec eliminar_y_restaurar_tabla 'socios.categoria'
 
 
@@ -790,8 +784,9 @@ exec eliminar_y_restaurar_tabla 'socios.categoria'
 
 
 --insertando registros para la prueba
-exec socios.insertar_categoria 'Menor', 10, 14, 20000
-exec socios.insertar_categoria 'Cadete', 15, 18, 22000
+exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
+exec socios.insertar_categoria 'Cadete', 19, 27, 1.01, '2026-01-15'  
+exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
 exec actividades.insertar_actividad 'futbol', 10000
 exec actividades.insertar_actividad 'voley', 10000
 exec actividades.insertar_actividad 'tenis', 13000
@@ -812,21 +807,23 @@ exec actividades.eliminar_horario_actividad 7
 
 --Eliminando registros restantes de la tabla de pruebas
 exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
-go
 exec eliminar_y_restaurar_tabla 'actividades.actividad'
+exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
 exec eliminar_y_restaurar_tabla 'socios.categoria'
 
 /*****actividades.modificar_horario_actividad*****/
 --Preparando tablas para la prueba
 exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
 exec eliminar_y_restaurar_tabla 'actividades.actividad'
+exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
 exec eliminar_y_restaurar_tabla 'socios.categoria'
 go
 
 
 --insertando registros para la prueba
-exec socios.insertar_categoria 'Menor', 10, 14, 20000
-exec socios.insertar_categoria 'Cadete', 15, 18, 22000
+exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
+exec socios.insertar_categoria 'Cadete', 19, 27, 1.01, '2026-01-15'  
+exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
 exec actividades.insertar_actividad 'futbol', 10000
 exec actividades.insertar_actividad 'voley', 10000
 exec actividades.insertar_actividad 'tenis', 13000
@@ -858,14 +855,12 @@ exec actividades.modificar_horario_actividad 9, 'Miercoles', '18:00:00', '19:30:
 --Preparando tabla para pruebas
 exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades'
 exec eliminar_y_restaurar_tabla 'facturacion.factura'
-go
 exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
 exec eliminar_y_restaurar_tabla 'socios.socio'
-go
 exec eliminar_y_restaurar_tabla 'socios.usuario'
 exec eliminar_y_restaurar_tabla 'actividades.actividad'
-go
 exec eliminar_y_restaurar_tabla 'socios.obra_social'
+exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
 exec eliminar_y_restaurar_tabla 'socios.categoria'
 exec eliminar_y_restaurar_tabla 'socios.rol'
 exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
@@ -876,9 +871,9 @@ exec socios.insertar_rol 'Cliente', @fechaDePrueba
 exec socios.insertar_usuario 1, 'passwordDeUsuario1', @fechaDePrueba
 exec socios.insertar_usuario 1, 'passwordDeUsuario2', @fechaDePrueba
 exec socios.insertar_usuario 1, 'passwordDeUsuario3', @fechaDePrueba
-exec socios.insertar_categoria 'Menor', 1, 18, 9.69
-exec socios.insertar_categoria 'Cadete', 19, 27, 1.01
-exec socios.insertar_categoria 'Mayor', 28, 35, 5
+exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
+exec socios.insertar_categoria 'Cadete', 19, 27, 1.01, '2026-01-15'  
+exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
 exec socios.insertar_obra_social 'Luis Pasteur', '1111111111'
 exec socios.insertar_obra_social'OSECAC', '22222222'
 exec facturacion.insertar_medio_de_pago'Visa', 1
@@ -924,17 +919,16 @@ exec actividades.eliminar_inscripcion_actividad 1
 exec actividades.eliminar_inscripcion_actividad 7
 
 --Eliminando registros restantes de la tabla de pruebas
+exec eliminar_y_restaurar_tabla 'facturacion.pago'
+exec eliminar_y_restaurar_tabla 'facturacion.factura'
 exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades'
 exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra'
-exec eliminar_y_restaurar_tabla 'facturacion.factura'
-go
 exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
 exec eliminar_y_restaurar_tabla 'socios.socio'
-go
 exec eliminar_y_restaurar_tabla 'socios.usuario'
-go
 exec eliminar_y_restaurar_tabla 'actividades.actividad'
 exec eliminar_y_restaurar_tabla 'socios.obra_social'
+exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
 exec eliminar_y_restaurar_tabla 'socios.categoria'
 exec eliminar_y_restaurar_tabla 'socios.rol'
 exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
@@ -963,9 +957,9 @@ exec socios.insertar_rol 'Cliente', @fechaDePrueba
 exec socios.insertar_usuario 1, 'passwordDeUsuario1', @fechaDePrueba
 exec socios.insertar_usuario 1, 'passwordDeUsuario2', @fechaDePrueba
 exec socios.insertar_usuario 1, 'passwordDeUsuario3', @fechaDePrueba
-exec socios.insertar_categoria 'Menor', 1, 18, 9.69
-exec socios.insertar_categoria 'Cadete', 19, 27, 1.01
-exec socios.insertar_categoria 'Mayor', 28, 35, 5
+exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
+exec socios.insertar_categoria 'Cadete', 19, 27, 1.01, '2026-01-15'  
+exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
 exec socios.insertar_obra_social 'Luis Pasteur', '1111111111'
 exec socios.insertar_obra_social 'OSECAC', '22222222'
 exec facturacion.insertar_medio_de_pago 'Visa', 1
@@ -1000,36 +994,24 @@ exec actividades.eliminar_inscripcion_act_extra 2
 --Se debería mostrar el mensaje 'La inscripcion extra a eliminar no existe'
 exec actividades.eliminar_inscripcion_act_extra 1
 exec actividades.eliminar_inscripcion_act_extra 7
-
---Eliminando registros restantes de la tabla de pruebas
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra'
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades'
-exec eliminar_y_restaurar_tabla 'facturacion.factura'
-go
-exec eliminar_y_restaurar_tabla 'socios.socio'
-go
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'actividades.actividad_extra'
-go
-exec eliminar_y_restaurar_tabla 'socios.obra_social'
-exec eliminar_y_restaurar_tabla 'socios.categoria'
-exec eliminar_y_restaurar_tabla 'socios.rol'
-exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
 	
 /*****facturacion.crear_factura*****/
 
 -- Limpieza y preparación de las tablas necesarias
+exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra'
+exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades'
 exec eliminar_y_restaurar_tabla 'facturacion.factura'
 exec eliminar_y_restaurar_tabla 'socios.socio'
 exec eliminar_y_restaurar_tabla 'socios.usuario'
 exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
 exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
+exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
 exec eliminar_y_restaurar_tabla 'socios.categoria'
 exec eliminar_y_restaurar_tabla 'socios.obra_social'
 exec eliminar_y_restaurar_tabla 'socios.rol'
 
 -- Inserción de datos requeridos para relaciones
-exec socios.insertar_categoria 'Adulto', 18, 65, 25000
+exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
 exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
 exec facturacion.insertar_medio_de_pago 'Tarjeta de crédito', 1
 exec socios.insertar_obra_social 'OSDE', '1134225566'
@@ -1057,12 +1039,13 @@ exec eliminar_y_restaurar_tabla 'facturacion.factura'
 exec eliminar_y_restaurar_tabla 'socios.socio'
 exec eliminar_y_restaurar_tabla 'socios.usuario'
 exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
+exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
 exec eliminar_y_restaurar_tabla 'socios.categoria'
 exec eliminar_y_restaurar_tabla 'socios.obra_social'
 exec eliminar_y_restaurar_tabla 'socios.rol'
 
 -- Inserción de datos requeridos para relaciones
-exec socios.insertar_categoria 'Adulto', 18, 65, 25000
+exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
 exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
 exec facturacion.insertar_medio_de_pago 'Transferencia', 1
 exec socios.insertar_obra_social 'OSDE', '1134225566'
@@ -1082,37 +1065,24 @@ exec facturacion.pago_factura 1, 'PAGO', 1
 -- Se espera mensaje: 'No se encontro el id de ese medio de pago'
 exec facturacion.pago_factura 1, 'PAGO', 999
 
-
-
 /*****facturacion.reembolsar_pago*****/
 
 -- Limpieza y preparación de las tablas necesarias
 exec eliminar_y_restaurar_tabla 'facturacion.pago'
-go
 exec eliminar_y_restaurar_tabla 'facturacion.factura'
-go
 exec eliminar_y_restaurar_tabla 'socios.socio'
-go
 exec eliminar_y_restaurar_tabla 'socios.usuario'
-go
 exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
-go
+exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
 exec eliminar_y_restaurar_tabla 'socios.categoria'
-go
 exec eliminar_y_restaurar_tabla 'socios.obra_social'
-go
 exec eliminar_y_restaurar_tabla 'socios.rol'
-go
 exec eliminar_y_restaurar_tabla 'facturacion.reembolso'
-go
 
 -- Inserción de datos requeridos para relaciones
-exec socios.insertar_categoria 'Adulto', 18, 65, 25000
-go
+exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
 exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
-go
 exec facturacion.insertar_medio_de_pago 'Transferencia', 1
-go
 exec socios.insertar_obra_social 'OSDE', 1134225566
 go
 
@@ -1136,9 +1106,8 @@ exec facturacion.reembolsar_pago 5
 -- El saldo en usuario aumente porque es un reembolso, en este caso el 100%
 exec facturacion.reembolsar_pago 1
 
-
+/*
 select*from facturacion.factura
 select*from facturacion.pago
 select*from facturacion.reembolso
-select*from socios.usuario
-
+select*from socios.usuario*/

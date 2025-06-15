@@ -60,7 +60,7 @@ if exists (
 	end
 else
 	begin
-		Create database COM5600G03
+		create database COM5600G03
 	end
 go
 
@@ -180,47 +180,44 @@ go
 
 
 -- Creacion de la tabla socios.categoria
-IF OBJECT_ID('socios.categoria', 'U') IS NULL
-Begin
-	Create table socios.categoria(
+if OBJECT_ID('socios.categoria', 'U') IS NULL
+begin
+	create table socios.categoria(
 		id_categoria int identity(1,1),
-		nombre_categoria varchar(16) UNIQUE,
+		nombre_categoria varchar(16) unique,
 		edad_minima int,
 		edad_maxima int,
-		costo_membresía decimal(9,3)
-		Constraint Socios_categoria_PK_id_categoria Primary key(id_categoria)
+		constraint Socios_categoria_PK_id_categoria primary key(id_categoria)
 	)
-End
+end
 else
 begin
 	print 'La tabla socios.categoria ya existe'
 end
 go
 
-/*
--- Para cambiar el esquema hacia uno que pueda aceptar la importacion de manera adecuada, vamos a obviar esta tabla
--- Creacion de la tabla socios.responsable_menor
-IF OBJECT_ID('socios.responsable_menor', 'U') IS NULL
-Begin
-	Create table socios.responsable_menor(
-		id_socio_responsable int identity(1,1),
-		nombre varchar(40),
-		apellido varchar(40),
-		DNI int,
-		email varchar(50),
-		fecha_nacimiento date,
-		telefono char(18),
-		parentesco varchar(30),
-		Constraint Socios_responsable_menor_PK_id_socio_responsable
-		Primary key(id_socio_responsable)
+
+-- Creacion de la tabla socios.categoria_precios
+if OBJECT_ID('socios.categoria_precios', 'U') IS NULL
+begin
+	create table socios.categoria_precios(
+		id_precio int identity(1, 1),
+		id_categoria int not null,
+		fecha_vigencia_desde date not null,
+		fecha_vigencia_hasta date,
+		costo_membresia decimal(9,3),
+		constraint categoria_precios_historicos_PK primary key(id_precio),
+		constraint categoria_precios_historico_FK_id_categoria foreign key(id_categoria)
+			references socios.categoria(id_categoria)
 	)
-End
+	create nonclustered index IX_categoria_precios on
+		socios.categoria_precios(id_categoria, fecha_vigencia_desde, fecha_vigencia_hasta)
+end
 else
 begin
-	print 'La tabla socios.responsable_menor ya existe'
+	print 'La tabla  socios.categoria_precios ya existe'
 end
 go
-*/
 
 -- Creacion de la tabla socios.socio
 IF OBJECT_ID('socios.socio', 'U') IS NULL

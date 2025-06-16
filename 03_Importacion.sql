@@ -505,107 +505,6 @@ go
 
 go
 
-----------------------------------------------------
---1)
-create or alter procedure socios.importar_obra_social(@ruta nvarchar(max))
-as
-begin 
-    declare @bulkInsertar nvarchar(max)
-	set @bulkInsertar =    'bulk insert #responsablesdepago
-							from ''' + @ruta + '''
-							with(
-							   fieldterminator = '''+';'+''',
-							   rowterminator = '''+'\n'+''',
-							   codepage = ''' + 'ACP' + ''',
-							   firstrow = 2)'
-
-	create table #responsablesdepago(
-	  nrosocio varchar(256),
-	  nombre varchar(256),
-	  apellido varchar(256),
-	  dni varchar(256),
-	  email varchar(256),
-	  fnacimiento varchar(256),
-	  telcontacto varchar(256),
-	  telcontactoemergencia varchar(256),
-	  nombreobraciocial varchar(256),
-	  nrosocioobrasocial varchar(256),
-	  telemergenciacontactoObraSocial varchar(256)
-    )
-
-	exec sp_executesql @bulkInsertar
-
-	
-	insert into obra_social(nombre_obra_social,telefono_obra_social)
-	select nombreobraciocial,telemergenciacontactoObraSocial from #responsablesdepago
-	group by nombreobraciocial, telemergenciacontactoObraSocial
-	
-	drop table #responsablesdepago
-end
-go
-
---exec socios.importar_obra_social 'C:\Users\ulaza\OneDrive\Escritorio\imp\Datos socios 1(Responsables de Pago).csv'
---select*from socios.obra_social
-
---sp de socios
-
-create or alter procedure socios.importar_socios(@ruta nvarchar(max))
-as
-begin 
-    declare @bulkInsertar nvarchar(max)
-	set @bulkInsertar =    'bulk insert #responsablesdepago
-							from ''' + @ruta + '''
-							with(
-							   fieldterminator = '''+';'+''',
-							   rowterminator = '''+'\n'+''',
-							   codepage = ''' + 'ACP' + ''',
-							   firstrow = 2)'
-	declare @dniduplicado nvarchar(max)
-	set @dniduplicado = 'with cte(nombre,apellido,dni,duplicada)
-							as
-							(
-							  select nombre,apellido,dni, row_number() over(partition by dni order by dni) as repetida
-							  from #responsablesdepago
-							)
-							update cte
-							set dni = NULL
-							where duplicada > 1'
-
-	create table #responsablesdepago(
-	  nrosocio varchar(256),
-	  nombre varchar(256),
-	  apellido varchar(256),
-	  dni varchar(256),
-	  email varchar(256),
-	  fnacimiento varchar(256),
-	  telcontacto varchar(256),
-	  telcontactoemergencia varchar(256),
-	  nombreobraciocial varchar(256),
-	  nrosocioobrasocial varchar(256),
-	  telemergenciacontactoObraSocial varchar(256)
-    )
-
-	
-	exec sp_executesql @bulkInsertar
-	exec sp_executesql @dniduplicado
-
-	update #responsablesdepago
-	set fnacimiento = replace(fnacimiento,'19','09')
-	where dni = '293367480'
-
-	insert into socios.socio(DNI, nombre, apellido, email, fecha_nacimiento, telefono_contacto, telefono_emergencia,
-	habilitado,nro_socio_obra_social)
-	select dni,nombre,apellido,email, convert(date, fnacimiento, 103),telcontacto,telcontactoemergencia,
-	'HABILITADO',nrosocioobrasocial from #responsablesdepago
-	order by nrosocio asc
-	
-	drop table #responsablesdepago
-end
-go
-
---select * from socios.socio
---exec socios.importar_socios 'C:\Users\ulaza\OneDrive\Escritorio\imp\Datos socios 1(Responsables de Pago).csv'
-
 IF OBJECT_ID('socios.pago_cuotas_historico', 'U') IS NULL
 Begin
 	CREATE TABLE socios.pago_cuotas_historico(
@@ -722,3 +621,55 @@ go
 --EXEC importacion.importar_archivos_metorologicos 'C:\Users\Maximo\Downloads\open-meteo-buenosaires_2025.csv', ',', '\n', 'ACP', 'char', 4
 
 --SELECT * FROM facturacion.dias_lluviosos D ORDER BY D.fecha
+
+-- Procedimiento para la importacion del 'presentismo de actividades'
+create or alter procedure importacion.presentismo_actividades @file VARCHAR(MAX)
+as
+begin
+	set nocount on
+
+	begin try
+		if object_id('tempdb..#TEMP_PRESENTISMO') is null 
+			create table #TEMP_PRESENTISMO (
+				[Nro de Socio] VARCHAR(10),
+				[Actividad] VARCHAR(25),
+				[Fecha de asistencia] CHAR(10),
+				[Asistencia] CHAR(2),
+				[Profesor] VARCHAR(35)
+			);
+
+		declare @sql NVARCHAR(MAX);
+
+		set @sql = N'
+		insert into #TEMP_PRESENTISMO ([Nro de Socio], [Actividad], [Fecha de asistencia], [Asistencia], [Profesor])
+		select 
+				[Nro de Socio],
+				Actividad,
+				CAST([fecha de asistencia] as date),
+				Asistencia,
+				Profesor
+		from openrowset(
+				''Microsoft.ACE.OLEDB.12.0'', 
+				''Excel 12.0;HDR=YES;IMEX=1;Database=' + replace(@file, '''', '''''') + ''', 
+				''SELECT * FROM [presentismo_actividades$A1:E928]''
+		) as x;';
+
+		exec sp_executesql @sql;
+
+		update #TEMP_PRESENTISMO
+		set [Nro de Socio] = CAST(PARSENAME(REPLACE([Nro de Socio], '-', '.'), 1) as int)
+
+		print 'El dataset de presentismo fue cargado exitosamente!';
+		drop table #TEMP_PRESENTISMO;
+	end try
+
+	begin catch
+		declare @ErrorMessage VARCHAR(4000) = error_message(),
+				@ErrorLine INT = error_line();
+
+		print 'Ocurrio un error en la carga del dataset: ' + @ErrorMessage + ' (Linea ' + cast(@ErrorLine as varchar(5)) + ')';
+	end catch
+end
+go
+
+-- exec importacion.presentismo_actividades @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx'

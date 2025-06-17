@@ -143,6 +143,9 @@ GRANT EXEC ON	socios.eliminar_grupo_familiar TO socios_administrativo_socio
 GRANT EXEC ON	socios.insertar_socio TO socios_administrativo_socio
 GRANT EXEC ON	socios.modificar_habilitar_socio TO socios_administrativo_socio
 GRANT EXEC ON	socios.eliminar_socio TO socios_administrativo_socio
+--GRANT EXEC ON	socios.reporte_asistencias TO socios_administrativo_socio
+--GRANT EXEC ON	socios.reporte_asistencias2 TO socios_administrativo_socio
+
 GO
 
 GRANT EXEC ON 	socios.eliminar_socio TO socios_socio
@@ -154,3 +157,94 @@ GRANT EXEC ON 	actividades.eliminar_inscripcion_actividad TO socios_socio
 GRANT EXEC ON 	actividades.eliminar_inscripcion_act_extra TO socios_socio
 GRANT EXEC ON 	facturacion.pago_factura TO socios_socio
 GO
+
+
+--Asignacion de permisos para el rol del presidente
+GRANT EXEC ON socios.insertar_categoria TO autoridades_presidente
+GRANT EXEC ON socios.modificar_costo_categoria TO autoridades_presidente
+GRANT EXEC ON socios.modificar_fecha_vigencia_categoria TO autoridades_presidente
+GRANT EXEC ON socios.eliminar_categoria TO autoridades_presidente
+GRANT EXEC ON socios.insertar_rol TO autoridades_presidente
+GRANT EXEC ON socios.modificar_rol TO autoridades_presidente
+GRANT EXEC ON socios.eliminar_rol TO autoridades_presidente
+
+GRANT EXEC ON actividades.insertar_actividad TO autoridades_presidente
+GRANT EXEC ON actividades.eliminar_actividad TO autoridades_presidente
+GRANT EXEC ON actividades.modificar_precio_actividad TO autoridades_presidente
+GRANT EXEC ON actividades.insertar_actividad_extra TO autoridades_presidente
+GRANT EXEC ON actividades.eliminar_actividad_extra TO autoridades_presidente
+GRANT EXEC ON actividades.modificar_precio_actividad_extra TO autoridades_presidente
+
+GRANT EXEC ON facturacion.reporte_ingresos_por_actividad TO autoridades_presidente
+
+GRANT EXEC ON empleados.insertar_posicion TO autoridades_presidente
+GRANT EXEC ON empleados.actualizar_posicion_por_id TO autoridades_presidente
+GRANT EXEC ON empleados.eliminar_posicion_por_id TO autoridades_presidente
+GRANT EXEC ON empleados.insertar_posicion_asignada TO autoridades_presidente
+GRANT EXEC ON empleados.anular_posicion_asignada TO autoridades_presidente
+GRANT EXEC ON empleados.insertar_empleado TO autoridades_presidente
+GRANT EXEC ON empleados.actualizar_sueldo TO autoridades_presidente
+GRANT EXEC ON empleados.actualizar_empleado_fecha_fin TO autoridades_presidente
+Go
+
+--Asignacion de permisos al rol del vicepresidente
+GRANT EXEC ON socios.modificar_costo_categoria TO autoridades_vicepresidente
+GRANT EXEC ON socios.modificar_fecha_vigencia_categoria TO autoridades_vicepresidente
+GRANT EXEC ON socios.insertar_rol TO autoridades_vicepresidente
+GRANT EXEC ON socios.modificar_rol TO autoridades_vicepresidente
+GRANT EXEC ON socios.eliminar_rol TO autoridades_vicepresidente
+
+GRANT EXEC ON actividades.insertar_actividad TO autoridades_vicepresidente
+GRANT EXEC ON actividades.eliminar_actividad TO autoridades_vicepresidente
+GRANT EXEC ON actividades.modificar_precio_actividad TO autoridades_vicepresidente
+GRANT EXEC ON actividades.insertar_actividad_extra TO autoridades_vicepresidente
+GRANT EXEC ON actividades.eliminar_actividad_extra TO autoridades_vicepresidente
+GRANT EXEC ON actividades.modificar_precio_actividad_extra TO autoridades_vicepresidente
+
+GRANT EXEC ON facturacion.reporte_ingresos_por_actividad TO autoridades_vicepresidente
+
+GRANT EXEC ON empleados.insertar_empleado TO autoridades_vicepresidente
+GRANT EXEC ON empleados.actualizar_sueldo TO autoridades_vicepresidente
+GRANT EXEC ON empleados.insertar_posicion TO autoridades_vicepresidente
+GRANT EXEC ON empleados.actualizar_posicion_por_id TO autoridades_vicepresidente
+GRANT EXEC ON empleados.insertar_posicion_asignada TO autoridades_vicepresidente
+GRANT EXEC ON empleados.anular_posicion_asignada TO autoridades_vicepresidente
+Go
+
+--Asignacion de permisos al secretario
+GRANT EXEC ON socios.modificar_costo_categoria TO autoridades_secretario
+GRANT EXEC ON socios.modificar_fecha_vigencia_categoria TO autoridades_secretario
+
+GRANT EXEC ON actividades.insertar_actividad TO autoridades_secretario
+GRANT EXEC ON actividades.eliminar_actividad TO autoridades_secretario
+GRANT EXEC ON actividades.modificar_precio_actividad TO autoridades_secretario
+GRANT EXEC ON actividades.insertar_actividad_extra TO autoridades_secretario
+GRANT EXEC ON actividades.eliminar_actividad_extra TO autoridades_secretario
+GRANT EXEC ON actividades.modificar_precio_actividad_extra TO autoridades_secretario
+GRANT EXEC ON actividades.insertar_horario_actividad TO autoridades_secretario
+GRANT EXEC ON actividades.eliminar_horario_actividad TO autoridades_secretario
+GRANT EXEC ON actividades.modificar_horario_actividad TO autoridades_secretario
+
+GRANT EXEC ON empleados.insertar_empleado TO autoridades_secretario
+GRANT EXEC ON empleados.actualizar_correo_empleado TO autoridades_secretario
+GRANT EXEC ON empleados.actualizar_domicilio TO autoridades_secretario
+GRANT EXEC ON empleados.actualizar_telefono TO autoridades_secretario
+GRANT EXEC ON empleados.actualizar_nro_cuil TO autoridades_secretario
+	
+GRANT EXEC ON facturacion.reporte_ingresos_por_actividad TO autoridades_secretario
+Go
+	
+--Asignacion de permisos a los vocales
+GRANT EXEC ON actividades.insertar_actividad TO autoridades_vocal
+GRANT EXEC ON actividades.eliminar_actividad TO autoridades_vocal
+GRANT EXEC ON actividades.modificar_precio_actividad TO autoridades_vocal
+GRANT EXEC ON actividades.insertar_actividad_extra TO autoridades_vocal
+GRANT EXEC ON actividades.eliminar_actividad_extra TO autoridades_vocal
+GRANT EXEC ON actividades.modificar_precio_actividad_extra TO autoridades_vocal
+GRANT EXEC ON actividades.insertar_horario_actividad TO autoridades_vocal
+GRANT EXEC ON actividades.eliminar_horario_actividad TO autoridades_vocal
+GRANT EXEC ON actividades.modificar_horario_actividad TO autoridades_vocal
+
+GRANT EXEC ON facturacion.reporte_ingresos_por_actividad TO autoridades_vocal
+GRANT EXEC ON facturacion.morosos_recurrentes TO autoridades_vocal
+Go

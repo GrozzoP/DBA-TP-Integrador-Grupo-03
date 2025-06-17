@@ -1,0 +1,156 @@
+Use COM5600G03
+go
+
+--Creacion del rol tesoreria_administrativo_morosos
+IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'tesoreria_administrativo_morosos')
+BEGIN
+	CREATE ROLE tesoreria_administrativo_morosos AUTHORIZATION dbo
+END
+ELSE
+BEGIN
+	print 'El rol de tesoreria_administrativo_morosos ya existe'
+END
+Go
+
+--Creacion del rol tesoreria_administrativo_cobranza
+IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'tesoreria_administrativo_cobranza')
+BEGIN
+	CREATE ROLE tesoreria_administrativo_cobranza AUTHORIZATION dbo
+END
+ELSE
+BEGIN
+	print 'El rol de tesoreria_administrativo_cobranza ya existe'
+END
+Go
+
+--Creacion del rol tesoreria_administrativo_facturacion
+IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'tesoreria_administrativo_facturacion')
+BEGIN
+	CREATE ROLE tesoreria_administrativo_facturacion AUTHORIZATION dbo
+END
+ELSE
+BEGIN
+	print 'El rol de tesoreria_administrativo_facturacion ya existe'
+END
+Go
+
+--Creacion del rol tesoreria_jefe_tesoreria
+IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'tesoreria_jefe_tesoreria')
+BEGIN
+	CREATE ROLE tesoreria_jefe_tesoreria AUTHORIZATION dbo
+END
+ELSE
+BEGIN
+	print 'El rol de tesoreria_jefe_tesoreria ya existe'
+END
+Go
+
+--Creacion del rol socios_socio
+IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'socios_socio')
+BEGIN
+	CREATE ROLE socios_socio AUTHORIZATION dbo
+END
+ELSE
+BEGIN
+	print 'El rol de socios_socio ya existe'
+END
+Go
+
+--Creacion del rol socios_administrativo_socio
+IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'socios_administrativo_socio')
+BEGIN
+	CREATE ROLE socios_administrativo_socio AUTHORIZATION dbo
+END
+ELSE
+BEGIN
+	print 'El rol de socios_administrativo_socio ya existe'
+END
+Go
+
+--Creacion del rol autoridades_presidente
+IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'autoridades_presidente')
+BEGIN
+	CREATE ROLE autoridades_presidente AUTHORIZATION dbo
+END
+ELSE
+BEGIN
+	print 'El rol de autoridades_presidente ya existe'
+END
+Go
+
+--Creacion del rol autoridades_vicepresidente
+IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'autoridades_vicepresidente')
+BEGIN
+	CREATE ROLE autoridades_vicepresidente AUTHORIZATION dbo
+END
+ELSE
+BEGIN
+	print 'El rol de autoridades_vicepresidente ya existe'
+END
+Go
+
+--Creacion del rol autoridades_secretario
+IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'autoridades_secretario')
+BEGIN
+	CREATE ROLE autoridades_secretario AUTHORIZATION dbo
+END
+ELSE
+BEGIN
+	print 'El rol de autoridades_secretario ya existe'
+END
+Go
+
+--Creacion del rol autoridades_vocal
+IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'autoridades_vocal')
+BEGIN
+	CREATE ROLE autoridades_vocal AUTHORIZATION dbo
+END
+ELSE
+BEGIN
+	print 'El rol de autoridades_vocal ya existe'
+END
+Go
+
+GRANT EXEC ON	socios.eliminar_grupo_familiar TO tesoreria_administrativo_morosos
+GRANT EXEC ON	socios.eliminar_grupo_familiar TO tesoreria_administrativo_morosos
+--GRANT EXEC ON	facturacion.reporte_morosos TO tesoreria_administrativo_morosos
+GO
+
+GRANT EXEC ON	facturacion.insertar_medio_de_pago TO tesoreria_administrativo_cobranza
+GRANT EXEC ON	facturacion.modificar_medio_de_pago TO tesoreria_administrativo_cobranza
+GRANT EXEC ON	facturacion.eliminar_medio_de_pago TO tesoreria_administrativo_cobranza
+GRANT EXEC ON	facturacion.pago_a_cuenta TO tesoreria_administrativo_cobranza
+GRANT EXEC ON	facturacion.reembolsar_pago TO tesoreria_administrativo_cobranza
+GO
+
+GRANT EXEC ON	facturacion.crear_factura TO tesoreria_administrativo_facturacion
+GO
+
+GRANT EXEC ON	socios.eliminar_grupo_familiar TO tesoreria_jefe_tesoreria
+GRANT EXEC ON	socios.eliminar_grupo_familiar TO tesoreria_jefe_tesoreria
+--GRANT EXEC ON	facturacion.reporte_morosos TO tesoreria_jefe_tesoreria
+--GRANT EXEC ON facturacion.reporte_ganancias_por_actividad TO tesoreria_jefe_tesoreria
+GRANT EXEC ON	facturacion.insertar_medio_de_pago TO tesoreria_jefe_tesoreria
+GRANT EXEC ON	facturacion.modificar_medio_de_pago TO tesoreria_jefe_tesoreria
+GRANT EXEC ON	facturacion.eliminar_medio_de_pago TO tesoreria_jefe_tesoreria
+GRANT EXEC ON	facturacion.pago_a_cuenta TO tesoreria_jefe_tesoreria
+GRANT EXEC ON	facturacion.reembolsar_pago TO tesoreria_jefe_tesoreria
+GRANT EXEC ON	facturacion.crear_factura TO tesoreria_jefe_tesoreria
+GO
+
+GRANT EXEC ON	socios.insertar_grupo_familiar TO socios_administrativo_socio
+GRANT EXEC ON	socios.eliminar_grupo_familiar TO socios_administrativo_socio
+GRANT EXEC ON	socios.insertar_socio TO socios_administrativo_socio
+GRANT EXEC ON	socios.modificar_habilitar_socio TO socios_administrativo_socio
+GRANT EXEC ON	socios.eliminar_socio TO socios_administrativo_socio
+GO
+
+GRANT EXEC ON 	socios.eliminar_socio TO socios_socio
+GRANT EXEC ON 	socios.eliminar_grupo_familiar TO socios_socio
+GRANT EXEC ON 	socios.obtener_precio_actual TO socios_socio
+GRANT EXEC ON 	actividades.inscripcion_actividad_extra TO socios_socio
+GRANT EXEC ON 	actividades.inscripcion_actividad TO socios_socio
+GRANT EXEC ON 	actividades.eliminar_inscripcion_actividad TO socios_socio
+GRANT EXEC ON 	actividades.eliminar_inscripcion_act_extra TO socios_socio
+GRANT EXEC ON 	facturacion.pago_factura TO socios_socio
+GO

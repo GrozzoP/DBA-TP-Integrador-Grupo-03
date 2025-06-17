@@ -2,10 +2,10 @@
 Reporte 1
 ---------
 
-Reporte de los socios morosos, que hayan incumplido en más de dos oportunidades dado un 
+Reporte de los socios morosos, que hayan incumplido en mÃ¡s de dos oportunidades dado un 
 rango de fechas a ingresar.  El reporte debe contener los siguientes datos: 
 Nombre del reporte: Morosos Recurrentes 
-Período: rango de fechas 
+PerÃ­odo: rango de fechas 
 Nro de socio 
 Nombre y apellido. 
 Mes incumplido 
@@ -23,7 +23,7 @@ use [COM5600G03]
 go
 
 --Reporte 1
-create or alter procedure morosos_recurrentes(@inicio date, @fin date, @cant_faltas_minimas int)
+create or alter procedure facturacion.morosos_recurrentes(@inicio date, @fin date, @cant_faltas_minimas int)
 as
 begin
 	if @inicio > @fin
@@ -66,7 +66,7 @@ end
 go
 
 --Reporte 2
-create or alter procedure reporte_ingresos_por_actividad
+create or alter procedure facturacion.reporte_ingresos_por_actividad
 as
 begin
 	 declare @fecha_actual date

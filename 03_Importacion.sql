@@ -635,7 +635,7 @@ begin
 				[Actividad] VARCHAR(25),
 				[Fecha de asistencia] CHAR(10),
 				[Asistencia] CHAR(2),
-				[Profesor] VARCHAR(35)
+				[Profesor] VARCHAR(65)
 			);
 
 		declare @sql NVARCHAR(MAX);
@@ -660,6 +660,23 @@ begin
 		set [Nro de Socio] = CAST(PARSENAME(REPLACE([Nro de Socio], '-', '.'), 1) as int)
 
 		print 'El dataset de presentismo fue cargado exitosamente!';
+
+		update #TEMP_PRESENTISMO
+		set [Asistencia] = 'P'
+		where [Asistencia] = 'PP'
+
+		update #TEMP_PRESENTISMO
+		set [Nro de Socio] = SUBSTRING([Nro de Socio],4,CHARINDEX('4',[Nro de Socio]))
+
+		update #TEMP_PRESENTISMO
+		set [Profesor] = SUBSTRING([Profesor],0,CHARINDEX(';',[Profesor]))
+
+		--Admite duplicados porque puedo hacer la misma actividad, con el mismo profesor en un mismo dia,
+		--capas uno a la mañana y otro a la tarde, eliminar comentario
+
+		insert into actividades.presentismo(id_socio, nombre_actividad, fecha_asistencia,asistencia,nombre_profesor)
+		select [Nro de Socio],[Actividad],[Fecha de asistencia],[Asistencia],[Profesor] from #TEMP_PRESENTISMO
+
 		drop table #TEMP_PRESENTISMO;
 	end try
 
@@ -672,4 +689,4 @@ begin
 end
 go
 
--- exec importacion.presentismo_actividades @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx'
+--exec importacion.presentismo_actividades @file = ''

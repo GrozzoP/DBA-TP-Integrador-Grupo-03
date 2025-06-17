@@ -253,7 +253,7 @@ create table #presentismoActividades(
 select*from #presentismoActividades
 order by nrosocio desc
 
---drop table presentismoActividades
+--drop table #presentismoActividades
 --al final de los nombres de profesores hay puntos y comas que eliminar
 --hay presentismo, P,A,J presente, ausente, justificado(?)
 
@@ -266,9 +266,14 @@ with(
   firstrow = 2
 )
 go
+---select SUBSTRING(nrosocio,4,CHARINDEX('4',nrosocio)) from #presentismoActividades
+update #presentismoActividades
+set asistencia = 'P'
+where asistencia = 'PP'
+
 
 update #presentismoActividades
-set nrosocio = SUBSTRING(nrosocio,5,CHARINDEX('-',nrosocio))
+set nrosocio = SUBSTRING(nrosocio,4,CHARINDEX('4',nrosocio))
 
 --select SUBSTRING(profesor,0,CHARINDEX(';',profesor)) as prof from #presentismoActividades
 --group by profesor

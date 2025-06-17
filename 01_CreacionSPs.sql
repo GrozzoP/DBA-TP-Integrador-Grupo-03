@@ -1140,7 +1140,7 @@ begin
 end
 go
 --Procedimiento para generar una factura
-create or alter procedure facturacion.crear_factura(@total decimal(9,3),@id_socio int)
+create or alter procedure facturacion.crear_factura(@total decimal(9,3),@id_socio int,@actividad varchar(250))
 as
 begin
 	if exists(
@@ -1150,9 +1150,9 @@ begin
 	     if(@total > 0)
 		 begin
 		     insert into facturacion.factura(fecha_emision,primer_vto,segundo_vto,total,total_con_recargo,
-			 estado,id_socio)
+			 estado,id_socio,servicio)
 			 values(getdate(),dateadd(day,5,getdate()),dateadd(day,10,getdate()),
-			 @total,(@total+(@total*0.1)),'NO PAGADO',@id_socio)
+			 @total,(@total+(@total*0.1)),'NO PAGADO',@id_socio,@actividad)
 		 end
 		 else
 		 begin
@@ -1198,8 +1198,16 @@ begin
 				       insert into actividades.inscripcion_actividades(id_socio,id_horario,id_actividad)
 					   values(@id_socio,@id_horario,@id_actividad)
 					   
+					   declare @actividadInsertar varchar(250)
+					   set @actividadInsertar = (
+					        select nombre_actividad from actividades.actividad
+							where id_actividad = @id_actividad
+					   )
+					   
+					   --generacion del descuento
+					   exec facturacion.descuento_actividad @id_socio, @monto OUTPUT
 					   --generacion de factura
-					   exec facturacion.crear_factura @monto, @id_socio --se llama al sp crear factura para crear la factura
+					   exec facturacion.crear_factura @monto, @id_socio, @actividadInsertar --se llama al sp crear factura para crear la factura
 				  end
 				  else
 				  begin
@@ -1223,6 +1231,7 @@ begin
 end
 go
 --Procedimiento para la inscripcion de un socio a una actividad
+/*
 create or alter procedure actividades.eliminar_inscripcion_actividad(@id_inscripcion int)
 as
 begin
@@ -1239,6 +1248,7 @@ begin
 	end
 end
 go
+*/
 ---Procedimiento para inscripcion a actividad extra
 create or alter procedure actividades.inscripcion_actividad_extra
 (@id_socio int, @id_actividad_extra int, @fecha date, @hora_inicio time, @hora_fin time, @cant_invitados int)
@@ -1272,8 +1282,14 @@ begin
 					    (id_socio,fecha,hora_inicio,hora_fin,cant_invitados,id_actividad_extra)
 					    values(@id_socio,@fecha,@hora_inicio,@hora_fin,@cant_invitados,@id_actividad_extra)
 				        --generacion de factura	  
+						
+						declare @actividadInsertar varchar(250)
+						set @actividadInsertar = (
+						    select nombre_actividad from actividades.actividad_extra
+							where id_actividad = @id_actividad_extra
+						)
 
-						exec facturacion.crear_factura @monto, @id_socio --se llama al sp crear factura para crear la factura
+						exec facturacion.crear_factura @monto, @id_socio,@actividadInsertar --se llama al sp crear factura para crear la factura
 				  end
 			end
 			else
@@ -1289,6 +1305,7 @@ end
 go
 
 --Procedimiento para eliminar la inscripcion a una activiad extra
+/*
 create or alter procedure actividades.eliminar_inscripcion_act_extra(@id_inscripcion int)
 as
 begin
@@ -1304,7 +1321,8 @@ begin
 		print 'La inscripcion extra a eliminar no existe'
 	end
 end
-go		
+go	
+*/
 
 --Procedimiento para pagar una factura
 create or alter procedure facturacion.pago_factura(
@@ -1368,10 +1386,15 @@ begin
 				      select id_socio from facturacion.factura
 					  where id_factura = @id_factura
 				 )
+				 declare @servicioInsertar varchar(250)
+				 set @servicioInsertar = (
+				     select servicio from facturacion.factura
+					 where id_factura = @id_factura
+				 )
 
 			     --inserto los datos en la tabla de pago
-				 insert into facturacion.pago(id_factura,id_socio,fecha_pago,monto_total,tipo_movimiento,id_medio_pago)
-				 values(@id_factura, @id_socio,getdate(),@monto,'PAGO',@id_medio_pago)
+				 insert into facturacion.pago(id_factura,id_socio,fecha_pago,monto_total,tipo_movimiento,id_medio_pago,servicio)
+				 values(@id_factura, @id_socio,getdate(),@monto,'PAGO',@id_medio_pago,@servicioInsertar)
 				 --modifico el estado de la factura
 
 				 update facturacion.factura
@@ -1393,7 +1416,100 @@ begin
 
 end
 go
+-- Procedimiento que paga la factura pero teniendo en cuenta el saldo del usuario
+create or alter procedure facturacion.pago_factura_debito(
+		@id_factura int,
+		@tipo_movimiento varchar(20),
+		@id_medio_pago int
+)
+as
+begin
+  SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+  BEGIN TRANSACTION
 
+    declare @monto decimal(9,3)
+
+    if exists(
+	   select id_factura from facturacion.factura
+	   where id_factura = @id_factura and estado like 'NO PAGADO'
+	)
+	begin
+	    if exists(
+		  select id_medio_de_pago from facturacion.medio_de_pago
+		  where id_medio_de_pago = @id_medio_pago
+		)
+		begin
+			 if exists(
+			   select primer_vto from facturacion.factura
+			   where primer_vto >= GETDATE()
+			 ) 
+			 begin
+			      set @monto = (
+								 select total from facturacion.factura
+								 where id_factura = @id_factura
+			                    )
+			 end
+			 else
+			 begin
+			    if exists(
+				   select segundo_vto from facturacion.factura
+				   where segundo_vto >= GETDATE()
+				)
+				  begin
+				  set @monto = (
+								 select total_con_recargo from facturacion.factura
+								 where id_factura = @id_factura
+			                    )
+				  end
+				  else
+				  begin
+				      set @monto = -1
+				  end
+			 end
+
+			 if(@monto = -1)
+			 begin
+			     print 'La factura ya excedio la fecha de pago'
+			 end
+			 else
+			 begin
+			     declare @id_socio int
+				 set @id_socio = (
+				      select id_socio from facturacion.factura
+					  where id_factura = @id_factura
+				 )
+				 declare @servicioInsertar varchar(250)
+				 set @servicioInsertar = (
+				     select servicio from facturacion.factura
+					 where id_factura = @id_factura
+				 )
+
+				 exec facturacion.descuento_saldo_usuario @id_socio , @monto
+			     --inserto los datos en la tabla de pago
+				 insert into facturacion.pago(id_factura,id_socio,fecha_pago,monto_total,tipo_movimiento,id_medio_pago,servicio)
+				 values(@id_factura, @id_socio,getdate(),@monto,'PAGO DEBITO',@id_medio_pago,@servicioInsertar)
+				 --modifico el estado de la factura
+
+				 update facturacion.factura
+				 set estado = 'PAGADO'
+				 where id_factura = @id_factura
+			 end		 
+		end
+		else
+		begin
+		   print 'No se encontro el id de ese medio de pago'
+		end
+	end
+	else
+	begin
+	   print 'No se encontro factura con ese id o la factura ya fue abonada'
+	end
+
+  COMMIT TRANSACTION
+
+end
+go
+--Procedimiento encargado de sumar el saldo en caso de algun reembolso o pago a cuenta
 create or alter procedure facturacion.pago_a_cuenta(@id_socio int,@monto_reembolo decimal(9,3),@porcentaje float)
 -- Se hace uso del float para establecer porcentajes 0.1, 0.05, 0.2, 0.5
 as
@@ -1415,7 +1531,7 @@ begin
 
 end
 go
-
+-- Procedimiento encargado de reembolsar algun pago indeseado
 create or alter procedure facturacion.reembolsar_pago(@id_factura int)
 as
 begin
@@ -1442,9 +1558,9 @@ begin
 
 		 )
 	     
-		 insert into facturacion.reembolso(id_factura,id_socio,fecha_emision,primer_vto,segundo_vto,id_medio_pago,monto) 
+		 insert into facturacion.reembolso(id_factura,id_socio,fecha_emision,primer_vto,segundo_vto,id_medio_pago,monto,servicio) 
 		 select f.id_factura,f.id_socio,f.fecha_emision,
-		 f.primer_vto , f.segundo_vto ,p.id_medio_pago,p.monto_total from facturacion.factura f
+		 f.primer_vto , f.segundo_vto ,p.id_medio_pago,p.monto_total, f.servicio from facturacion.factura f
 		 join facturacion.pago p
 		 on p.id_factura = f.id_factura
 		 where p.id_factura = @id_factura	 
@@ -1465,4 +1581,63 @@ begin
   COMMIT TRANSACTION
 end
 go
+-- Procedimiento encargado de descontar el saldo del usuario en caso de que pague con saldo de su cuenta
+create or alter procedure facturacion.descuento_saldo_usuario
+(@id_socio int, @monto decimal(9,3))
+as
+begin
+    declare @monto_total int = 0
+    declare @id_usuario int
+	set @id_usuario = (
+	   select id_usuario from socios.socio
+	   where id_socio = @id_socio
+	)
+	declare @saldo_usuario decimal(9,3)
+	set @saldo_usuario = (
+	    select saldo from socios.usuario
+		where id_usuario = @id_usuario
+	)
+	if(@saldo_usuario > 0)
+	begin
+	   set @monto_total = @monto - @saldo_usuario
+	   if(@monto_total > 0)
+	   begin
+	       update socios.usuario
+		   set saldo = 0
+		   where id_usuario = @id_usuario
+	   end
+	   else
+	   begin
+	       set @monto_total = @saldo_usuario - @monto
 
+		   update socios.usuario
+		   set saldo = @monto_total
+		   where id_usuario = @id_usuario
+	   end    
+	end
+end
+go
+--Procedimiento que realiza el descuento del 10% si el socio ya participa en alguna actividad
+create or alter procedure facturacion.descuento_actividad(@id_socio int, @monto_actividad decimal(9,3) OUTPUT)
+as
+begin
+   SET NOCOUNT ON
+
+   declare @cantidad int 
+   set @cantidad = (
+    select COUNT(id_socio) from actividades.inscripcion_actividades
+    group by id_socio
+    having id_socio = @id_socio
+   )
+   if(@cantidad > 1)
+   begin
+       set @monto_actividad = @monto_actividad - (@monto_actividad*0.1)
+	   return @monto_actividad
+   end
+   else
+   begin
+       return @monto_actividad
+   end
+
+end
+go

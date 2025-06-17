@@ -410,6 +410,7 @@ begin
 		tipo_movimiento varchar(20),
 		id_medio_pago int,
 		id_socio int,
+		servicio varchar(250),
 		Constraint Facturacion_pago_PK_id_pago Primary key(id_pago),
 		Constraint Facturacion_pago_FK_id_factura
 				Foreign Key(id_factura) References facturacion.factura(id_factura),
@@ -475,5 +476,23 @@ AS BEGIN
 	INSERT INTO facturacion.dias_lluviosos SELECT I.fecha, I.lluvia
 								FROM inserted I
 								WHERE I.fecha NOT IN (SELECT DF.fecha FROM facturacion.dias_lluviosos DF)
+END
+go
+
+
+IF OBJECT_ID('COM5600G03.actividades.presentismo') IS NULL
+BEGIN
+	CREATE TABLE actividades.presentismo(
+		id_socio int primary key,
+		nombre_actividad varchar(200),
+		fecha_asistencia date,
+		asistencia char(2) check (asistencia like 'P' or asistencia like 'A' or asistencia like 'J'),
+		nombre_profesor varchar(200),
+		constraint fk_id_socio foreign key (id_socio) references socios.socio(id_socio)	 
+	)
+END
+ELSE
+BEGIN
+	print 'la tabla actividades.presentismo ya existe'
 END
 go

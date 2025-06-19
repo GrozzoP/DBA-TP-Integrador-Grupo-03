@@ -1116,9 +1116,54 @@ exec facturacion.reembolsar_pago 1
 -- Ademas se espera un descuento en el precio del 10% porque el socio ya esta inscripto en una actividad deportiva
 exec actividades.inscripcion_actividad 1,1,1
 
-/*
+--Prueba de Inscripcion y Reserva de Sum
+
 select*from facturacion.factura
 select*from facturacion.pago
 select*from socios.usuario
 select*from actividades.inscripcion_actividades
-*/
+select*from actividades.inscripcion_act_extra
+select*from actividades.Sum_reservas
+
+exec actividades.insertar_actividad_extra 'Sum',9000
+exec actividades.inscripcion_actividad_extra 1,2,'2025-06-28','19:00:00','20:00:00',0
+
+
+select*from actividades.inscripcion_act_extra
+
+-- Limpieza y preparación de las tablas necesarias
+exec eliminar_y_restaurar_tabla 'facturacion.pago'
+exec eliminar_y_restaurar_tabla 'facturacion.factura'
+exec eliminar_y_restaurar_tabla 'socios.socio'
+exec eliminar_y_restaurar_tabla 'socios.usuario'
+exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
+exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
+exec eliminar_y_restaurar_tabla 'socios.categoria'
+exec eliminar_y_restaurar_tabla 'socios.obra_social'
+exec eliminar_y_restaurar_tabla 'socios.rol'
+exec eliminar_y_restaurar_tabla 'facturacion.reembolso'
+exec eliminar_y_restaurar_tabla  'actividades.actividad'
+exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades'
+exec eliminar_y_restaurar_tabla 'actividades.Sum_reservas'
+
+-- Inserción de datos requeridos para relaciones
+exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
+exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
+exec facturacion.insertar_medio_de_pago 'Transferencia', 1
+exec socios.insertar_obra_social 'OSDE', 1134225566
+exec actividades.insertar_actividad 'Futbol',200.5
+exec actividades.insertar_horario_actividad 'Lunes','20:00:00','21:00:00',1,1
+go
+
+-- Se espera inserción exitosa del socio
+exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', 1133445566, 1133445577, 1, 1, 1, 1
+
+-- Se espera que inserte la actividad extra Sum
+exec actividades.insertar_actividad_extra 'Sum',9000
+-- Se espera que inscriba al socio en la actividad y reserve el Sum, se genere la factura 
+exec actividades.inscripcion_actividad_extra 1,2,'2025-06-28','19:00:00','20:00:00',0
+-- Se espera que no pueda inscribirse y reservar la actividad Sum porque ya esta reservada para ese dia
+exec actividades.inscripcion_actividad_extra 1,2,'2025-06-28','19:00:00','20:00:00',0
+
+
+

@@ -571,3 +571,20 @@ BEGIN
 	print 'la tabla actividades.presentismo ya existe'
 END
 go
+
+
+IF OBJECT_ID('COM5600G03.actividades.Sum_Reservas') IS NULL
+BEGIN
+	CREATE TABLE actividades.Sum_Reservas(
+		id_reserva int identity(1,1),
+		monto decimal(9,3),
+		fecha_reserva date,
+		estado varchar(100) default 'RESERVADO'
+    )
+END
+ELSE
+BEGIN
+	print 'la tabla actividades.Sum_Reservas ya existe'
+END
+go
+

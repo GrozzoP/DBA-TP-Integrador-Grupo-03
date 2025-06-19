@@ -1367,8 +1367,8 @@ begin
 end
 go
 
---Procedimiento para la inscripcion de un socio a una actividad
-/*
+--Procedimiento para eliminar la inscripcion de un socio a una actividad
+
 create or alter procedure actividades.eliminar_inscripcion_actividad(@id_inscripcion int)
 as
 begin
@@ -1378,6 +1378,8 @@ begin
 	)begin
 	   delete actividades.inscripcion_actividades
 	   where id_inscripcion = @id_inscripcion
+
+
     end
 	else
 	begin
@@ -1385,7 +1387,7 @@ begin
 	end
 end
 go
-*/
+
 ---Procedimiento para inscripcion a actividad extra
 create or alter procedure actividades.inscripcion_actividad_extra
 (@id_socio int, @id_actividad_extra int, @fecha date, @hora_inicio time, @hora_fin time, @cant_invitados int)
@@ -1406,28 +1408,58 @@ begin
 				  end
 				  else
 				  begin	
-				        -- Generacion de calculos
-				        declare @monto decimal(9,3)
-						declare @montoInvitado decimal(9,3)
-						set @monto = (select costo from actividades.actividad_extra
-						             where id_actividad = @id_actividad_extra)
-						set @montoInvitado = (@monto + (@monto*0.1)) -- +10% invitado
-						set @monto = @monto + (@montoInvitado*@cant_invitados)
-
-					    --inscribir
-					    insert into actividades.inscripcion_act_extra
-					    (id_socio,fecha,hora_inicio,hora_fin,cant_invitados,id_actividad_extra)
-					    values(@id_socio,@fecha,@hora_inicio,@hora_fin,@cant_invitados,@id_actividad_extra)
-				        --generacion de factura	  
-						
-						declare @actividadInsertar varchar(250)
+				        -- Obengo la actividad
+				        declare @actividadInsertar varchar(250)
 						set @actividadInsertar = (
 						    select nombre_actividad from actividades.actividad_extra
 							where id_actividad = @id_actividad_extra
 						)
+						-- Generacion de calculos
+						declare @monto decimal(9,3)
+						set @monto = (select costo from actividades.actividad_extra
+										 where id_actividad = @id_actividad_extra)
 
-						exec facturacion.crear_factura @monto, @id_socio, @actividadInsertar --se llama al sp crear factura para crear la factura
-				  end
+						declare @dni int = (
+							   select DNI from socios.socio
+							   where id_socio = @id_socio
+						)
+
+						if(@actividadInsertar = 'Sum')
+						begin
+						   if exists(
+						      select * from actividades.Sum_Reservas
+							  where fecha_reserva = @fecha
+						   )begin
+						       print 'Ya hay reservas del Sum para esa fecha'
+						    end
+							else
+							begin
+								insert into actividades.Sum_Reservas(monto,fecha_reserva)
+								values(@monto,@fecha)
+
+								--inscribir
+								insert into actividades.inscripcion_act_extra
+								(id_socio,fecha,hora_inicio,hora_fin,cant_invitados,id_actividad_extra)
+								values(@id_socio,@fecha,@hora_inicio,@hora_fin,@cant_invitados,@id_actividad_extra)
+
+								exec facturacion.crear_factura @monto, @dni, @actividadInsertar --se llama al sp crear factura para crear la factura
+				       
+
+
+							end
+						end
+						else
+						begin
+												
+							--inscribir
+							insert into actividades.inscripcion_act_extra
+							(id_socio,fecha,hora_inicio,hora_fin,cant_invitados,id_actividad_extra)
+							values(@id_socio,@fecha,@hora_inicio,@hora_fin,@cant_invitados,@id_actividad_extra)
+
+							exec facturacion.crear_factura @monto, @dni, @actividadInsertar --se llama al sp crear factura para crear la factura
+				       
+					   end
+				 end
 			end
 			else
 			begin
@@ -1460,7 +1492,6 @@ begin
 end
 go	
 */
-
 --Procedimiento para pagar una factura
 create or alter procedure facturacion.pago_factura(
 		@id_factura int,

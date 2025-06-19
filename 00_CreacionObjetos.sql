@@ -383,7 +383,7 @@ begin
 		estado varchar(30) check (estado like 'PAGADO' or estado LIKE 'NO PAGADO'),
 		nombre varchar(40),
 		apellido varchar(40),
-		cuit varchar(12),
+		dni int,
 		tipo_comprobante char(1) default 'B',
 		punto_venta varchar(40) default 'Club SQL Norte Janson 1145',
 		condicion_frente_iva varchar(30) default 'IVA Sujeto extento',
@@ -423,36 +423,6 @@ end
 else
 begin
 	print 'La tabla facturacion.pago ya existe'
-end
-go
-
---Creacion de la tabla facturacion.reembolso
-if OBJECT_ID('facturacion.reembolso', 'U') IS NULL
-begin
-	create table facturacion.reembolso(
-		id_factura int identity(1,1),
-		fecha_emision date,
-		primer_vto date,
-		segundo_vto date,
-		monto decimal(9,3),
-		estado varchar(30) check (estado like 'PAGADO' or estado LIKE 'NO PAGADO'),
-		nombre varchar(40),
-		apellido varchar(40),
-		cuit varchar(12),
-		id_medio_pago int,
-		tipo_comprobante char(1) default 'B',
-		punto_venta varchar(40) default 'Club SQL Norte Janson 1145',
-		condicion_frente_iva varchar(30) default 'IVA Sujeto extento',
-		email varchar(30) default 'sqlnorte10@gmail.com',
-		cant char(1) default '1',
-		servicio varchar(60) default 'Actividad',
-		Constraint Facturacion_reembolso_FK_id_medio_pago
-				Foreign Key(id_medio_pago) References facturacion.medio_de_pago(id_medio_de_pago),
-	)
-end
-else
-begin
-	print 'La tabla facturacion.reembolso ya existe'
 end
 go
 

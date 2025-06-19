@@ -1260,14 +1260,9 @@ end
 go
 
 --Procedimiento para generar una factura
-create or alter procedure facturacion.crear_factura(@total decimal(9,3), @cuit varchar(11), @actividad varchar(250))
+create or alter procedure facturacion.crear_factura(@total decimal(9,3), @dni varchar(11), @actividad varchar(250))
 as
 begin
-    if (facturacion.validar_CUIT(@cuit) = 0)
-    begin
-        print 'El cuit ingresado es invalido!'
-        return
-    end
 
     if(@total <= 0)
     begin
@@ -1276,10 +1271,7 @@ begin
     end
 
     declare @nombre varchar(40),
-            @apellido varchar(40),
-            @dni int;
-
-    select @dni = facturacion.obtener_dni_del_cuit(@cuit);
+            @apellido varchar(40)
 
     -- Busco el nombre y apellido de un socio con ese dni
     select @nombre = nombre,
@@ -1305,14 +1297,14 @@ begin
 
     -- único insert
     insert into facturacion.factura(fecha_emision, primer_vto, segundo_vto, total, total_con_recargo,
-                                    estado, cuit, nombre, apellido, servicio)
+                                    estado, dni, nombre, apellido, servicio)
     values(getdate(), dateadd(day, 5, getdate()), dateadd(day, 10, getdate()), @total,
-           @total + (@total * 0.1), 'NO PAGADO', @cuit, @nombre, @apellido, @actividad);
+           @total + (@total * 0.1), 'NO PAGADO', @dni, @nombre, @apellido, @actividad);
 end
 go
 
 ---Procedimiento para inscribirse a una actividad
-create or alter procedure actividades.inscripcion_actividad(@cuit varchar(11), @id_horario int, @id_actividad int)
+create or alter procedure actividades.inscripcion_actividad(@id_socio int, @id_horario int, @id_actividad int)
 as
 begin
     if exists(
@@ -1330,27 +1322,11 @@ begin
 					where id_actividad = @id_actividad and id_horario = @id_horario
 				)
 				begin
-					declare @dni int,
-							@id_socio int
 
-					if (facturacion.validar_CUIT(@cuit) = 0)
-					begin
-						print 'El cuit ingresado es invalido!'
-					return
-					end
-
-					select @dni = facturacion.obtener_dni_del_cuit(@cuit);
-
-					select @id_socio = id_socio
+					declare @DNI int = (select DNI
 					from socios.socio
-					where DNI = @dni
+					where id_socio = @id_socio)
 
-					if @id_socio is null
-					begin
-						print 'No existe un socio con ese CUIT'
-					end
-					else
-					begin
 						-- Generacion del monto
 						declare @monto decimal(9,3)
 						set @monto = (
@@ -1371,8 +1347,8 @@ begin
 						--generacion del descuento
 						exec facturacion.descuento_actividad @id_socio, @monto OUTPUT
 						--generacion de factura
-						exec facturacion.crear_factura @monto, @cuit, @actividadInsertar --se llama al sp crear factura para crear la factura
-					end
+						exec facturacion.crear_factura @monto, @DNI, @actividadInsertar --se llama al sp crear factura para crear la factura
+					
 				end
 				else
 				begin
@@ -1542,24 +1518,20 @@ begin
 			 end
 			 else
 			 begin
-			     declare @id_socio int,
-						 @cuit varchar(11),
-						 @dni int
-				 set @cuit = (
-				      select cuit from facturacion.factura
-					  where id_factura = @id_factura
-				 )
+			     declare @id_socio int
+				 
 				 declare @servicioInsertar varchar(250)
 				 set @servicioInsertar = (
 				     select servicio from facturacion.factura
 					 where id_factura = @id_factura
 				 )
 
-				 select @dni = facturacion.obtener_dni_del_cuit(@cuit);
-
-				 select @id_socio = id_socio
-				 from socios.socio
-				 where DNI = @dni
+				 set @id_socio  = (
+				     select s.id_socio from facturacion.factura f
+					 join socios.socio s
+					 on s.DNI = f.dni
+					 where id_factura = @id_factura				 
+				 )
 
 			     -- Inserto los datos en la tabla de pago
 				 insert into facturacion.pago(id_factura,id_socio,fecha_pago,monto_total,tipo_movimiento,id_medio_pago,servicio)
@@ -1642,25 +1614,21 @@ begin
 			 end
 			 else
 			 begin
-			     declare @id_socio int,
-						 @cuit varchar(11),
-						 @dni int
-
-				 set @cuit = (
-				      select cuit from facturacion.factura
-					  where id_factura = @id_factura
-				 )
+			    
 				 declare @servicioInsertar varchar(250)
+
 				 set @servicioInsertar = (
 				     select servicio from facturacion.factura
 					 where id_factura = @id_factura
 				 )
 
-				 select @dni = facturacion.obtener_dni_del_cuit(@cuit);
-
-				 select @id_socio = id_socio
-				 from socios.socio
-				 where DNI = @dni
+				 declare @id_socio int
+				 set @id_socio = (
+				   select id_socio from facturacion.factura f
+				   join socios.socio s
+				   on s.DNI = f.dni
+				   where f.id_factura = @id_factura				   
+				 )
 
 				 exec facturacion.descuento_saldo_usuario @id_socio , @monto
 			     --inserto los datos en la tabla de pago
@@ -1716,60 +1684,40 @@ begin
   SET TRANSACTION ISOLATION LEVEL READ COMMITTED
   BEGIN TRANSACTION
      if exists(
-	    select id_factura from facturacion.pago
-		where id_factura = @id_factura
+	    select id_factura from facturacion.pago 
+		where id_factura = @id_factura and tipo_movimiento like 'PAGO'
 	 )
 	 begin
-	    
-		 declare @monto_a_reembolsar decimal(9,3)
-		 declare @id_socio_reembolso int
-		 set @monto_a_reembolsar = (
+			 declare @monto_a_reembolsar decimal(9,3)
+			 declare @id_socio_reembolso int
+			 set @monto_a_reembolsar = (
 
-				 select monto_total from facturacion.pago
-				 where id_factura = @id_factura     
+					 select monto_total from facturacion.pago
+					 where id_factura = @id_factura     
 
-		 )
-		 set @id_socio_reembolso = (
+			 )
+			 set @id_socio_reembolso = (
 
-				 select id_socio from facturacion.pago
-				 where id_factura = @id_factura     
+					 select id_socio from facturacion.pago
+					 where id_factura = @id_factura     
 
-		 )
+			 )
 
-		 declare @id_socio int,
-		 @cuit varchar(11),
-		 @dni int
+			declare @id_socio int
+			set @id_socio = (
+			   select id_socio from facturacion.factura f
+			   join socios.socio s
+			   on s.DNI = f.dni
+			   where id_factura = @id_factura
+			)
 
-		set @cuit = (
-			select cuit from facturacion.factura
+		
+			update facturacion.pago
+			set tipo_movimiento = 'REEMBOLSO'
 			where id_factura = @id_factura
-		)
-		declare @servicioInsertar varchar(250)
-		set @servicioInsertar = (
-			select servicio from facturacion.factura
-			where id_factura = @id_factura
-		)
 
-		select @dni = facturacion.obtener_dni_del_cuit(@cuit);
-
-		select @id_socio = id_socio
-		from socios.socio
-		where DNI = @dni
-	     
-		insert into facturacion.reembolso(id_factura, cuit, fecha_emision, primer_vto, segundo_vto, id_medio_pago, monto, servicio) 
-		select f.id_factura, f.cuit, f.fecha_emision,
-		f.primer_vto , f.segundo_vto ,p.id_medio_pago,p.monto_total, f.servicio from facturacion.factura f
-		join facturacion.pago p
-		on p.id_factura = f.id_factura
-		where p.id_factura = @id_factura	 
-
-		-------Eliminar el pago en la tabla facturacion.pago porque ese pago ya no es valido
-		update facturacion.pago
-		set tipo_movimiento = 'REEMBOLSO'
-		where id_factura = @id_factura
-		-------Pago a cuenta en la tabla usuarios
-		exec facturacion.pago_a_cuenta @id_socio_reembolso, @monto_a_reembolsar,1
-
+			-------Pago a cuenta en la tabla usuarios
+			exec facturacion.pago_a_cuenta @id_socio_reembolso, @monto_a_reembolsar,1
 	 end
 	 else
 	 begin

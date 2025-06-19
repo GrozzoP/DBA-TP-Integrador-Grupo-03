@@ -1105,9 +1105,9 @@ exec facturacion.reembolsar_pago 1
 exec facturacion.pago_factura 1, 'PAGO', 1
 
 -- Se espera que la factura no haga un reembolso porque ese id factura no existe
-exec facturacion.reembolsar_pago 5
+exec facturacion.reembolsar_pago 2
 
--- Se espera que la factura haga un reembolso exitosamente,se inserte el reembolso en la tabla facturacion.reembolso
+-- Se espera que la factura haga un reembolso exitosamente,
 -- Se cambie el tipo de movimiento en la tabla facturacion.pago
 -- El saldo en usuario aumente porque es un reembolso, en este caso el 100%
 exec facturacion.reembolsar_pago 1
@@ -1115,11 +1115,10 @@ exec facturacion.reembolsar_pago 1
 -- Se espera que se debite de la cuenta del usuario al realizar el pago con saldo
 -- Ademas se espera un descuento en el precio del 10% porque el socio ya esta inscripto en una actividad deportiva
 exec actividades.inscripcion_actividad 1,1,1
-exec facturacion.pago_factura_debito 2, 'PAGO DEBITO', 1
 
-
+/*
 select*from facturacion.factura
 select*from facturacion.pago
-select*from facturacion.reembolso
 select*from socios.usuario
 select*from actividades.inscripcion_actividades
+*/

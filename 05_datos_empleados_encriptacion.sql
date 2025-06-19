@@ -1,7 +1,9 @@
 /*
-	Los archivos est·n encriptados como nos dijo el profe en clase, por el momento es lo que funciona,
-	pero voy a ver si hay alguna manera de encriptar la tabla completa sin tener que poner todos
-	esos campos como varbinary
+Parte 7
+...
+Por otra parte, se requiere que los datos de los empleados se encuentren encriptados, dado
+que los mismos contienen informaci√≥n personal.
+
 */
 
 
@@ -176,7 +178,7 @@ BEGIN
 						P.id_posicion = @id_posicion) AND
 						(P.fecha_inicio = @fecha_inicio OR P.fecha_fin IS NOT NULL))
 	BEGIN
-		print 'La posicion ya est· asignada al empleado'
+		print 'La posicion ya est√° asignada al empleado'
 	END
 	ELSE
 	BEGIN
@@ -213,7 +215,7 @@ BEGIN
 							P.id_posicion = @id_posicion AND
 							P.fecha_fin IS NULL)
 	BEGIN
-		print 'El empleado no tiene la posicion asignada o la misma ya est· anulada'
+		print 'El empleado no tiene la posicion asignada o la misma ya est√° anulada'
 	END
 	ELSE
 	BEGIN
@@ -402,7 +404,7 @@ BEGIN
 	BEGIN
 		IF @fecha_fin IS NULL
 		BEGIN
-			print 'Error, debe ingresar una fecha v·lida'
+			print 'Error, debe ingresar una fecha v√°lida'
 		END
 		ELSE
 		BEGIN

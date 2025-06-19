@@ -212,6 +212,15 @@ begin
 				COL5     VARCHAR(2000)
 			);
 
+		if object_id('tempdb..#TEMP_TARIFAS_PILETA') is null
+			create table #TEMP_PILETA (
+				Concepto VARCHAR(40),
+				Categoria VARCHAR(40),
+				[Valor Socios] DECIMAL(9, 2),
+				[Valor Invitados] DECIMAL(9, 2),
+				[Vigente Hasta] date
+			);
+
 		declare @sql NVARCHAR(MAX) = N'
 			insert into #TEMP_RAW_TABLE (COL1,COL2,COL3,COL4,COL5)
 			select *
@@ -224,34 +233,49 @@ begin
 
 		exec sp_executesql @sql;
 
-		with temp_numerado as (
-			select row_number() over (order by (select null)) as rn,
-				   COL1, COL2, COL3, COL4, COL5
-			from #TEMP_RAW_TABLE
-		),
-		temp_llenar as (
-			-- Si el valor actual es nulo, elige el anterior, de lo contrario, conserva el valor que posee
-			select coalesce(COL1, lag(COL1) over (order by rn)) as Concepto,
-				   COL2 as Categoria,
-				   /* Sacar el simbolo $, sacar el punto de los miles porque no va en el formato, y reemplazar la coma por el punto que representa
-					  la separacion entre los enteros y decimales */
-				   try_cast(replace(replace(replace(COL3, '$', ''), '.', ''), ',', '.') as decimal(9,2)) as [Valor Socios],
-				   -- Lo mismo que el caso anterior
-				   try_cast(replace(replace(replace(COL4, '$', ''), '.', ''), ',', '.') as decimal(9,2)) as [Valor Invitados],
-				   COL5 as [Vigente hasta]
-			from temp_numerado
+		select 
+			   coalesce(COL1, lag(COL1) over (order by rn)) as Concepto,
+			   COL2 as Categoria,
+			   try_cast(replace(replace(replace(COL3, '$', ''), '.', ''), ',', '.') as decimal(9,2)) as [Valor Socios],
+			   try_cast(replace(replace(replace(COL4, '$', ''), '.', ''), ',', '.') as decimal(9,2)) as [Valor Invitados],
+			   COL5 [Vigente hasta]
+		into #TEMP_TARIFAS_PILETA
+		from (
+				select row_number() over (order by (select null)) as rn,
+					COL1, COL2, COL3, COL4, COL5
+				from #TEMP_RAW_TABLE
+		) as T
 			where rn > 1
-		)
 
-		insert into importacion.tarifas_piletas(Concepto, Categoria, [Valor Socios], [Valor Invitados], [Vigente hasta])
-		select Concepto,
-			   Categoria,
-			   [Valor Socios],
-			   [Valor Invitados],
+		-- Inserto primero el 'concepto'
+		insert into actividades.concepto_pileta(nombre)
+		select distinct Concepto
+		from #TEMP_TARIFAS_PILETA tp
+		where not exists (select 1
+			from actividades.concepto_pileta cp
+			where cp.nombre = tp.Concepto)
+
+		-- Inserto la categoria de la pileta
+		insert into actividades.categoria_pileta(nombre)
+		select distinct Categoria
+		from #TEMP_TARIFAS_PILETA tp
+		where not exists (select 1
+			from actividades.categoria_pileta cp
+			where cp.nombre = tp.Categoria)
+
+		-- Insertar tarifas de la pileta
+		insert into actividades.tarifa_pileta(id_concepto, id_categoria_pileta,  precio_socio, precio_invitado, vigencia_hasta)
+		select c.id_concepto,
+			   cat.id_categoria_pileta,
+			   try_cast(tp.[Valor Socios] as DECIMAL(9, 3)),
+			   try_cast(tp.[Valor Invitados] as DECIMAL(9, 3)),
 			   convert(datetime, [Vigente hasta], 103)
-		from temp_llenar;
+		from #TEMP_TARIFAS_PILETA tp
+		inner join actividades.concepto_pileta c on c.nombre = tp.concepto
+		inner join actividades.categoria_pileta cat on cat.nombre = tp.categoria;
 
 		drop table #TEMP_RAW_TABLE;
+		drop table #TEMP_TARIFAS_PILETA;
 
 		print 'El dataset de Tarifas Pileta fue cargado exitosamente!';
 	end try
@@ -262,8 +286,12 @@ end
 go
 
 -- exec importacion.cargar_tarifas_pileta @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
--- select * from importacion.tarifas_piletas;
+-- select * from actividades.tarifa_pileta;
 -- delete from importacion.tarifas_piletas;
+
+select * from actividades.categoria_pileta
+select * from actividades.concepto_pileta
+
 go
 
 -- TABLA 'RESPONSABLES PAGO'
@@ -689,4 +717,4 @@ begin
 end
 go
 
---exec importacion.presentismo_actividades @file = ''
+--exec importacion.presentismo_actividades @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx'

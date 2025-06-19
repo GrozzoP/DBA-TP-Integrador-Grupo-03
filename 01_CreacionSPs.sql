@@ -763,6 +763,73 @@ begin
 end
 go
 
+-- PILETA
+create or alter procedure actividades.inscribir_a_pileta
+    @id_socio int,
+    @es_invitado bit,
+    @nombre_invitado varchar(40) = null,
+    @apellido_invitado varchar(40) = null,
+    @dni_invitado int = null,
+    @edad_invitado int = null,
+	@id_concepto int
+as
+begin
+    set nocount on;
+
+    declare @id_invitado int = null,
+			@id_tarifa int,
+			@id_categoria_pileta int,
+			@nombre_categoria varchar(30)
+
+    begin try
+        begin tran;
+
+		if @edad_invitado < 12
+			set @nombre_categoria = 'Menores de 12 años'
+		else
+			set @nombre_categoria = 'Adultos'
+
+		select @id_categoria_pileta = id_categoria_pileta
+		from actividades.categoria_pileta
+		where nombre = @nombre_categoria
+
+		if @id_categoria_pileta is null
+			print 'No existe una categoria creada para la edad de la persona que quiere ir a la pileta!'
+		else
+		begin
+		    -- Si es invitado, se inserta primero en 'invitado pileta'
+			if @es_invitado = 1
+			begin
+				insert into actividades.invitado_pileta(id_socio, nombre, apellido, dni, edad)
+				values(@id_socio, @nombre_invitado, @apellido_invitado, @dni_invitado, @edad_invitado);
+
+				set @id_invitado = scope_identity();
+			end
+
+			-- Busco la tarifa mas vigente
+			select top 1 @id_tarifa = id_tarifa
+			from actividades.tarifa_pileta
+			where id_categoria_pileta = @id_categoria_pileta
+				and id_concepto = @id_concepto
+				and (vigencia_hasta is null or vigencia_hasta >= getdate())
+			order by vigencia_hasta;
+
+
+			-- Guardo los datos en el acceso a pileta, por ahora la factura la dejo NULL porque hay que modificar cosas
+			insert into actividades.acceso_pileta(fecha_ingreso, id_socio, id_invitado, id_tarifa, id_factura)
+			values(getdate(), @id_socio, @id_invitado, @id_tarifa, NULL);
+
+			commit tran;
+			end
+    end try
+    begin catch
+        if @@trancount > 0 
+			rollback tran
+        throw
+    end catch
+end
+go
+
 -- PROCEDIMIENTO DE CREACION ALEATORIA 
 -- ROL
 create or alter procedure socios.carga_aleatoria_rol
@@ -1077,6 +1144,7 @@ begin
 	end
 end
 go
+
 ---Procedimiento para modificar un horario
 create or alter procedure actividades.modificar_horario_actividad 
         @id_horario int,
@@ -1139,104 +1207,190 @@ begin
 	end
 end
 go
---Procedimiento para generar una factura
-create or alter procedure facturacion.crear_factura(@total decimal(9,3),@id_socio int,@actividad varchar(250))
+
+-- Funcion para validar CUIT
+create or alter function facturacion.validar_CUIT (@cuit varchar(13))
+returns bit
 as
 begin
-	if exists(
-			select id_socio from socios.socio
-			where id_socio = @id_socio
-	)begin
-	     if(@total > 0)
-		 begin
-		     declare @dni_socio int
-			 set @dni_socio = (
-			    select DNI from socios.socio
-			    where id_socio = @id_socio
-			 )
-		     
+	declare @verificador int
+	declare @resultado int = 0
+	declare @cuit_nro varchar(11)
+	declare @validacion bit
+	declare @codes varchar(10) = '6789456789'
 
-		     insert into facturacion.factura(fecha_emision,primer_vto,segundo_vto,total,total_con_recargo,
-			 estado,id_socio,servicio,dni)
-			 values(getdate(),dateadd(day,5,getdate()),dateadd(day,10,getdate()),
-			 @total,(@total+(@total*0.1)),'NO PAGADO',@id_socio,@actividad,@dni_socio)
-		 end
-		 else
-		 begin
-		     print 'Monto ingresado no es valido'
-		 end
-	 end
-	 else
-	 begin
-	   print 'No se encontro el socio para generar la factura'
-	 end
+	declare @x int = 0
+
+	while @x < 10
+	begin
+		declare @digitoValidador int = convert(int, substring(@codes, @x + 1, 1))
+		declare @digito int = convert(int, substring(@cuit_nro, @x + 1, 1))
+		declare @digitoValidacion int = @digitoValidador * @digito
+
+		set @resultado = @resultado + @digitoValidacion
+		set @x = @x + 1
+	end
+
+	set @resultado = @resultado % 11
+
+	if @resultado = @verificador
+	begin
+		set @validacion = 1
+	end
+	else
+	begin
+		set @validacion = 0
+	end
+
+	return @validacion
 end
 go
----Procedimiento para inscribirse a una actividad
-create or alter procedure actividades.inscripcion_actividad(@id_socio int, @id_horario int, @id_actividad int)
+
+-- Obtener el cuit en base al dni
+create or alter function facturacion.obtener_dni_del_cuit
+	(@cuit varchar(11))
+returns int
 as
 begin
-   if exists(
-        select id_socio from socios.socio
-		where id_socio = @id_socio
-   )begin
-        if exists(
-		   select id_horario from actividades.horario_actividades
-		   where id_horario = @id_horario
+	if(len(@cuit) <> 11 or @cuit like '%[^0-9]%')
+		return null
+	
+	return cast(substring(@cuit, 3, 8) as int)
+end
+go
+
+--Procedimiento para generar una factura
+create or alter procedure facturacion.crear_factura(@total decimal(9,3), @cuit varchar(11), @actividad varchar(250))
+as
+begin
+    if (facturacion.validar_CUIT(@cuit) = 0)
+    begin
+        print 'El cuit ingresado es invalido!'
+        return
+    end
+
+    if(@total <= 0)
+    begin
+        print 'El total a facturar no puede ser menor o igual a 0!'
+        return
+    end
+
+    declare @nombre varchar(40),
+            @apellido varchar(40),
+            @dni int;
+
+    select @dni = facturacion.obtener_dni_del_cuit(@cuit);
+
+    -- Busco el nombre y apellido de un socio con ese dni
+    select @nombre = nombre,
+           @apellido = apellido
+    from socios.socio
+    where dni = @dni;
+
+	-- En caso de no existir un socio con ese dni, busco en invitados
+    if @nombre is null or @apellido is null
+    begin
+        select @nombre = nombre,
+               @apellido = apellido
+        from actividades.invitado_pileta
+        where dni = @dni;
+    end
+
+    -- Si no se pudo encontrar el nombre y apellido ni en socios ni en invitados, se dice que el DNI es invalido
+    if @nombre is null or @apellido is null
+    begin
+        print 'No existe ningun individuo que posea ese DNI en el sistema'
+        return
+    end
+
+    -- único insert
+    insert into facturacion.factura(fecha_emision, primer_vto, segundo_vto, total, total_con_recargo,
+                                    estado, cuit, nombre, apellido, servicio)
+    values(getdate(), dateadd(day, 5, getdate()), dateadd(day, 10, getdate()), @total,
+           @total + (@total * 0.1), 'NO PAGADO', @cuit, @nombre, @apellido, @actividad);
+end
+go
+
+---Procedimiento para inscribirse a una actividad
+create or alter procedure actividades.inscripcion_actividad(@cuit varchar(11), @id_horario int, @id_actividad int)
+as
+begin
+    if exists(
+		select id_horario from actividades.horario_actividades
+		where id_horario = @id_horario
+	)
+	begin
+		if exists(
+			    select id_actividad from actividades.horario_actividades
+				where id_actividad = @id_actividad
 		)
 		begin
-		    if exists(
-			      select id_actividad from actividades.horario_actividades
-				  where id_actividad = @id_actividad
-			)
-			begin
-			      if exists(
-				      select * from actividades.horario_actividades
-					  where id_actividad = @id_actividad and id_horario = @id_horario
-				  )
-				  begin
-				       --generacion del monto
-				       declare @monto decimal(9,3)
-					   set @monto = (
-					                 select costo_mensual from actividades.actividad
-									 where id_actividad = @id_actividad
-					                )
-					   --inscripcion
-				       insert into actividades.inscripcion_actividades(id_socio,id_horario,id_actividad)
-					   values(@id_socio,@id_horario,@id_actividad)
+			    if exists(
+				    select * from actividades.horario_actividades
+					where id_actividad = @id_actividad and id_horario = @id_horario
+				)
+				begin
+					declare @dni int,
+							@id_socio int
+
+					if (facturacion.validar_CUIT(@cuit) = 0)
+					begin
+						print 'El cuit ingresado es invalido!'
+					return
+					end
+
+					select @dni = facturacion.obtener_dni_del_cuit(@cuit);
+
+					select @id_socio = id_socio
+					from socios.socio
+					where DNI = @dni
+
+					if @id_socio is null
+					begin
+						print 'No existe un socio con ese CUIT'
+					end
+					else
+					begin
+						-- Generacion del monto
+						declare @monto decimal(9,3)
+						set @monto = (
+										select costo_mensual from actividades.actividad
+										where id_actividad = @id_actividad
+									)
+
+						-- Inscripcion
+						insert into actividades.inscripcion_actividades(id_socio,id_horario,id_actividad)
+						values(@id_socio,@id_horario,@id_actividad)
 					   
-					   declare @actividadInsertar varchar(250)
-					   set @actividadInsertar = (
-					        select nombre_actividad from actividades.actividad
+						declare @actividadInsertar varchar(250)
+						set @actividadInsertar = (
+							select nombre_actividad from actividades.actividad
 							where id_actividad = @id_actividad
-					   )
+						)
 					   
-					   --generacion del descuento
-					   exec facturacion.descuento_actividad @id_socio, @monto OUTPUT
-					   --generacion de factura
-					   exec facturacion.crear_factura @monto, @id_socio, @actividadInsertar --se llama al sp crear factura para crear la factura
-				  end
-				  else
-				  begin
-				     print 'No se encontro un horario para esa actividad'
-				  end
-			end
-			else
-			begin
-			   print 'No se encontro una actividad con ese id'
-			end
+						--generacion del descuento
+						exec facturacion.descuento_actividad @id_socio, @monto OUTPUT
+						--generacion de factura
+						exec facturacion.crear_factura @monto, @cuit, @actividadInsertar --se llama al sp crear factura para crear la factura
+					end
+				end
+				else
+				begin
+				    print 'No se encontro un horario para esa actividad'
+				end
 		end
 		else
 		begin
-		   print 'No se encontro un horario con ese id'
+			print 'No se encontro una actividad con ese id'
 		end
-    end
+	end
 	else
 	begin
-	  print 'No se encontro el id del socio a inscribir a la actividad'
+		print 'No se encontro un horario con ese id'
 	end
 end
 go
+
 --Procedimiento para la inscripcion de un socio a una actividad
 /*
 create or alter procedure actividades.eliminar_inscripcion_actividad(@id_inscripcion int)
@@ -1276,12 +1430,12 @@ begin
 				  end
 				  else
 				  begin	
-				       --generacion de calculos
+				        -- Generacion de calculos
 				        declare @monto decimal(9,3)
 						declare @montoInvitado decimal(9,3)
 						set @monto = (select costo from actividades.actividad_extra
 						             where id_actividad = @id_actividad_extra)
-						set @montoInvitado = (@monto + (@monto*0.1)) --+10% invitado
+						set @montoInvitado = (@monto + (@monto*0.1)) -- +10% invitado
 						set @monto = @monto + (@montoInvitado*@cant_invitados)
 
 					    --inscribir
@@ -1296,7 +1450,7 @@ begin
 							where id_actividad = @id_actividad_extra
 						)
 
-						exec facturacion.crear_factura @monto, @id_socio,@actividadInsertar --se llama al sp crear factura para crear la factura
+						exec facturacion.crear_factura @monto, @id_socio, @actividadInsertar --se llama al sp crear factura para crear la factura
 				  end
 			end
 			else
@@ -1388,9 +1542,11 @@ begin
 			 end
 			 else
 			 begin
-			     declare @id_socio int
-				 set @id_socio = (
-				      select id_socio from facturacion.factura
+			     declare @id_socio int,
+						 @cuit varchar(11),
+						 @dni int
+				 set @cuit = (
+				      select cuit from facturacion.factura
 					  where id_factura = @id_factura
 				 )
 				 declare @servicioInsertar varchar(250)
@@ -1399,10 +1555,16 @@ begin
 					 where id_factura = @id_factura
 				 )
 
-			     --inserto los datos en la tabla de pago
+				 select @dni = facturacion.obtener_dni_del_cuit(@cuit);
+
+				 select @id_socio = id_socio
+				 from socios.socio
+				 where DNI = @dni
+
+			     -- Inserto los datos en la tabla de pago
 				 insert into facturacion.pago(id_factura,id_socio,fecha_pago,monto_total,tipo_movimiento,id_medio_pago,servicio)
-				 values(@id_factura, @id_socio,getdate(),@monto,'PAGO',@id_medio_pago,@servicioInsertar)
-				 --modifico el estado de la factura
+				 values(@id_factura, @id_socio, getdate(), @monto, 'PAGO', @id_medio_pago, @servicioInsertar)
+				 -- Modifico el estado de la factura
 
 				 update facturacion.factura
 				 set estado = 'PAGADO'
@@ -1480,9 +1642,12 @@ begin
 			 end
 			 else
 			 begin
-			     declare @id_socio int
-				 set @id_socio = (
-				      select id_socio from facturacion.factura
+			     declare @id_socio int,
+						 @cuit varchar(11),
+						 @dni int
+
+				 set @cuit = (
+				      select cuit from facturacion.factura
 					  where id_factura = @id_factura
 				 )
 				 declare @servicioInsertar varchar(250)
@@ -1490,6 +1655,12 @@ begin
 				     select servicio from facturacion.factura
 					 where id_factura = @id_factura
 				 )
+
+				 select @dni = facturacion.obtener_dni_del_cuit(@cuit);
+
+				 select @id_socio = id_socio
+				 from socios.socio
+				 where DNI = @dni
 
 				 exec facturacion.descuento_saldo_usuario @id_socio , @monto
 			     --inserto los datos en la tabla de pago
@@ -1513,9 +1684,9 @@ begin
 	end
 
   COMMIT TRANSACTION
-
 end
 go
+
 --Procedimiento encargado de sumar el saldo en caso de algun reembolso o pago a cuenta
 create or alter procedure facturacion.pago_a_cuenta(@id_socio int,@monto_reembolo decimal(9,3),@porcentaje float)
 -- Se hace uso del float para establecer porcentajes 0.1, 0.05, 0.2, 0.5
@@ -1564,20 +1735,40 @@ begin
 				 where id_factura = @id_factura     
 
 		 )
-	     
-		 insert into facturacion.reembolso(id_factura,id_socio,dni,fecha_emision,primer_vto,segundo_vto,id_medio_pago,monto,servicio) 
-		 select f.id_factura,f.id_socio,f.dni,f.fecha_emision,
-		 f.primer_vto , f.segundo_vto ,p.id_medio_pago,p.monto_total, f.servicio from facturacion.factura f
-		 join facturacion.pago p
-		 on p.id_factura = f.id_factura
-		 where p.id_factura = @id_factura	 
 
-		 -------Eliminar el pago en la tabla facturacion.pago porque ese pago ya no es valido
-		 update facturacion.pago
-		 set tipo_movimiento = 'REEMBOLSO'
-		 where id_factura = @id_factura
-		 -------Pago a cuenta en la tabla usuarios
-		 exec facturacion.pago_a_cuenta @id_socio_reembolso, @monto_a_reembolsar,1
+		 declare @id_socio int,
+		 @cuit varchar(11),
+		 @dni int
+
+		set @cuit = (
+			select cuit from facturacion.factura
+			where id_factura = @id_factura
+		)
+		declare @servicioInsertar varchar(250)
+		set @servicioInsertar = (
+			select servicio from facturacion.factura
+			where id_factura = @id_factura
+		)
+
+		select @dni = facturacion.obtener_dni_del_cuit(@cuit);
+
+		select @id_socio = id_socio
+		from socios.socio
+		where DNI = @dni
+	     
+		insert into facturacion.reembolso(id_factura, cuit, fecha_emision, primer_vto, segundo_vto, id_medio_pago, monto, servicio) 
+		select f.id_factura, f.cuit, f.fecha_emision,
+		f.primer_vto , f.segundo_vto ,p.id_medio_pago,p.monto_total, f.servicio from facturacion.factura f
+		join facturacion.pago p
+		on p.id_factura = f.id_factura
+		where p.id_factura = @id_factura	 
+
+		-------Eliminar el pago en la tabla facturacion.pago porque ese pago ya no es valido
+		update facturacion.pago
+		set tipo_movimiento = 'REEMBOLSO'
+		where id_factura = @id_factura
+		-------Pago a cuenta en la tabla usuarios
+		exec facturacion.pago_a_cuenta @id_socio_reembolso, @monto_a_reembolsar,1
 
 	 end
 	 else
@@ -1624,6 +1815,7 @@ begin
 	end
 end
 go
+
 --Procedimiento que realiza el descuento del 10% si el socio ya participa en alguna actividad
 create or alter procedure facturacion.descuento_actividad(@id_socio int, @monto_actividad decimal(9,3) OUTPUT)
 as

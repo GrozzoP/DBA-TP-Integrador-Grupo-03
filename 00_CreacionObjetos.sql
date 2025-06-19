@@ -381,17 +381,16 @@ begin
 		total decimal(9,3),
 		total_con_recargo decimal(9,3),
 		estado varchar(30) check (estado like 'PAGADO' or estado LIKE 'NO PAGADO'),
-		id_socio int,
-		dni int,
+		nombre varchar(40),
+		apellido varchar(40),
+		cuit varchar(12),
 		tipo_comprobante char(1) default 'B',
 		punto_venta varchar(40) default 'Club SQL Norte Janson 1145',
 		condicion_frente_iva varchar(30) default 'IVA Sujeto extento',
 		email varchar(30) default 'sqlnorte10@gmail.com',
 		cant char(1) default '1',
 		servicio varchar(60) default 'Actividad',
-		Constraint Facturacion_factura_PK_id_factura Primary key(id_factura),
-		Constraint Facturacion_factura_FK_id_socio
-				Foreign Key(id_socio) References socios.socio(id_socio),
+		Constraint Facturacion_factura_PK_id_factura Primary key(id_factura)
 	)
 end
 else
@@ -403,7 +402,7 @@ go
 -- Creacion de la tabla facturacion.pago
 if OBJECT_ID('facturacion.pago', 'U') IS NULL
 begin
-	Create table facturacion.pago(
+	create table facturacion.pago(
 		id_pago int identity(1,1),
 		fecha_pago date,
 		monto_total decimal(9,3),
@@ -430,27 +429,131 @@ go
 --Creacion de la tabla facturacion.reembolso
 if OBJECT_ID('facturacion.reembolso', 'U') IS NULL
 begin
-	Create table facturacion.reembolso(
-		id_factura int primary key,
+	create table facturacion.reembolso(
+		id_factura int identity(1,1),
 		fecha_emision date,
 		primer_vto date,
 		segundo_vto date,
 		monto decimal(9,3),
-		estado varchar(30) default 'REEMBOLSO',
-		id_socio int,
+		estado varchar(30) check (estado like 'PAGADO' or estado LIKE 'NO PAGADO'),
+		nombre varchar(40),
+		apellido varchar(40),
+		cuit varchar(12),
 		id_medio_pago int,
-		dni int,
 		tipo_comprobante char(1) default 'B',
 		punto_venta varchar(40) default 'Club SQL Norte Janson 1145',
 		condicion_frente_iva varchar(30) default 'IVA Sujeto extento',
 		email varchar(30) default 'sqlnorte10@gmail.com',
 		cant char(1) default '1',
-		servicio varchar(60) default 'Actividad'
+		servicio varchar(60) default 'Actividad',
+		Constraint Facturacion_reembolso_FK_id_medio_pago
+				Foreign Key(id_medio_pago) References facturacion.medio_de_pago(id_medio_de_pago),
 	)
 end
 else
 begin
 	print 'La tabla facturacion.reembolso ya existe'
+end
+go
+
+-- Creacion de las tablas vinculadas con la pileta
+-- Crear la tabla del concepto de la pileta
+if OBJECT_ID('actividades.concepto_pileta') IS NULL
+begin
+	create table actividades.concepto_pileta(
+		id_concepto int identity(1, 1),
+		nombre varchar(30) not null unique,
+		constraint Actividades_concepto_pileta_PK Primary key(id_concepto),
+	)
+end
+else
+begin
+	print 'La tabla actividades.concepto_pileta ya existe'
+end
+go
+
+-- Crear la tabla de la categoira de la pileta
+if OBJECT_ID('actividades.categoria_pileta') IS NULL
+begin
+	create table actividades.categoria_pileta(
+		id_categoria_pileta int identity(1, 1),
+		nombre varchar(30) not null unique,
+		constraint Actividades_id_categoria_pileta_PK Primary key(id_categoria_pileta)
+	)
+end
+else
+begin
+	print 'La tabla actividades.categoria_pileta ya existe'
+end
+go
+
+-- Crear la tabla vinculada con las tarifas de las piletas
+if OBJECT_ID('actividades.tarifa_pileta') IS NULL
+begin
+	create table actividades.tarifa_pileta(
+		id_tarifa int identity(1, 1),
+		id_concepto int not null,
+		id_categoria_pileta int,
+		precio_socio decimal(9, 2),
+		precio_invitado decimal(9, 2),
+		vigencia_hasta date,
+		Constraint Actividades_tarifa_pileta_PK Primary Key(id_tarifa),
+		Constraint Actividades_concepto_pileta_FK_id_concepto
+				Foreign Key(id_concepto) References actividades.concepto_pileta(id_concepto),
+		Constraint Actividades_categoria_tarifa_pileta_FK_id_categoria_pileta
+				Foreign Key(id_categoria_pileta) References actividades.categoria_pileta(id_categoria_pileta)
+	)
+end
+else
+begin
+	print 'La tabla actividades.tarifa_pileta ya existe'
+end
+go
+
+-- Crear la tabla vinculada con el invitado de un socio a la pileta
+if OBJECT_ID('actividades.invitado_pileta') IS NULL
+begin
+	create table actividades.invitado_pileta(
+		id_invitado int identity(1, 1),
+		id_socio int not null,
+		nombre varchar(40),
+		apellido varchar(40),
+		DNI int,
+		edad int,
+		Constraint Actividades_id_invitado_pileta_PK Primary Key(id_invitado),
+		Constraint Actividades_id_socio_pileta_FK_id_socio
+				Foreign Key(id_socio) References socios.socio(id_socio)
+	)
+end
+else
+begin
+	print 'La tabla actividades.invitado_pileta ya existe'
+end
+go
+
+-- Creacion de la tabla de acceso a la pileta
+if OBJECT_ID('actividades.acceso_pileta') IS NULL
+begin
+	create table actividades.acceso_pileta(
+		id_acceso int identity(1, 1),
+		fecha_ingreso datetime,
+		fecha_salida datetime,
+		id_socio int not null,
+		id_invitado int,
+		id_tarifa int not null,
+		id_factura int not null,
+		Constraint Actividades_id_acceso_pileta_PK Primary Key(id_acceso),
+		Constraint Actividades_id_socio_acceso_pileta_FK_id_socio
+				Foreign Key(id_socio) References socios.socio(id_socio),
+		Constraint Actividades_id_tarifa_acceso_pileta_FK_id_tarifa
+				Foreign Key(id_socio) References actividades.tarifa_pileta(id_tarifa),
+		Constraint Actividades_id_factura_acceso_pileta_FK_id_factura
+				Foreign Key(id_factura) References facturacion.factura(id_factura)
+	)
+end
+else
+begin
+	print 'La tabla actividades.acceso_pileta ya existe'
 end
 go
 

@@ -1117,10 +1117,9 @@ exec facturacion.reembolsar_pago 1
 exec actividades.inscripcion_actividad 1,1,1
 exec facturacion.pago_factura_debito 2, 'PAGO DEBITO', 1
 
-/*
+
 select*from facturacion.factura
 select*from facturacion.pago
 select*from facturacion.reembolso
 select*from socios.usuario
 select*from actividades.inscripcion_actividades
-*/

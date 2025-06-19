@@ -1149,10 +1149,17 @@ begin
 	)begin
 	     if(@total > 0)
 		 begin
+		     declare @dni_socio int
+			 set @dni_socio = (
+			    select DNI from socios.socio
+			    where id_socio = @id_socio
+			 )
+		     
+
 		     insert into facturacion.factura(fecha_emision,primer_vto,segundo_vto,total,total_con_recargo,
-			 estado,id_socio,servicio)
+			 estado,id_socio,servicio,dni)
 			 values(getdate(),dateadd(day,5,getdate()),dateadd(day,10,getdate()),
-			 @total,(@total+(@total*0.1)),'NO PAGADO',@id_socio,@actividad)
+			 @total,(@total+(@total*0.1)),'NO PAGADO',@id_socio,@actividad,@dni_socio)
 		 end
 		 else
 		 begin
@@ -1558,8 +1565,8 @@ begin
 
 		 )
 	     
-		 insert into facturacion.reembolso(id_factura,id_socio,fecha_emision,primer_vto,segundo_vto,id_medio_pago,monto,servicio) 
-		 select f.id_factura,f.id_socio,f.fecha_emision,
+		 insert into facturacion.reembolso(id_factura,id_socio,dni,fecha_emision,primer_vto,segundo_vto,id_medio_pago,monto,servicio) 
+		 select f.id_factura,f.id_socio,f.dni,f.fecha_emision,
 		 f.primer_vto , f.segundo_vto ,p.id_medio_pago,p.monto_total, f.servicio from facturacion.factura f
 		 join facturacion.pago p
 		 on p.id_factura = f.id_factura

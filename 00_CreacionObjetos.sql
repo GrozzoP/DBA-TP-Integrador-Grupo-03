@@ -381,7 +381,8 @@ begin
 		total decimal(9,3),
 		total_con_recargo decimal(9,3),
 		estado varchar(30) check (estado like 'PAGADO' or estado LIKE 'NO PAGADO'),
-		id_socio int,--cambiarlo a funcion que saca el cuil automaticamente
+		id_socio int,
+		dni int,
 		tipo_comprobante char(1) default 'B',
 		punto_venta varchar(40) default 'Club SQL Norte Janson 1145',
 		condicion_frente_iva varchar(30) default 'IVA Sujeto extento',
@@ -438,6 +439,7 @@ begin
 		estado varchar(30) default 'REEMBOLSO',
 		id_socio int,
 		id_medio_pago int,
+		dni int,
 		tipo_comprobante char(1) default 'B',
 		punto_venta varchar(40) default 'Club SQL Norte Janson 1145',
 		condicion_frente_iva varchar(30) default 'IVA Sujeto extento',

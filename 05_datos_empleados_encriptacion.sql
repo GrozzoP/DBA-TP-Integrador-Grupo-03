@@ -89,29 +89,6 @@ BEGIN
 END
 go
 
---Creacion de la tabla con los recibos de sueldo de los empleados (Puede que tenga que encriptarse)
-IF OBJECT_ID('COM5600G03.empleados.recibo_de_sueldo') IS NULL
-BEGIN
-CREATE TABLE empleados.recibo_de_sueldo(
-	id_recibo INT PRIMARY KEY IDENTITY(1, 1),
-	nro_legajo INT,
-	cuil_empleado INT,
-	fecha_emision DATE,
-	monto DECIMAL(10,3) CHECK(monto > 0),
-	fecha_de_acreditacion DATE,
-	periodo_del_recibo DATE CHECK(DAY(periodo_del_recibo) = 1),
-	CONSTRAINT fk_recibo_de_sueldo_nro_legajo
-			FOREIGN KEY(nro_legajo) REFERENCES empleados.empleado(nro_legajo),
-	CONSTRAINT unique_recibo_de_sueldo_legajo_periodo_recibo
-			UNIQUE(nro_legajo, periodo_del_recibo)
-)
-END
-ELSE
-BEGIN
-	print 'La tabla empleados.recibo de sueldo ya existe en la base de datos'
-END
-go
-
 --Creacion del procedimiento para insertar nuevas posiciones
 CREATE OR ALTER PROCEDURE empleados.insertar_posicion(@posicion VARCHAR(100), @descripcion VARCHAR(400))
 AS BEGIN

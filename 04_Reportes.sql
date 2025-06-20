@@ -99,7 +99,7 @@ end
 --exec facturacion.reporte_ingresos_por_actividad
 go
 --Reporte 3
-create or alter procedure socios_con_ausentes as
+create or alter procedure socios.socios_con_ausentes as
 begin
 	select ss.nombre [Nombre], ss.apellido [Apellido], 
 			sc.nombre_categoria [Categoria], ap.nombre_actividad [Actividad],
@@ -115,7 +115,7 @@ end
 --exec socios_con_inasistencias
 go
 --Reporte 4
-create or alter procedure socios_sin_presentismo_por_actividad
+create or alter procedure socios.socios_sin_presentismo_por_actividad
 as
 begin
 	with socios_con_asistencias (id_socio, [Actividad]) as

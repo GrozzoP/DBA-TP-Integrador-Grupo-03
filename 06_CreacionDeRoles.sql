@@ -1,3 +1,20 @@
+/*
+Parte 7
+
+Asigne los roles correspondientes para poder cumplir con este requisito, según el área a la
+cual pertenece
+Tesorería	Jefe de tesorería
+Tesorería	Administrativo de Cobranza
+Tesorería	Administrativo de Facturacion
+Tesorería	Administrativo de Morosos
+Socios		Administrativo Socios
+Socios		Socio Web
+Autoridades	Presidente
+Autoridades	Vicepresidente
+Autoridades	Secretario
+Autoridades	Vocales
+*/
+
 Use COM5600G03
 go
 

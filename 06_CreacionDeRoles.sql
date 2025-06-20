@@ -128,11 +128,13 @@ BEGIN
 END
 Go
 
+-- Asignacion de permisos al administrativo morosos de tesorería
 GRANT EXEC ON	socios.eliminar_grupo_familiar TO tesoreria_administrativo_morosos
 GRANT EXEC ON	socios.eliminar_grupo_familiar TO tesoreria_administrativo_morosos
---GRANT EXEC ON	facturacion.reporte_morosos TO tesoreria_administrativo_morosos
+GRANT EXEC ON	facturacion.morosos_recurrentes TO tesoreria_administrativo_morosos
 GO
 
+-- Asignacion de permisos al administrativo cobranza de tesorería
 GRANT EXEC ON	facturacion.insertar_medio_de_pago TO tesoreria_administrativo_cobranza
 GRANT EXEC ON	facturacion.modificar_medio_de_pago TO tesoreria_administrativo_cobranza
 GRANT EXEC ON	facturacion.eliminar_medio_de_pago TO tesoreria_administrativo_cobranza
@@ -145,8 +147,8 @@ GO
 
 GRANT EXEC ON	socios.eliminar_grupo_familiar TO tesoreria_jefe_tesoreria
 GRANT EXEC ON	socios.eliminar_grupo_familiar TO tesoreria_jefe_tesoreria
---GRANT EXEC ON	facturacion.reporte_morosos TO tesoreria_jefe_tesoreria
---GRANT EXEC ON facturacion.reporte_ganancias_por_actividad TO tesoreria_jefe_tesoreria
+GRANT EXEC ON	facturacion.morosos_recurrentes TO tesoreria_jefe_tesoreria
+GRANT EXEC ON	facturacion.reporte_ingresos_por_actividad TO tesoreria_jefe_tesoreria
 GRANT EXEC ON	facturacion.insertar_medio_de_pago TO tesoreria_jefe_tesoreria
 GRANT EXEC ON	facturacion.modificar_medio_de_pago TO tesoreria_jefe_tesoreria
 GRANT EXEC ON	facturacion.eliminar_medio_de_pago TO tesoreria_jefe_tesoreria
@@ -160,8 +162,8 @@ GRANT EXEC ON	socios.eliminar_grupo_familiar TO socios_administrativo_socio
 GRANT EXEC ON	socios.insertar_socio TO socios_administrativo_socio
 GRANT EXEC ON	socios.modificar_habilitar_socio TO socios_administrativo_socio
 GRANT EXEC ON	socios.eliminar_socio TO socios_administrativo_socio
---GRANT EXEC ON	socios.reporte_asistencias TO socios_administrativo_socio
---GRANT EXEC ON	socios.reporte_asistencias2 TO socios_administrativo_socio
+GRANT EXEC ON	socios.socios_con_ausentes TO socios_administrativo_socio
+GRANT EXEC ON	socios.socios_sin_presentismo_por_actividad TO socios_administrativo_socio
 
 GO
 

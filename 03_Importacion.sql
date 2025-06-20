@@ -97,7 +97,6 @@ end
 go
 
 -- exec importacion.cargar_tarifas  @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
-
 go
 
 -- IMPORTAR DE 'Datos socios.xlsx', en 'Tarifas', la segunda tabla
@@ -528,7 +527,7 @@ begin
    exec sp_executesql @bulkInsertar
 
    update #pagocuotas
-   set responsablepagoidsocio = SUBSTRING(responsablepagoidsocio,5,CHARINDEX('-',responsablepagoidsocio))
+   set responsablepagoidsocio = SUBSTRING(responsablepagoidsocio,4,CHARINDEX('4',responsablepagoidsocio))
 
    insert into socios.pago_cuotas_historico(id_pago,fecha_pago,id_socio,monto,medio_pago)
    select idpago,cast(fechapago as date),cast(responsablepagoidsocio as int),cast(monto as decimal(9,2)),mediopago
@@ -653,8 +652,7 @@ begin
 		update #TEMP_PRESENTISMO
 		set [Profesor] = SUBSTRING([Profesor],0,CHARINDEX(';',[Profesor]))
 
-		--Admite duplicados porque puedo hacer la misma actividad, con el mismo profesor en un mismo dia,
-		--capas uno a la mañana y otro a la tarde, eliminar comentario
+		--Admite duplicados porque puedo hacer la misma actividad, con el mismo profesor en un mismo dia
 
 		insert into actividades.presentismo(id_socio, nombre_actividad, fecha_asistencia,asistencia,nombre_profesor)
 		select [Nro de Socio],[Actividad],[Fecha de asistencia],[Asistencia],[Profesor] from #TEMP_PRESENTISMO

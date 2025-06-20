@@ -1444,7 +1444,6 @@ end
 go
 
 -- Procedimiento para eliminar la inscripcion de un socio a una actividad
-
 create or alter procedure actividades.eliminar_inscripcion_actividad(@id_inscripcion int)
 as
 begin
@@ -1454,8 +1453,6 @@ begin
 	)begin
 	   delete actividades.inscripcion_actividades
 	   where id_inscripcion = @id_inscripcion
-
-
     end
 	else
 	begin
@@ -1763,8 +1760,8 @@ end
 go
 
 -- Procedimiento encargado de sumar el saldo en caso de algun reembolso o pago a cuenta
-create or alter procedure facturacion.pago_a_cuenta(@id_socio int,@monto_reembolo decimal(9,3),@porcentaje float)
 -- Se hace uso del float para establecer porcentajes 0.1, 0.05, 0.2, 0.5
+create or alter procedure facturacion.pago_a_cuenta(@id_socio int,@monto_reembolo decimal(9,3),@porcentaje float)
 as
 begin
     declare @monto_final decimal(9,3)
@@ -1784,57 +1781,6 @@ begin
 
 end
 go
--- Procedimiento encargado de reembolsar algun pago indeseado
-create or alter procedure facturacion.reembolsar_pago(@id_factura int)
-as
-begin
-  SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-  BEGIN TRANSACTION
-     if exists(
-	    select id_factura from facturacion.pago 
-		where id_factura = @id_factura and tipo_movimiento like 'PAGO'
-	 )
-	 begin
-			 declare @monto_a_reembolsar decimal(9,3)
-			 declare @id_socio_reembolso int
-			 set @monto_a_reembolsar = (
-
-					 select monto_total from facturacion.pago
-					 where id_factura = @id_factura     
-
-			 )
-			 set @id_socio_reembolso = (
-
-					 select id_socio from facturacion.pago
-					 where id_factura = @id_factura     
-
-			 )
-
-			declare @id_socio int
-			set @id_socio = (
-			   select id_socio from facturacion.factura f
-			   join socios.socio s
-			   on s.DNI = f.dni
-			   where id_factura = @id_factura
-			)
-
-		
-			update facturacion.pago
-			set tipo_movimiento = 'REEMBOLSO'
-			where id_factura = @id_factura
-
-			-------Pago a cuenta en la tabla usuarios
-			exec facturacion.pago_a_cuenta @id_socio_reembolso, @monto_a_reembolsar,1
-	 end
-	 else
-	 begin
-	    print 'No es posible reembolsar esa factura'
-	 end
-  
-  COMMIT TRANSACTION
-end
-go
-
 -- Procedimiento encargado de reembolsar algun pago indeseado
 create or alter procedure facturacion.reembolsar_pago(@id_factura int)
 as
@@ -2002,3 +1948,21 @@ begin
     end catch
 end
 go
+/*
+create or alter procedure facturacion.descuento_pileta_lluvia(@fecha date)
+as
+begin
+  
+    with cte(dni,total)
+	as
+	(
+	   select dni,total from facturacion.factura f
+	   join facturacion.dias_lluviosos d
+	   on d.fecha = f.fecha_emision
+	   where d.estado = 0 and d.lluvia = 1 and f.estado = 'PAGADO' and f.fecha_emision = @fecha
+	
+	)
+   
+    
+end
+*/

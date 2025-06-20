@@ -1960,14 +1960,11 @@ begin
 	join facturacion.factura f
 	on f.dni = s.DNI
 	where s.DNI in (
-	   select dni,total from facturacion.factura f
+	   select dni from facturacion.factura f
 	   join facturacion.dias_lluviosos d
 	   on d.fecha = f.fecha_emision
-	   where d.estado = 0 and d.lluvia = 1 and f.estado = 'PAGADO' and f.fecha_emision = @fecha
-    )
+	   where d.lluvia = 1 and f.estado = 'PAGADO' and f.fecha_emision = @fecha
+    ) and f.fecha_emision = @fecha
 
-	update facturacion.dias_lluviosos 
-	set estado = 1
-	where fecha = @fecha
 end
 go

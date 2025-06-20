@@ -550,8 +550,7 @@ IF OBJECT_ID('COM5600G03.facturacion.dias_lluviosos') IS NULL
 BEGIN
 	CREATE TABLE facturacion.dias_lluviosos(
 		fecha DATE PRIMARY KEY,
-		lluvia BIT,
-		estado BIT default 0
+		lluvia BIT
 	)
 END
 ELSE

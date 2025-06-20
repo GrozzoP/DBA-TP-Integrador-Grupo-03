@@ -1304,3 +1304,13 @@ exec actividades.inscribir_a_pileta
      @dni_invitado = 87654321,
      @edad_invitado = 30,
      @id_concepto = 1;
+
+/*Prueba descuento por dia de lluvia*/
+
+--Se inserta una facturacion en un dia en el que llovio manualmente '2025-01-01',previamente se inserto el archivo de meteorologia 2025
+insert into facturacion.factura (dni,fecha_emision,total,estado,nombre,apellido,servicio)
+values(42838702,'2025-01-01',5000,'PAGADO','Juan','Roman','Pileta')
+--Se espera que realice el reembolso de una factura pagada, en esa fecha, si llovio y si el dni es de socio
+exec facturacion.descuento_pileta_lluvia '2025-01-01'
+
+

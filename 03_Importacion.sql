@@ -564,7 +564,7 @@ BEGIN
 	BEGIN
 		DELETE facturacion.#tabla_temp_meteo
 	END
-
+	
 	IF OBJECT_ID('COM5600G03.facturacion.dias_lluviosos') IS NULL
 	BEGIN
 		CREATE TABLE facturacion.dias_lluviosos(
@@ -584,14 +584,14 @@ BEGIN
 	DATAFILETYPE = ''' + @datafiletype + ''')'
 
 	EXEC sp_sqlexec @SQL
-
+	
 	INSERT INTO facturacion.dias_lluviosos
 	SELECT	CONVERT(DATE, dia),
 		CASE
 			WHEN SUM(precipitaciones) > 0 THEN 1
 			ELSE 0
 		END AS hubo_lluvia
-	FROM	(SELECT CAST(REPLACE(fecha, 'T', ' ')AS DATETIME) as dia, precipitaciones
+	FROM	(SELECT CAST(REPLACE(fecha, 'T', ' ')AS DATE) as dia, precipitaciones
 			FROM facturacion.#tabla_temp_meteo) T
 	GROUP BY CONVERT(DATE, dia)
 	ORDER BY CONVERT(DATE, dia)
@@ -600,6 +600,7 @@ go
 
 --EXEC importacion.importar_archivos_metorologicos 'C:\Users\Maximo\Downloads\open-meteo-buenosaires_2024.csv', ',', '\n', 'ACP', 'char', 4
 --EXEC importacion.importar_archivos_metorologicos 'C:\Users\Maximo\Downloads\open-meteo-buenosaires_2025.csv', ',', '\n', 'ACP', 'char', 4
+--EXEC importacion.importar_archivos_metorologicos 'C:\Users\ulaza\OneDrive\Escritorio\TPDBA\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\open-meteo-buenosaires_2025.csv', ',', '\n', 'ACP', 'char', 4
 
 --SELECT * FROM facturacion.dias_lluviosos D ORDER BY D.fecha
 

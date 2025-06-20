@@ -294,7 +294,7 @@ begin
 end
 go
 
--- Procedimiento para modiifcar un socio
+-- Procedimiento para modificar el estado de un socio
 create or alter procedure socios.modificar_habilitar_socio
 	@id_socio int
 as
@@ -464,21 +464,41 @@ create or alter procedure socios.modificar_obra_social
 	@telefono_obra_social char(18)
 as
 begin
-	if not exists (select 1 from socios.obra_social 
-					where nombre_obra_social = @nombre_obra_social)
-	begin
-		print 'No existe una obra social con ese nombre.'
-	end
-	else if @telefono_obra_social < 0
-	begin
-		print 'El numero de telefono no puede ser negativo'
-	end
-	else
-	begin
-		update socios.obra_social
-		set telefono_obra_social = @telefono_obra_social
-		where nombre_obra_social = @nombre_obra_social
-	end
+    if (@nombre_obra_social is null)
+    begin
+        print 'El nombre de la obra social no puede ser nulo o vacío.'
+    end
+
+    -- Si el telefono es nulo
+    else if (@telefono_obra_social is null or ltrim(rtrim(@telefono_obra_social)) = '')
+    begin
+        print 'El numero de telefono no puede ser nulo o vacio.'
+    end
+
+    -- Verificar si existe el nombre de la obra social
+    else if not exists (
+        select 1 from socios.obra_social
+        where nombre_obra_social = @nombre_obra_social
+    )
+    begin
+        print 'No existe una obra social con ese nombre.'
+    end
+
+    -- Que el numero tenga una longitud minima
+    else if (len(replace(@telefono_obra_social, ' ', '')) < 8)
+    begin
+        print 'El numero de telefono es muy corto.'
+    end
+
+    -- Si se llego hasta aca, se actualiza
+    else
+    begin
+        update socios.obra_social
+        set telefono_obra_social = @telefono_obra_social
+        where nombre_obra_social = @nombre_obra_social
+
+        print 'La obra social fue actualizada correctamente.'
+    end
 end
 go
 
@@ -622,7 +642,7 @@ begin
 end
 go
 
--- Obtener el precio actual dada una id
+-- Obtener el precio actual de la cuota de un socio dada una id
 create or alter procedure socios.obtener_precio_actual
     @id_categoria int,
     @precio_actual decimal(9,3) output,
@@ -739,7 +759,7 @@ begin
 end
 go
 
--- Insertar un grupo familiar
+-- Eliminar un grupo familiar
 create or alter procedure socios.eliminar_grupo_familiar
 	@id_socio_menor int,
 	@id_responsable int
@@ -760,73 +780,6 @@ begin
 	begin
 		print 'No existe una relación entre ese socio menor y ese responsable.'
 	end
-end
-go
-
--- PILETA
-create or alter procedure actividades.inscribir_a_pileta
-    @id_socio int,
-    @es_invitado bit,
-    @nombre_invitado varchar(40) = null,
-    @apellido_invitado varchar(40) = null,
-    @dni_invitado int = null,
-    @edad_invitado int = null,
-	@id_concepto int
-as
-begin
-    set nocount on;
-
-    declare @id_invitado int = null,
-			@id_tarifa int,
-			@id_categoria_pileta int,
-			@nombre_categoria varchar(30)
-
-    begin try
-        begin tran;
-
-		if @edad_invitado < 12
-			set @nombre_categoria = 'Menores de 12 años'
-		else
-			set @nombre_categoria = 'Adultos'
-
-		select @id_categoria_pileta = id_categoria_pileta
-		from actividades.categoria_pileta
-		where nombre = @nombre_categoria
-
-		if @id_categoria_pileta is null
-			print 'No existe una categoria creada para la edad de la persona que quiere ir a la pileta!'
-		else
-		begin
-		    -- Si es invitado, se inserta primero en 'invitado pileta'
-			if @es_invitado = 1
-			begin
-				insert into actividades.invitado_pileta(id_socio, nombre, apellido, dni, edad)
-				values(@id_socio, @nombre_invitado, @apellido_invitado, @dni_invitado, @edad_invitado);
-
-				set @id_invitado = scope_identity();
-			end
-
-			-- Busco la tarifa mas vigente
-			select top 1 @id_tarifa = id_tarifa
-			from actividades.tarifa_pileta
-			where id_categoria_pileta = @id_categoria_pileta
-				and id_concepto = @id_concepto
-				and (vigencia_hasta is null or vigencia_hasta >= getdate())
-			order by vigencia_hasta;
-
-
-			-- Guardo los datos en el acceso a pileta, por ahora la factura la dejo NULL porque hay que modificar cosas
-			insert into actividades.acceso_pileta(fecha_ingreso, id_socio, id_invitado, id_tarifa, id_factura)
-			values(getdate(), @id_socio, @id_invitado, @id_tarifa, NULL);
-
-			commit tran;
-			end
-    end try
-    begin catch
-        if @@trancount > 0 
-			rollback tran
-        throw
-    end catch
 end
 go
 
@@ -947,8 +900,38 @@ end
 go
 
 -- ACTIVIDAD
+-- Obtener el precio actual de una actividad dada una id
+create or alter procedure actividades.obtener_precio_actividad
+    @id_actividad int,
+    @costo_mensual decimal(9,3) output,
+    @vigencia_hasta date output
+as
+begin
+    set nocount on;
+
+    -- Buscar la tarifa vigente actual
+    select top 1
+        @costo_mensual = costo_mensual,
+        @vigencia_hasta = vigencia_hasta
+    from actividades.actividad_precios
+    where id_actividad = @id_actividad
+      and (vigencia_hasta is null or vigencia_hasta >= getdate())
+    order by vigencia_hasta desc;
+
+    -- Si no encontró un precio valido, se asignan valores por defecto
+    if @costo_mensual is null
+    begin
+        set @costo_mensual = 0;
+        set @vigencia_hasta = null;
+    end
+end
+go
+
 --- Procedimiento para insertar una actividad
-create or alter procedure actividades.insertar_actividad(@nombreActividad varchar(36),@costoMensual decimal(9,3))
+create or alter procedure actividades.insertar_actividad
+    @nombreActividad varchar(36),
+    @costoMensual decimal(9, 3),
+    @vigencia_hasta date = null
 as
 begin
   
@@ -964,7 +947,15 @@ begin
 	end
 	else
 	 begin
-	    insert into actividades.actividad(nombre_actividad, costo_mensual)values(@nombreActividad, @costoMensual)
+		declare @id_actividad int;
+
+		insert into actividades.actividad(nombre_actividad)
+		values(@nombreActividad);
+
+		set @id_actividad = scope_identity();
+
+		insert into actividades.actividad_precios(id_actividad, costo_mensual, vigencia_desde, vigencia_hasta)
+		values(@id_actividad, @costoMensual, getdate(), @vigencia_hasta);
 	 end
 
 end
@@ -974,46 +965,51 @@ go
 create or alter procedure actividades.eliminar_actividad(@id_actividad int)
 as
 begin
-  
-   if exists(
-      select id_actividad from actividades.actividad
-	  where id_actividad = @id_actividad
-   )begin
-       delete actividades.actividad
-	   where id_actividad = @id_actividad
+    if not exists (
+        select 1 from actividades.actividad
+        where id_actividad = @id_actividad
+    )
+    begin
+        print 'La actividad a eliminar no existe'
+        return
     end
-	else
-	 begin
-	    print 'La actividad a eliminar no existe'
-	 end
 
+    delete from actividades.actividad_precios
+    where id_actividad = @id_actividad;
+
+    delete from actividades.actividad
+    where id_actividad = @id_actividad;
 end
 go
+
 --Procedimiento para modificar una actividad
-create or alter procedure actividades.modificar_precio_actividad(@id_actividad int, @nuevoPrecio decimal(9,3))
+create or alter procedure actividades.modificar_precio_actividad
+    @id_actividad int,
+    @nuevoPrecio decimal(9,3),
+    @nueva_vigencia date = null
 as
 begin
+    if not exists (
+        select 1 from actividades.actividad
+        where id_actividad = @id_actividad
+    )
+    begin
+        print 'La actividad a modificar no existe'
+        return
+    end
 
-   if exists(
-      select id_actividad from actividades.actividad
-	  where id_actividad = @id_actividad
-   )begin
-		if @nuevoPrecio > 0
-		begin
-		update actividades.actividad
-	    set costo_mensual = @nuevoPrecio
-	    where id_actividad = @id_actividad
-		end
-		else
-			print 'El nuevo costo de actividad no puede ser negativa'
-   end
-   else
-   begin
-	    print 'La actividad a modificar no existe'
-	 end
+    if @nuevoPrecio <= 0
+    begin
+        print 'El nuevo costo de actividad no puede ser negativo o cero!'
+        return
+    end
+
+    insert into actividades.actividad_precios(id_actividad, costo_mensual, vigencia_desde, vigencia_hasta)
+    values(@id_actividad, @nuevoPrecio, getdate(), @nueva_vigencia);
 end
 go
----Procedimiento para insertar una actividad extra
+
+-- Procedimiento para insertar una actividad extra
 create or alter procedure actividades.insertar_actividad_extra(@nombreActividad varchar(36),@costo decimal(9,3))
 as
 begin
@@ -1036,7 +1032,7 @@ begin
 end
 go
 
----Procedimiento para eliminar una actividad extra
+-- Procedimiento para eliminar una actividad extra
 create or alter procedure actividades.eliminar_actividad_extra(@id_actividad_extra int)
 as
 begin
@@ -1055,7 +1051,8 @@ begin
 
 end
 go
----Procedimiento para modificar el precio a una actividad extra
+
+-- Procedimiento para modificar el precio a una actividad extra
 create or alter procedure actividades.modificar_precio_actividad_extra(@id_actividad_extra int, @nuevoPrecio decimal(9,3))
 as
 begin
@@ -1081,7 +1078,8 @@ begin
 	 end
 end
 go
----Procedimiento para insertar un horario
+
+-- Procedimiento para insertar un horario
 create or alter procedure actividades.insertar_horario_actividad 
 		@dia_semana varchar(18),
 		@hora_inicio time,
@@ -1127,7 +1125,8 @@ begin
 		end
 end
 go
----Procedimiento para eliminar un horario
+
+-- Procedimiento para eliminar un horario
 create or alter procedure actividades.eliminar_horario_actividad(@id_horario int)
 as
 begin
@@ -1145,7 +1144,7 @@ begin
 end
 go
 
----Procedimiento para modificar un horario
+-- Procedimiento para modificar un horario
 create or alter procedure actividades.modificar_horario_actividad 
         @id_horario int,
 		@dia_semana varchar(18),
@@ -1260,7 +1259,7 @@ end
 go
 
 --Procedimiento para generar una factura
-create or alter procedure facturacion.crear_factura(@total decimal(9,3), @dni varchar(11), @actividad varchar(250))
+create or alter procedure facturacion.crear_factura(@total decimal(9,3), @dni int, @actividad varchar(250))
 as
 begin
 
@@ -1295,7 +1294,7 @@ begin
         return
     end
 
-    -- único insert
+    -- Insertar la factura con los datos brindados, ya sea de un socio o un invitado
     insert into facturacion.factura(fecha_emision, primer_vto, segundo_vto, total, total_con_recargo,
                                     estado, dni, nombre, apellido, servicio)
     values(getdate(), dateadd(day, 5, getdate()), dateadd(day, 10, getdate()), @total,
@@ -1303,7 +1302,68 @@ begin
 end
 go
 
----Procedimiento para inscribirse a una actividad
+-- Procedimiento encargado de descontar el saldo del usuario en caso de que pague con saldo de su cuenta
+create or alter procedure facturacion.descuento_saldo_usuario
+(@id_socio int, @monto decimal(9,3))
+as
+begin
+    declare @monto_total int = 0
+    declare @id_usuario int
+	set @id_usuario = (
+	   select id_usuario from socios.socio
+	   where id_socio = @id_socio
+	)
+	declare @saldo_usuario decimal(9,3)
+	set @saldo_usuario = (
+	    select saldo from socios.usuario
+		where id_usuario = @id_usuario
+	)
+	if(@saldo_usuario > 0)
+	begin
+	   set @monto_total = @monto - @saldo_usuario
+	   if(@monto_total > 0)
+	   begin
+	       update socios.usuario
+		   set saldo = 0
+		   where id_usuario = @id_usuario
+	   end
+	   else
+	   begin
+	       set @monto_total = @saldo_usuario - @monto
+
+		   update socios.usuario
+		   set saldo = @monto_total
+		   where id_usuario = @id_usuario
+	   end    
+	end
+end
+go
+
+-- Procedimiento que realiza el descuento del 10% si el socio ya participa en alguna actividad
+create or alter procedure facturacion.descuento_actividad(@id_socio int, @monto_actividad decimal(9,3) OUTPUT)
+as
+begin
+   SET NOCOUNT ON
+
+   declare @cantidad int 
+   set @cantidad = (
+    select COUNT(id_socio) from actividades.inscripcion_actividades
+    group by id_socio
+    having id_socio = @id_socio
+   )
+   if(@cantidad > 1)
+   begin
+       set @monto_actividad = @monto_actividad - (@monto_actividad*0.1)
+	   return @monto_actividad
+   end
+   else
+   begin
+       return @monto_actividad
+   end
+end
+go
+
+-- Procedimiento para inscribirse a una actividad
 create or alter procedure actividades.inscripcion_actividad(@id_socio int, @id_horario int, @id_actividad int)
 as
 begin
@@ -1318,21 +1378,33 @@ begin
 		)
 		begin
 			    if exists(
-				    select * from actividades.horario_actividades
+				    select 1 from actividades.horario_actividades
 					where id_actividad = @id_actividad and id_horario = @id_horario
 				)
 				begin
-
-					declare @DNI int = (select DNI
-					from socios.socio
-					where id_socio = @id_socio)
+					if exists(
+							  select 1 from socios.socio
+							  where id_socio = @id_socio
+					)
+						begin
+						declare @DNI int = (select DNI
+						from socios.socio
+						where id_socio = @id_socio)
 
 						-- Generacion del monto
 						declare @monto decimal(9,3)
-						set @monto = (
-										select costo_mensual from actividades.actividad
-										where id_actividad = @id_actividad
-									)
+
+						select top 1 @monto = costo_mensual
+						from actividades.actividad_precios
+						where id_actividad = @id_actividad
+							and (vigencia_hasta is null or vigencia_hasta >= getdate())
+						order by vigencia_hasta desc;
+
+						if @monto is null
+						begin
+							print 'No hay un precio vigente para esta actividad'
+							return
+						end
 
 						-- Inscripcion
 						insert into actividades.inscripcion_actividades(id_socio,id_horario,id_actividad)
@@ -1344,11 +1416,15 @@ begin
 							where id_actividad = @id_actividad
 						)
 					   
-						--generacion del descuento
+						-- Generacion del descuento
 						exec facturacion.descuento_actividad @id_socio, @monto OUTPUT
-						--generacion de factura
-						exec facturacion.crear_factura @monto, @DNI, @actividadInsertar --se llama al sp crear factura para crear la factura
-					
+						-- Generacion de factura
+						exec facturacion.crear_factura @monto, @DNI, @actividadInsertar
+					end
+					else
+					begin
+						print 'No se encontro un socio con ese id'
+					end
 				end
 				else
 				begin
@@ -1367,7 +1443,7 @@ begin
 end
 go
 
---Procedimiento para eliminar la inscripcion de un socio a una actividad
+-- Procedimiento para eliminar la inscripcion de un socio a una actividad
 
 create or alter procedure actividades.eliminar_inscripcion_actividad(@id_inscripcion int)
 as
@@ -1473,8 +1549,7 @@ begin
 end
 go
 
---Procedimiento para eliminar la inscripcion a una activiad extra
-/*
+-- Procedimiento para eliminar la inscripcion a una actividad extra
 create or alter procedure actividades.eliminar_inscripcion_act_extra(@id_inscripcion int)
 as
 begin
@@ -1491,8 +1566,8 @@ begin
 	end
 end
 go	
-*/
---Procedimiento para pagar una factura
+
+-- Procedimiento para pagar una factura
 create or alter procedure facturacion.pago_factura(
 		@id_factura int,
 		@tipo_movimiento varchar(20),
@@ -1588,6 +1663,7 @@ begin
 
 end
 go
+
 -- Procedimiento que paga la factura pero teniendo en cuenta el saldo del usuario
 create or alter procedure facturacion.pago_factura_debito(
 		@id_factura int,
@@ -1686,7 +1762,7 @@ begin
 end
 go
 
---Procedimiento encargado de sumar el saldo en caso de algun reembolso o pago a cuenta
+-- Procedimiento encargado de sumar el saldo en caso de algun reembolso o pago a cuenta
 create or alter procedure facturacion.pago_a_cuenta(@id_socio int,@monto_reembolo decimal(9,3),@porcentaje float)
 -- Se hace uso del float para establecer porcentajes 0.1, 0.05, 0.2, 0.5
 as
@@ -1758,64 +1834,171 @@ begin
   COMMIT TRANSACTION
 end
 go
--- Procedimiento encargado de descontar el saldo del usuario en caso de que pague con saldo de su cuenta
-create or alter procedure facturacion.descuento_saldo_usuario
-(@id_socio int, @monto decimal(9,3))
+
+-- Procedimiento encargado de reembolsar algun pago indeseado
+create or alter procedure facturacion.reembolsar_pago(@id_factura int)
 as
 begin
-    declare @monto_total int = 0
-    declare @id_usuario int
-	set @id_usuario = (
-	   select id_usuario from socios.socio
-	   where id_socio = @id_socio
-	)
-	declare @saldo_usuario decimal(9,3)
-	set @saldo_usuario = (
-	    select saldo from socios.usuario
-		where id_usuario = @id_usuario
-	)
-	if(@saldo_usuario > 0)
-	begin
-	   set @monto_total = @monto - @saldo_usuario
-	   if(@monto_total > 0)
-	   begin
-	       update socios.usuario
-		   set saldo = 0
-		   where id_usuario = @id_usuario
-	   end
-	   else
-	   begin
-	       set @monto_total = @saldo_usuario - @monto
+  SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+  BEGIN TRANSACTION
+     if exists(
+	    select id_factura from facturacion.pago 
+		where id_factura = @id_factura and tipo_movimiento like 'PAGO'
+	 )
+	 begin
+			 declare @monto_a_reembolsar decimal(9,3)
+			 declare @id_socio_reembolso int
+			 set @monto_a_reembolsar = (
 
-		   update socios.usuario
-		   set saldo = @monto_total
-		   where id_usuario = @id_usuario
-	   end    
-	end
+					 select monto_total from facturacion.pago
+					 where id_factura = @id_factura     
+
+			 )
+			 set @id_socio_reembolso = (
+
+					 select id_socio from facturacion.pago
+					 where id_factura = @id_factura     
+
+			 )
+
+			declare @id_socio int
+			set @id_socio = (
+			   select id_socio from facturacion.factura f
+			   join socios.socio s
+			   on s.DNI = f.dni
+			   where id_factura = @id_factura
+			)
+
+		
+			update facturacion.pago
+			set tipo_movimiento = 'REEMBOLSO'
+			where id_factura = @id_factura
+
+			-------Pago a cuenta en la tabla usuarios
+			exec facturacion.pago_a_cuenta @id_socio_reembolso, @monto_a_reembolsar,1
+	 end
+	 else
+	 begin
+	    print 'No es posible reembolsar esa factura'
+	 end
+  
+  COMMIT TRANSACTION
 end
 go
 
---Procedimiento que realiza el descuento del 10% si el socio ya participa en alguna actividad
-create or alter procedure facturacion.descuento_actividad(@id_socio int, @monto_actividad decimal(9,3) OUTPUT)
+-- PILETA
+-- Procedimiento para anotarse al uso de la pileta, ya sea un socio o un invitado del mismo
+create or alter procedure actividades.inscribir_a_pileta
+    @id_socio int,
+    @es_invitado bit,
+    @nombre_invitado varchar(40) = null,
+    @apellido_invitado varchar(40) = null,
+    @dni_invitado int = null,
+    @edad_invitado int = null,
+	@id_concepto int
 as
 begin
-   SET NOCOUNT ON
+    set nocount on;
 
-   declare @cantidad int 
-   set @cantidad = (
-    select COUNT(id_socio) from actividades.inscripcion_actividades
-    group by id_socio
-    having id_socio = @id_socio
-   )
-   if(@cantidad > 1)
-   begin
-       set @monto_actividad = @monto_actividad - (@monto_actividad*0.1)
-	   return @monto_actividad
-   end
-   else
-   begin
-       return @monto_actividad
-   end
+    declare @id_invitado int = null,
+			@id_tarifa int,
+			@dni int,
+			@id_factura int,
+			@id_categoria_pileta int,
+			@tarifa int,
+			@edad int,
+			@nombre_categoria varchar(30)
 
+    begin try
+        begin tran
+
+		if @es_invitado = 1
+			set @edad = @edad_invitado;
+		else
+		begin
+			select @edad = datediff(year, fecha_nacimiento, getdate())
+			from socios.socio
+			where id_socio = @id_socio;
+		end
+
+		if @edad < 12
+			set @nombre_categoria = 'Menores de 12 años'
+		else
+			set @nombre_categoria = 'Adultos'
+
+		select @id_categoria_pileta = id_categoria_pileta
+		from actividades.categoria_pileta
+		where nombre = @nombre_categoria
+
+		if @id_categoria_pileta is null
+		begin
+			print 'No existe una categoria creada para la edad de la persona que quiere ir a la pileta!'
+			rollback tran
+			return
+		end
+		else
+		begin
+		    -- Si es invitado, se inserta primero en 'invitado pileta'
+			if @es_invitado = 1
+			begin
+				insert into actividades.invitado_pileta(id_socio, nombre, apellido, dni, edad)
+				values(@id_socio, @nombre_invitado, @apellido_invitado, @dni_invitado, @edad_invitado)
+
+				set @id_invitado = scope_identity()
+				set @dni = @dni_invitado
+
+				select top 1 @id_tarifa = id_tarifa,
+							 @tarifa = precio_invitado
+				from actividades.tarifa_pileta
+				where id_categoria_pileta = @id_categoria_pileta
+				  and id_concepto = @id_concepto
+				  and (vigencia_hasta is null or vigencia_hasta >= getdate())
+				order by vigencia_hasta
+			end
+			else
+			begin
+				select @dni = DNI from socios.socio where id_socio = @id_socio
+
+				select top 1 @id_tarifa = id_tarifa,
+							 @tarifa = precio_socio
+				from actividades.tarifa_pileta
+				where id_categoria_pileta = @id_categoria_pileta
+				  and id_concepto = @id_concepto
+				  and (vigencia_hasta is null or vigencia_hasta >= getdate())
+				order by vigencia_hasta
+			end
+
+			-- Validar si la tarifa no fue encontrada
+			if @id_tarifa is null or @tarifa is null
+			begin
+				print 'No se encontro una tarifa vigente para esta categoria y concepto'
+				rollback tran
+				return
+			end
+
+			-- Creo la factura en base a la tarifa correspondiente a la pileta
+			exec facturacion.crear_factura @tarifa, @dni, 'Pileta'
+
+			-- Obtengo el id de la factura recien insertada
+			select top 1 @id_factura = id_factura
+			from facturacion.factura
+			where dni = @dni
+			  and servicio = 'Pileta'
+			  and total = @tarifa
+			order by fecha_emision desc;
+
+			-- Guardo los datos en el acceso a pileta, por ahora la factura la dejo NULL porque hay que modificar cosas
+			insert into actividades.acceso_pileta(fecha_inscripcion, id_socio, id_invitado, id_tarifa, id_factura)
+			values(getdate(), @id_socio, @id_invitado, @id_tarifa, @id_factura);
+
+			commit tran;
+			end
+    end try
+    begin catch
+        if @@trancount > 0
+            rollback tran;
+        print 'No se pudo realizar la inscripcion a la pileta!';
+        throw;
+    end catch
 end
 go

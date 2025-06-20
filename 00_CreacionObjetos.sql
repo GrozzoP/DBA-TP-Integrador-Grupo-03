@@ -28,7 +28,7 @@ la sección de prácticas de MIEL. Solo uno de los miembros del grupo debe hacer
 
     BASE DE DATOS APLICADAS
 
-Fecha de entrega: 23-05-2025
+Fecha de entrega: 19-06-2025
 Comision: 5600
 Numero de grupo: 03
 
@@ -182,7 +182,7 @@ go
 -- Creacion de la tabla socios.categoria
 if OBJECT_ID('socios.categoria', 'U') IS NULL
 begin
-	create table socios.categoria(
+	Create table socios.categoria(
 		id_categoria int identity(1,1),
 		nombre_categoria varchar(16) unique,
 		edad_minima int,
@@ -200,7 +200,7 @@ go
 -- Creacion de la tabla socios.categoria_precios
 if OBJECT_ID('socios.categoria_precios', 'U') IS NULL
 begin
-	create table socios.categoria_precios(
+	Create table socios.categoria_precios(
 		id_precio int identity(1, 1),
 		id_categoria int not null,
 		fecha_vigencia_desde date not null,
@@ -210,7 +210,7 @@ begin
 		constraint categoria_precios_historico_FK_id_categoria foreign key(id_categoria)
 			references socios.categoria(id_categoria)
 	)
-	create nonclustered index IX_categoria_precios on
+	Create nonclustered index IX_categoria_precios on
 		socios.categoria_precios(id_categoria, fecha_vigencia_desde, fecha_vigencia_hasta)
 end
 else
@@ -274,13 +274,32 @@ Begin
 	Create table actividades.actividad(
 		id_actividad int identity(1,1),
 		nombre_actividad varchar(36) UNIQUE,
-		costo_mensual decimal(9,3)
 		Constraint Actividades_actividad_PK_id_actividad Primary key(id_actividad)
 	)
 End
 else
 begin
 	print 'La tabla actividades.actividad ya existe'
+end
+go
+
+-- Creacion de la tabla actividades.actividad_precios
+IF OBJECT_ID('actividades.actividad_precios', 'U') IS NULL
+begin
+	Create table actividades.actividad_precios(
+		id_precio int identity(1,1),
+		id_actividad int not null,
+		costo_mensual decimal(9,3) not null,
+		vigencia_desde date,
+		vigencia_hasta date null, 
+		constraint Actividades_precios_PK primary key(id_precio),
+		constraint FK_actividad_precio_actividad 
+			foreign key (id_actividad) references actividades.actividad(id_actividad)
+	)
+end
+else
+begin
+	print 'La tabla actividades.actividad_precios ya existe'
 end
 go
 
@@ -506,8 +525,7 @@ if OBJECT_ID('actividades.acceso_pileta') IS NULL
 begin
 	create table actividades.acceso_pileta(
 		id_acceso int identity(1, 1),
-		fecha_ingreso datetime,
-		fecha_salida datetime,
+		fecha_inscripcion date,
 		id_socio int not null,
 		id_invitado int,
 		id_tarifa int not null,

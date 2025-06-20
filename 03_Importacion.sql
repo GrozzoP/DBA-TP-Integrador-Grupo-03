@@ -16,44 +16,6 @@ else
 	end
 go
 
--- TABLA DE TARIFAS (ACTIVIDADES, 1ra TABLA)
-
-if object_id('importacion.tarifas_actividades', 'U') is null
-begin
-	create table importacion.tarifas_actividades (
-		Actividad VARCHAR(15),
-		[Valor por mes] INT,
-		[Vigente hasta] DATE
-	)
-end
-else
-begin
-	print 'La tabla importacion.tarifas_actividades ya existe'
-end
-go
-
--- DROP TABLE importacion.tarifas_actividades
-
--- TABLA DE TARIFAS (PILETA, 3ra TABLA)
-
-if object_id('importacion.tarifas_piletas','U') is null
-begin
-	create table importacion.tarifas_piletas (
-		Concepto      VARCHAR(50),
-		Categoria     VARCHAR(30),
-		[Valor Socios]   DECIMAL(9,2),
-		[Valor Invitados] DECIMAL(9,2),
-		[Vigente hasta]  DATE
-	);
-end
-else
-begin
-	print 'La tabla importacion.tarifas_piletas ya existe'
-end
-go
-
--- DROP TABLE importacion.tarifas_piletas
-
 /* CONFIGURACION BASICA PARA QUE FUNCIONE EL SERVIDOR, Y NO SUCEDA EL ERROR DE
    'The OLE DB provider "Microsoft.ACE.OLEDB.12.0" for linked server"',
    esto para no configurarlo manualmente y hacer todo desde el codigo */
@@ -105,13 +67,23 @@ begin
 
 		exec sp_executesql @sql;
 
-		insert into importacion.tarifas_actividades(Actividad, [Valor por mes], [Vigente hasta]) 
-		select Actividad, 
-			   [Valor por mes], 
-			   convert(datetime, [Vigente hasta], 103)
-		from #TEMP_TARIFAS;
+		insert into actividades.actividad(nombre_actividad) 
+		select Actividad
+		from #TEMP_TARIFAS tp
+		where not exists (
+			select 1 from actividades.actividad a
+			where a.nombre_actividad = tp.Actividad
+		)
 
-		print 'El dataset de Tarifas fue cargado exitosamente!';
+		insert into actividades.actividad_precios(id_actividad, costo_mensual, vigencia_desde, vigencia_hasta)
+		select a.id_actividad, 
+           tp.[Valor por mes],
+		   getdate(),
+           convert(datetime, tp.[Vigente hasta], 103)
+		from #TEMP_TARIFAS tp
+		join actividades.actividad a on a.nombre_actividad = tp.Actividad;
+
+		print 'El dataset de tarifas fue cargado exitosamente!';
 		drop table #TEMP_TARIFAS;
 	end try
 
@@ -119,14 +91,13 @@ begin
 		declare @ErrorMessage VARCHAR(4000) = error_message(),
 				@ErrorLine INT = error_line();
 
-		print 'Ocurrio un error en la carga del dataset: ' + @ErrorMessage + ' (L�nea ' + cast(@ErrorLine as varchar(5)) + ')';
+		print 'Ocurrio un error en la carga del dataset: ' + @ErrorMessage + ' (Linea ' + cast(@ErrorLine as varchar(5)) + ')';
 	end catch
 end
 go
 
 -- exec importacion.cargar_tarifas  @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
--- select * from importacion.tarifas_actividades;
--- delete from importacion.tarifas_actividades;
+
 go
 
 -- IMPORTAR DE 'Datos socios.xlsx', en 'Tarifas', la segunda tabla
@@ -191,9 +162,6 @@ end
 go
 
 -- exec importacion.cargar_cuotas_socios @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
--- select * from socios.categoria
--- select * from socios.categoria_precios
-
 go
 
 -- IMPORTAR DE 'Datos socios.xlsx', en 'Tarifas', la tercer tabla
@@ -286,11 +254,6 @@ end
 go
 
 -- exec importacion.cargar_tarifas_pileta @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
--- select * from actividades.tarifa_pileta;
--- delete from importacion.tarifas_piletas;
-
-select * from actividades.categoria_pileta
-select * from actividades.concepto_pileta
 
 go
 
@@ -408,9 +371,6 @@ go
 -- exec importacion.cargar_responsables_de_pago @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx'
 go
 
--- select * from socios.socio
--- select * from socios.obra_social
--- TABLA 'GRUPO FAMILIAR'
 create or alter procedure importacion.cargar_grupo_familiar @file varchar(max)
 as
 begin
@@ -527,10 +487,6 @@ go
 
 -- exec importacion.cargar_grupo_familiar @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
 
--- SELECT * FROM socios.socio
--- SELECT * FROM socios.obra_social
--- SELECT * FROM socios.grupo_familiar
-
 go
 
 IF OBJECT_ID('socios.pago_cuotas_historico', 'U') IS NULL
@@ -584,8 +540,6 @@ end
 go
 
 --exec socios.insertar_pago_couta_historico 'C:\Users\ulaza\OneDrive\Escritorio\imp\Datos socios 1(pago cuotas).csv'
---select*from socios.pago_cuotas_historico
-
 
 -- Procedimiento para la importacion de los archivos con datos meteorológicos
 

@@ -22,6 +22,7 @@ go
 
 --
 /*** SP auxiliares ***/
+-- Este SP sirve para eliminar y restaurar el incremento de los id de las tablas,
 create or alter procedure eliminar_y_restaurar_tabla @tabla nvarchar(512)
 as
 begin
@@ -52,9 +53,40 @@ go
 
 
 /*** Fin de SP auxiliares ***/
+/*
+Limpiar si hace falta
+exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades';
+exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra';
+exec eliminar_y_restaurar_tabla 'actividades.presentismo';
+exec eliminar_y_restaurar_tabla 'actividades.acceso_pileta';
+exec eliminar_y_restaurar_tabla 'actividades.horario_actividades';
+exec eliminar_y_restaurar_tabla 'facturacion.pago';
+exec eliminar_y_restaurar_tabla 'actividades.tarifa_pileta';
+exec eliminar_y_restaurar_tabla 'actividades.invitado_pileta';
+exec eliminar_y_restaurar_tabla 'facturacion.factura';
+exec eliminar_y_restaurar_tabla 'facturacion.dias_lluviosos';
+exec eliminar_y_restaurar_tabla 'socios.grupo_familiar';
+exec eliminar_y_restaurar_tabla 'socios.socio';
+exec eliminar_y_restaurar_tabla 'socios.usuario';
+exec eliminar_y_restaurar_tabla 'socios.categoria_precios';
+exec eliminar_y_restaurar_tabla 'socios.categoria';
+exec eliminar_y_restaurar_tabla 'socios.obra_social';
+exec eliminar_y_restaurar_tabla 'socios.rol';
+exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago';
+exec eliminar_y_restaurar_tabla 'actividades.Sum_Reservas';
+exec eliminar_y_restaurar_tabla 'actividades.actividad_precios';
+exec eliminar_y_restaurar_tabla 'actividades.actividad';
+exec eliminar_y_restaurar_tabla 'actividades.actividad_extra';
+exec eliminar_y_restaurar_tabla 'actividades.concepto_pileta';
+exec eliminar_y_restaurar_tabla 'actividades.categoria_pileta';
+*/
 go
 
-/*****	socios.insertar_rol(@nombre_rol varchar(20), @descripcion_rol varchar(50))	******/
+
+-- /////////////// ROLES ///////////////
+/*****	socios.insertar_rol
+		@nombre_rol varchar(20), 
+		@descripcion_rol varchar(50))	******/
 
 --Preparando tabla para pruebas
 exec eliminar_y_restaurar_tabla 'socios.rol'
@@ -74,7 +106,9 @@ exec socios.insertar_rol '', 'Un invitado que quiere usar el sistema'
 exec eliminar_y_restaurar_tabla 'socios.rol'
 
 
-/*****	socios.modificar_rol(@nombre_rol varchar(20), @nueva_descripcion_rol varchar(50))	*****/
+/*****	socios.modificar_rol
+		@nombre_rol varchar(20), 
+		@nueva_descripcion_rol varchar(50))	*****/
 
 --Preparando tabla para pruebas
 exec eliminar_y_restaurar_tabla 'socios.rol'
@@ -118,6 +152,7 @@ exec socios.eliminar_rol 'noExiste'
 --Eliminando registros restantes de la prueba en la tabla
 exec eliminar_y_restaurar_tabla 'socios.rol'
 
+-- /////////////// USUARIO ///////////////
 /*****	socios.insertar_usuario
 						@id_rol int,
 						@contraseña varchar(40),
@@ -128,9 +163,9 @@ exec eliminar_y_restaurar_tabla 'socios.usuario'
 exec eliminar_y_restaurar_tabla 'socios.rol'
 
 --Insertando registros para prueba
-exec socios.insertar_rol 'a', 'a'
-exec socios.insertar_rol 'b', 'b'
-exec socios.insertar_rol 'c', 'c'
+exec socios.insertar_rol 'Usuario', 'Persona que utiliza la aplicacion'
+exec socios.insertar_rol 'Moderador', 'Encargado de moderar'
+exec socios.insertar_rol 'Ayudante', 'Encargado de brindar ayuda a los socios'
 
 --Se espera la insercion exitosa de los sig usuarios con roles asignados validos
 declare @fechaDePrueba date = GETDATE();
@@ -153,7 +188,9 @@ exec eliminar_y_restaurar_tabla 'socios.usuario'
 exec eliminar_y_restaurar_tabla 'socios.rol'
 go
 
-/*****	socios.modificar_contraseña_usuario @id_usuario int, @contraseña varchar(40) *****/
+/*****	socios.modificar_contraseña_usuario 
+		@id_usuario int,
+		@contraseña varchar(40) *****/
 
 --Preparando tabla para pruebas
 exec eliminar_y_restaurar_tabla 'socios.usuario'
@@ -187,7 +224,9 @@ exec eliminar_y_restaurar_tabla 'socios.usuario'
 exec eliminar_y_restaurar_tabla 'socios.rol'
 go
 
-/*****	socios.modificar_fecha_vigencia_usuario @id_usuario int, @fecha_vigencia_contraseña date *****/
+/*****	socios.modificar_fecha_vigencia_usuario 
+		@id_usuario int, 
+		@fecha_vigencia_contraseña date *****/
 
 --Preparando tabla para pruebas
 exec eliminar_y_restaurar_tabla 'socios.usuario'
@@ -229,7 +268,8 @@ exec eliminar_y_restaurar_tabla 'socios.usuario'
 exec eliminar_y_restaurar_tabla 'socios.rol'
 go
 
-/*****	socios.eliminar_usuario @id_usuario int *****/
+/*****	socios.eliminar_usuario 
+		@id_usuario int *****/
 
 --Preparando tabla para pruebas
 exec eliminar_y_restaurar_tabla 'socios.usuario'
@@ -262,7 +302,10 @@ exec socios.eliminar_usuario 4
 exec eliminar_y_restaurar_tabla 'socios.usuario'
 exec eliminar_y_restaurar_tabla 'socios.rol'
 
-/*****	socios.insertar_obra_social @nombre_obra_social varchar(60), @telefono_obra_social int	*****/
+-- /////////////// OBRA SOCIAL ///////////////
+/*****	socios.insertar_obra_social 
+		@nombre_obra_social varchar(60), 
+		@telefono_obra_social int	*****/
 
 --Preparando tabla para pruebas
 exec eliminar_y_restaurar_tabla 'socios.obra_social'
@@ -286,7 +329,9 @@ exec socios.insertar_obra_social 'obraSocial3', '11111111'
 --Eliminando registros restantes de la prueba en la tabla
 exec eliminar_y_restaurar_tabla 'socios.obra_social'
 
-/*****	socios.modificar_obra_social @nombre_obra_social varchar(60), @telefono_obra_social int	*****/
+/*****	socios.modificar_obra_social 
+		@nombre_obra_social varchar(60), 
+		@telefono_obra_social int	*****/
 
 --Preparando tabla para pruebas
 exec eliminar_y_restaurar_tabla 'socios.obra_social'
@@ -336,6 +381,7 @@ exec eliminar_y_restaurar_tabla 'socios.categoria'
 exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
 go
 
+-- /////////////// CATEGORIA ///////////////
 /*****	socios.insertar_categoria 
 		@nombre_categoria varchar(16), 
 		@edad_minima int,
@@ -412,7 +458,8 @@ exec socios.modificar_fecha_vigencia_categoria 1, -10.00, '2026-12-31'
 exec socios.modificar_fecha_vigencia_categoria 999, 20.00, '2026-12-31'
 go
 
-/******	socios.eliminar_categoria @id_categoria int	*****/
+/******	socios.eliminar_categoria 
+		@id_categoria int	*****/
 
 --Se espera la eliminacion de los siguientes registros
 exec socios.eliminar_categoria 1
@@ -438,6 +485,7 @@ exec socios.obtener_precio_actual
 
 -- select @precio as precio, @fecha_desde as fecha_desde, @fecha_hasta as fecha_hasta
 
+-- /////////////// SOCIO ///////////////
 /***** socios.insertar_socio 
 						@dni int,
 						@nombre varchar(40),
@@ -465,22 +513,22 @@ exec eliminar_y_restaurar_tabla 'socios.usuario'
 exec eliminar_y_restaurar_tabla 'socios.rol'
 exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
 
--- roles
+-- Crear los roles
 insert into socios.rol (nombre, descripcion) values ('Usuario', 'Rol comun'), ('Admin', 'Administracion')
 
--- medios de pago
+-- Creo los medios de pago
 insert into facturacion.medio_de_pago (nombre_medio_pago) values ('Mercadopago'), ('Tarjeta')
 
--- obras sociales
+-- Crear las obras sociales
 insert into socios.obra_social (nombre_obra_social) values ('OSDE'), ('GALENO')
 
--- categorias por edad
+-- Crear las categorias por edad
 insert into socios.categoria (edad_minima, edad_maxima, nombre_categoria) values (1, 17, 'menor'), (18, 64, 'adulto'), (65, 85, 'mayor')
 go
 
 -- Insercion exitosa de un socio adulto, 'Se ha creado de manera automatica una cuenta para que disfrutes de los servicios de los socios!'
 exec socios.insertar_socio
-    @dni = 10001,
+    @dni = 16054254,
     @nombre = 'ana',
     @apellido = 'perez',
     @email = 'ana.perez@mail.com',
@@ -493,7 +541,7 @@ exec socios.insertar_socio
     @id_rol = 1;
 
 exec socios.insertar_socio
-    @dni = 20010,
+    @dni = 52745821,
     @nombre = 'martin',
     @apellido = 'gutierrez',
     @email = 'martin.gutierrez@mail.com',
@@ -507,7 +555,7 @@ exec socios.insertar_socio
 
 -- Insercion fallida, 'Ya existe un socio con ese dni.'
 exec socios.insertar_socio
-    @dni = 10001,
+    @dni = 16054254,
     @nombre = 'luis',
     @apellido = 'gomez',
     @email = 'luis.gomez@mail.com',
@@ -521,7 +569,7 @@ exec socios.insertar_socio
 
 -- Insercion invalida, 'No existe una obra social con ese id.'
 exec socios.insertar_socio
-    @dni = 10002,
+    @dni = 25365452,
     @nombre = 'maria',
     @apellido = 'lopez',
     @email = 'maria.lopez@mail.com',
@@ -535,7 +583,7 @@ exec socios.insertar_socio
 
 -- No se pudo insertar un socio menor de edad, 'El socio al ser menor de edad, debe estar vinculado con un responsable ya registrado.'
 exec socios.insertar_socio
-    @dni = 10003,
+    @dni = 14526523,
     @nombre = 'jose',
     @apellido = 'diaz',
     @email = 'jose.diaz@mail.com',
@@ -549,7 +597,7 @@ exec socios.insertar_socio
 
 -- El menor se inserta con un responsable adulto, 'Se ha creado de manera automatica una cuenta para que disfrutes de los servicios de los socios!' 
 exec socios.insertar_socio
-    @dni = 54348952,
+    @dni = 60152458,
     @nombre = 'carlos',
     @apellido = 'martinez',
     @email = 'carlos.m@mail.com',
@@ -580,20 +628,19 @@ go
 			@DNI int *****/
 
 -- Se elimina un socio mediante el DNI
-exec socios.eliminar_socio @dni = 54348952;
+exec socios.eliminar_socio @dni = 52745821;
 
 -- Indica que 'No existe un socio con ese dni.'
 exec socios.eliminar_socio @dni = 88888;
 go
 
--- GRUPO FAMILIAR
+
+-- /////////////// GRUPO FAMILIAR ///////////////
 -- Insertar un grupo familiar
-/*****
-create or alter procedure socios.insertar_grupo_familiar
-	@id_socio_menor int,
-	@id_responsable int,
-	@parentesco varchar(15) = 'Familiar'
-as *****/
+/*****	create or alter procedure socios.insertar_grupo_familiar
+		@id_socio_menor int,
+		@id_responsable int,
+		@parentesco varchar(15) ******/
 
 -- Responsable menor de edad
 exec socios.insertar_grupo_familiar @id_socio_menor = 2, @id_responsable = 3;
@@ -617,6 +664,7 @@ exec socios.eliminar_grupo_familiar @id_socio_menor = 5, @id_responsable = 3;
 exec socios.eliminar_grupo_familiar @id_socio_menor = 3, @id_responsable = 1;
 go
 
+-- /////////////// ACTIVIDAD ///////////////
 /*****	actividades.insertar_actividad(@nombreActividad varchar(36),@costoMensual decimal(9,3))	*****/
 
 --Preparando tabla para pruebas
@@ -624,27 +672,29 @@ exec eliminar_y_restaurar_tabla 'socios.grupo_familiar'
 exec eliminar_y_restaurar_tabla 'actividades.actividad'
 
 --Se espera la insercion exitosa de los siguientes registros
-exec actividades.insertar_actividad 'Voley', 2.9
-exec actividades.insertar_actividad 'Baile', 9999.5
+exec actividades.insertar_actividad 'Voley', 2.9, '2025-07-27'
+exec actividades.insertar_actividad 'Baile', 9999.5, '2025-08-29'
 
 --Se espera mensaje 'El costo de actividad no debe ser negativo'
-exec actividades.insertar_actividad 'Futbol', -1.5
+exec actividades.insertar_actividad 'Futbol', -1.5, '2026-06-19'
 
 --Se espera mensaje 'El nombre de la actividad extra ya existe'
-exec actividades.insertar_actividad 'Baile', 1000
-exec actividades.insertar_actividad 'Voley', 2.9
+exec actividades.insertar_actividad 'Baile', 1000, '2025-07-27'
+exec actividades.insertar_actividad 'Voley', 2.9, '2025-08-29'
 
 --Eliminando registros restantes de la prueba en la tabla
+exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
 exec eliminar_y_restaurar_tabla 'actividades.actividad'
 
 /*****	actividades.eliminar_actividad(@id_actividad int)	*****/
 
 --Preparando tabla para pruebas
+exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
 exec eliminar_y_restaurar_tabla 'actividades.actividad'
 
 --Insertanto registros para la prueba
-exec actividades.insertar_actividad 'Voley', 2.9
-exec actividades.insertar_actividad 'Baile', 9999.5
+exec actividades.insertar_actividad 'Voley', 2.9, '2025-08-29'
+exec actividades.insertar_actividad 'Baile', 9999.5, '2026-06-19'
 
 --Se espera la eliminacion de los siguiente registros
 exec actividades.eliminar_actividad 1
@@ -655,32 +705,32 @@ exec actividades.eliminar_actividad 1
 exec actividades.eliminar_actividad 3
 
 --Eliminando registros restantes de la prueba en la tabla
+exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
 exec eliminar_y_restaurar_tabla 'actividades.actividad'
 
 /*****	actividades.modificar_precio_actividad(@id_actividad int, @nuevoPrecio decimal(9,3))	*****/
 
 --Preparando tabla para pruebas
+exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
 exec eliminar_y_restaurar_tabla 'actividades.actividad'
 
 --Insertanto registros para la prueba
-exec actividades.insertar_actividad 'Voley', 2.9
-exec actividades.insertar_actividad 'Baile', 9999.5
+exec actividades.insertar_actividad 'Voley', 2.9, '2026-06-19'
+exec actividades.insertar_actividad 'Baile', 9999.5, '2027-05-14'
 
 --Se espera la modificacion del costo de actividad de los siguientes registros
-exec actividades.modificar_precio_actividad 1, 5.3
-exec actividades.modificar_precio_actividad 2, 3.3
+exec actividades.modificar_precio_actividad 1, 5.3, '2027-05-14'
+exec actividades.modificar_precio_actividad 2, 3.3, '2026-06-19'
 --Se espera mensaje 'El nuevo costo de actividad no puede ser negativa'
-exec actividades.modificar_precio_actividad 1, -5.3
+exec actividades.modificar_precio_actividad 1, -5.3, '2025-08-29'
 
 --Se espera mensaje 'La actividad a modificar no existe'
-exec actividades.modificar_precio_actividad 3, 99.5
-
---Eliminando registros restantes de la prueba en la tabla
-exec eliminar_y_restaurar_tabla 'actividades.actividad'
+exec actividades.modificar_precio_actividad 3, 99.5, '2026-06-19'
 
 /*****	actividades.insertar_actividad_extra(@nombreActividad varchar(36),@costo decimal(9,3))   *****/
 
 --Preparando tabla para pruebas
+exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
 exec eliminar_y_restaurar_tabla 'actividades.actividad_extra'
 
 --Se espera la insercion exitosa de los siguiente registros
@@ -738,10 +788,12 @@ exec actividades.modificar_precio_actividad_extra 3, 5
 --Eliminando registros restantes de la prueba en la tabla
 exec eliminar_y_restaurar_tabla 'actividades.actividad_extra'
 
+-- /////////////// HORARIO ACTIVIDADES ///////////////
 /****actividades.insertar_horario_actividad****/
 
 --Preparando tablas para la prueba
 exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
+exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
 exec eliminar_y_restaurar_tabla 'actividades.actividad'
 exec eliminar_y_restaurar_tabla 'socios.categoria'
 
@@ -750,9 +802,9 @@ exec eliminar_y_restaurar_tabla 'socios.categoria'
 exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
 exec socios.insertar_categoria 'Cadete', 19, 27, 1.01, '2026-01-15'  
 exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
-exec actividades.insertar_actividad 'futbol', 10000
-exec actividades.insertar_actividad 'voley', 10000
-exec actividades.insertar_actividad 'tenis', 13000
+exec actividades.insertar_actividad 'futbol', 10000, '2026-06-19'
+exec actividades.insertar_actividad 'voley', 10000, '2025-08-25'
+exec actividades.insertar_actividad 'tenis', 13000, '2026-06-19'
 
 --se espera la insercion exitosa de los siguientes registros
 exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 1
@@ -770,26 +822,21 @@ exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 
 
 --Eliminando registros restantes de la tabla de pruebas
 exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
+exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
 exec eliminar_y_restaurar_tabla 'actividades.actividad'
 exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
 exec eliminar_y_restaurar_tabla 'socios.categoria'
 
 
 /*****actividades.eliminar_horario_actividad(@id_horario int)****/
---Preparando tablas para la prueba
-exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
-go
-exec eliminar_y_restaurar_tabla 'actividades.actividad'
-exec eliminar_y_restaurar_tabla 'socios.categoria'
-
 
 --insertando registros para la prueba
 exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
 exec socios.insertar_categoria 'Cadete', 19, 27, 1.01, '2026-01-15'  
 exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
-exec actividades.insertar_actividad 'futbol', 10000
-exec actividades.insertar_actividad 'voley', 10000
-exec actividades.insertar_actividad 'tenis', 13000
+exec actividades.insertar_actividad 'futbol', 10000, '2025-12-31'
+exec actividades.insertar_actividad 'voley', 10000, '2026-12-31'
+exec actividades.insertar_actividad 'tenis', 13000, '2027-12-31'
 
 --se espera la insercion exitosa de los siguientes registros
 exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 1
@@ -805,28 +852,22 @@ exec actividades.eliminar_horario_actividad 3
 exec actividades.eliminar_horario_actividad 1
 exec actividades.eliminar_horario_actividad 7
 
---Eliminando registros restantes de la tabla de pruebas
-exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
-exec eliminar_y_restaurar_tabla 'actividades.actividad'
-exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
-exec eliminar_y_restaurar_tabla 'socios.categoria'
-
 /*****actividades.modificar_horario_actividad*****/
 --Preparando tablas para la prueba
 exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
+exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
 exec eliminar_y_restaurar_tabla 'actividades.actividad'
 exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
 exec eliminar_y_restaurar_tabla 'socios.categoria'
 go
 
-
 --insertando registros para la prueba
 exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
 exec socios.insertar_categoria 'Cadete', 19, 27, 1.01, '2026-01-15'  
 exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
-exec actividades.insertar_actividad 'futbol', 10000
-exec actividades.insertar_actividad 'voley', 10000
-exec actividades.insertar_actividad 'tenis', 13000
+exec actividades.insertar_actividad 'futbol', 10000, '2026-08-25'
+exec actividades.insertar_actividad 'voley', 10000, '2026-08-25'
+exec actividades.insertar_actividad 'tenis', 13000, '2026-08-25'
 
 --se espera la insercion exitosa de los siguientes registros
 exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 1
@@ -850,14 +891,19 @@ exec actividades.modificar_horario_actividad 2, 'Miercoles', '18:00:00', '19:30:
 --Se espera un mensaje de 'No se encontro horario con ese id'
 exec actividades.modificar_horario_actividad 9, 'Miercoles', '18:00:00', '19:30:00', 1, 1
 
-/********actividades.inscripcion_actividad(@id_socio int, @id_horario int, @id_actividad int)******/
-/********actividades.eliminar_inscripcion_actividad(@id_inscripcion int)***********/
+
+-- /////////////// INSCRIPCION ACTIVIDAD ///////////////
+/********	actividades.inscripcion_actividad
+			@id_socio int,
+			@id_horario int,
+			@id_actividad int)  ******/
 --Preparando tabla para pruebas
 exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades'
 exec eliminar_y_restaurar_tabla 'facturacion.factura'
 exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
 exec eliminar_y_restaurar_tabla 'socios.socio'
 exec eliminar_y_restaurar_tabla 'socios.usuario'
+exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
 exec eliminar_y_restaurar_tabla 'actividades.actividad'
 exec eliminar_y_restaurar_tabla 'socios.obra_social'
 exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
@@ -880,23 +926,21 @@ exec facturacion.insertar_medio_de_pago'Visa', 1
 
 --insercion de socios
 exec socios.insertar_socio 41247252, 'Pepe', 'Grillo' , 'pGrillo@gmail.com', '1999-01-19', '11223344', '55667788', 1, 41, 1, 1, 1
-exec socios.insertar_socio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', '55667788', '11223344', 2, 45, 2, 1, 1
+exec socios.insertar_socio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', '55667788', '11223344', 2, 45, 1, 1, 1
 
 --Insercion de actividades
-exec actividades.insertar_actividad 'futbol', 10000
-exec actividades.insertar_actividad 'voley', 10000
-exec actividades.insertar_actividad 'tenis', 13000
+exec actividades.insertar_actividad 'futbol', 10000, '2029-02-15'
+exec actividades.insertar_actividad 'voley', 10000, '2026-08-25'
+exec actividades.insertar_actividad 'tenis', 13000, '2025-09-20'
 
 --Insercion de horarios
 exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 1
 exec actividades.insertar_horario_actividad 'Jueves', '18:00:00', '19:30:00', 3, 2
 exec actividades.insertar_horario_actividad 'Martes', '19:00:00', '20:00:00', 2, 2
 
-
 --Se deberían insertar con éxito los siguientes registros
 exec actividades.inscripcion_actividad 1, 1, 1
 exec actividades.inscripcion_actividad 1, 3, 2
-exec actividades.inscripcion_actividad 2, 3, 2
 
 --Se deberia generar un mensaje de 'No se encontro un horario para esa actividad'
 exec actividades.inscripcion_actividad 1, 3, 1
@@ -909,6 +953,9 @@ exec actividades.inscripcion_actividad 1, 5, 1
 
 --Se deberia generar un mensaje de 'No se encontro el id del socio a inscribir a la actividad'
 exec actividades.inscripcion_actividad 15, 1, 1
+
+/********  actividades.eliminar_inscripcion_actividad
+			@id_inscripcion int  ***********/
 
 --Deberían eliminarse correctamente los siguientes registros
 exec actividades.eliminar_inscripcion_actividad 1
@@ -923,33 +970,27 @@ exec eliminar_y_restaurar_tabla 'facturacion.pago'
 exec eliminar_y_restaurar_tabla 'facturacion.factura'
 exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades'
 exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra'
+exec eliminar_y_restaurar_tabla 'actividades.actividad_extra'
 exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
 exec eliminar_y_restaurar_tabla 'socios.socio'
 exec eliminar_y_restaurar_tabla 'socios.usuario'
+exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
 exec eliminar_y_restaurar_tabla 'actividades.actividad'
 exec eliminar_y_restaurar_tabla 'socios.obra_social'
 exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
 exec eliminar_y_restaurar_tabla 'socios.categoria'
 exec eliminar_y_restaurar_tabla 'socios.rol'
 exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
+go
 
-
-/****actividades.inscripcion_actividad_extra*****/
-/****actividades.eliminar_inscripcion_act_extra(@id_inscripcion int)*****/
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra'
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades'
-exec eliminar_y_restaurar_tabla 'facturacion.factura'
-go
-exec eliminar_y_restaurar_tabla 'socios.socio'
-go
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'actividades.actividad_extra'
-go
-exec eliminar_y_restaurar_tabla 'socios.obra_social'
-exec eliminar_y_restaurar_tabla 'socios.categoria'
-exec eliminar_y_restaurar_tabla 'socios.rol'
-exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
+-- /////////////// ACTIVIDAD EXTRA ///////////////
+/****	actividades.inscripcion_actividad_extra
+		@id_socio int,
+		@id_actividad_extra int,
+		@fecha date,
+		@hora_inicio time,
+		@hora_fin time,
+		@cant_invitados int)  *****/
 
 --Insertanto registros para la prueba
 declare @fechaDePrueba date = GETDATE();
@@ -966,36 +1007,43 @@ exec facturacion.insertar_medio_de_pago 'Visa', 1
 
 --insercion de socios
 exec socios.insertar_socio 41247252, 'Pepe', 'Grillo' , 'pGrillo@gmail.com', '1999-01-19', '11223344', '55667788', 1, 21, 1, 1, 1
-exec socios.insertar_socio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', '55667788', '11223344', 2, 35, 2, 1, 1
+exec socios.insertar_socio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', '55667788', '11223344', 2, 35, 1, 1, 1
 
 --Insercion de actividades extra
 exec actividades.insertar_actividad_extra 'pileta', 10000
 exec actividades.insertar_actividad_extra 'SUM', 25000
 exec actividades.insertar_actividad_extra 'Colonia', 40000
 
---Se deberían insertar con éxito los siguientes registros
+--Se deberIan insertar con Exito los siguientes registros
 exec actividades.inscripcion_actividad_extra 1, 1, '2025-06-12', '14:00:00', '16:00:00', 3
 exec actividades.inscripcion_actividad_extra 2, 2, '2025-06-13', '16:00:00', '17:30:00', 10
 exec actividades.inscripcion_actividad_extra 2, 3, '2025-06-14', '20:00:00', '21:00:00', 6
 
---Se debería mostrar el mensaje 'Error en la cantidad de invitados'
+--Se deberia mostrar el mensaje 'Error en la cantidad de invitados'
 exec actividades.inscripcion_actividad_extra 1, 2, '2025-06-12', '14:00:00', '16:00:00', -2
 
---Se debería mostrar el mensaje 'No se encontro una actividad con ese id'
+--Se deberia mostrar el mensaje 'No se encontro una actividad con ese id'
 exec actividades.inscripcion_actividad_extra 1, 7, '2025-06-12', '14:00:00', '16:00:00', 3
 
---Se debería mostrar el mensaje 'No se encontro el id del socio a inscribir a la actividad'
+--Se deberia mostrar el mensaje 'No se encontro el id del socio a inscribir a la actividad'
 exec actividades.inscripcion_actividad_extra 4, 1, '2025-06-18', '14:00:00', '16:00:00', 3
 
---Debería eliminar con éxito los siguientes registros
+/****  actividades.eliminar_inscripcion_act_extra
+		@id_inscripcion int ****/
+
+--Deberia eliminar con éxito los siguientes registros
 exec actividades.eliminar_inscripcion_act_extra 1
 exec actividades.eliminar_inscripcion_act_extra 2
 
 --Se debería mostrar el mensaje 'La inscripcion extra a eliminar no existe'
 exec actividades.eliminar_inscripcion_act_extra 1
 exec actividades.eliminar_inscripcion_act_extra 7
-	
-/*****facturacion.crear_factura*****/
+
+-- /////////////// FACTURA ///////////////
+/*****  facturacion.crear_factura  
+		@total decimal(9,3),
+		@dni int,
+		@actividad varchar(250)  *****/
 
 -- Limpieza y preparación de las tablas necesarias
 exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra'
@@ -1020,29 +1068,40 @@ exec socios.insertar_obra_social 'OSDE', '1134225566'
 exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', '1133445566', '1133445577', 1, 12, 1, 1, 1
 
 -- Se espera que se cree correctamente una nueva factura
-exec facturacion.crear_factura 10000.000, 1
+exec facturacion.crear_factura 10000.000, 42838702, 1
 
--- Se espera mensaje: 'Monto ingresado no es valido'
-exec facturacion.crear_factura 0.000, 1
+-- Se espera mensaje: 'El total a facturar no puede ser menor o igual a 0!'
+exec facturacion.crear_factura 0.000, 42838702, 1
 
--- Se espera mensaje: 'Monto ingresado no es valido'
-exec facturacion.crear_factura -500.000, 1
+-- Se espera mensaje: 'El total a facturar no puede ser menor o igual a 0!'
+exec facturacion.crear_factura -500.000, 42838702, 1
 
--- Se espera mensaje: 'No se encontro el socio para generar la factura'
-exec facturacion.crear_factura 15000.000, 999
+-- Se espera mensaje: 'No existe ningun individuo que posea ese DNI en el sistema'
+exec facturacion.crear_factura 15000.000, 4521515, 999
 
-/*****facturacion.pago_factura*****/
+/*****  facturacion.pago_factura 
+		@id_factura int,
+		@tipo_movimiento varchar(20),
+		@id_medio_pago int  *****/
 
 -- Limpieza y preparación de las tablas necesarias
-exec eliminar_y_restaurar_tabla 'facturacion.pago'
-exec eliminar_y_restaurar_tabla 'facturacion.factura'
-exec eliminar_y_restaurar_tabla 'socios.socio'
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
-exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
-exec eliminar_y_restaurar_tabla 'socios.categoria'
-exec eliminar_y_restaurar_tabla 'socios.obra_social'
-exec eliminar_y_restaurar_tabla 'socios.rol'
+exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades';
+exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra';
+exec eliminar_y_restaurar_tabla 'actividades.horario_actividades';
+exec eliminar_y_restaurar_tabla 'actividades.acceso_pileta';
+exec eliminar_y_restaurar_tabla 'facturacion.pago';
+exec eliminar_y_restaurar_tabla 'facturacion.factura';
+exec eliminar_y_restaurar_tabla 'socios.grupo_familiar';
+exec eliminar_y_restaurar_tabla 'socios.socio';
+exec eliminar_y_restaurar_tabla 'socios.usuario';
+exec eliminar_y_restaurar_tabla 'socios.categoria_precios';
+exec eliminar_y_restaurar_tabla 'socios.categoria';
+exec eliminar_y_restaurar_tabla 'socios.obra_social';
+exec eliminar_y_restaurar_tabla 'socios.rol';
+exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago';
+exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
+exec eliminar_y_restaurar_tabla 'actividades.actividad';
+exec eliminar_y_restaurar_tabla 'actividades.actividad_extra';
 
 -- Inserción de datos requeridos para relaciones
 exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
@@ -1054,7 +1113,8 @@ exec socios.insertar_obra_social 'OSDE', '1134225566'
 exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', '1133445566', '1133445577', 1, 22, 1, 1, 1
 
 -- Se espera creación exitosa de una factura NO PAGADA
-exec facturacion.crear_factura 10000.000, 1
+exec facturacion.crear_factura 10000.000, 42838702, 1
+exec facturacion.crear_factura 250000.000, 42838702, 1
 
 -- Se espera que el pago se realice exitosamente y se actualice el estado de la factura
 exec facturacion.pago_factura 1, 'PAGO', 1
@@ -1063,40 +1123,43 @@ exec facturacion.pago_factura 1, 'PAGO', 1
 exec facturacion.pago_factura 1, 'PAGO', 1
 
 -- Se espera mensaje: 'No se encontro el id de ese medio de pago'
-exec facturacion.pago_factura 1, 'PAGO', 999
+exec facturacion.pago_factura 2, 'PAGO', 999
 
-/*****facturacion.reembolsar_pago*****/
+/*****  facturacion.reembolsar_pago
+		@id_factura int  *****/
 
 -- Limpieza y preparación de las tablas necesarias
-exec eliminar_y_restaurar_tabla 'facturacion.pago'
-exec eliminar_y_restaurar_tabla 'facturacion.factura'
-exec eliminar_y_restaurar_tabla 'socios.socio'
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
-exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
-exec eliminar_y_restaurar_tabla 'socios.categoria'
-exec eliminar_y_restaurar_tabla 'socios.obra_social'
-exec eliminar_y_restaurar_tabla 'socios.rol'
-exec eliminar_y_restaurar_tabla 'facturacion.reembolso'
-exec eliminar_y_restaurar_tabla  'actividades.actividad'
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades'
-
+exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades';
+exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra';
+exec eliminar_y_restaurar_tabla 'actividades.horario_actividades';
+exec eliminar_y_restaurar_tabla 'actividades.acceso_pileta';
+exec eliminar_y_restaurar_tabla 'facturacion.pago';
+exec eliminar_y_restaurar_tabla 'facturacion.factura';
+exec eliminar_y_restaurar_tabla 'socios.grupo_familiar';
+exec eliminar_y_restaurar_tabla 'socios.socio';
+exec eliminar_y_restaurar_tabla 'socios.usuario';
+exec eliminar_y_restaurar_tabla 'socios.categoria_precios';
+exec eliminar_y_restaurar_tabla 'socios.categoria';
+exec eliminar_y_restaurar_tabla 'socios.obra_social';
+exec eliminar_y_restaurar_tabla 'socios.rol';
+exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago';
+exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
+exec eliminar_y_restaurar_tabla 'actividades.actividad';
 
 -- Inserción de datos requeridos para relaciones
 exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
 exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
 exec facturacion.insertar_medio_de_pago 'Transferencia', 1
 exec socios.insertar_obra_social 'OSDE', 1134225566
-exec actividades.insertar_actividad 'Futbol',200.5
-exec actividades.insertar_horario_actividad 'Lunes','20:00:00','21:00:00',1,1
+exec actividades.insertar_actividad 'Futbol', 200.5, '2025-09-20'
+exec actividades.insertar_horario_actividad 'Lunes','20:00:00','21:00:00', 1, 1
 go
 
--- Se espera inserción exitosa del socio
+-- Se espera insercion exitosa del socio
 exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', 1133445566, 1133445577, 1, 1, 1, 1
 
 -- Se espera la inscripcion exitosa del socio a futbol y generacion de factura
-
-exec actividades.inscripcion_actividad 1,1,1
+exec actividades.inscripcion_actividad 1, 1, 1
 
 -- Se espera que la factura no haga un reembolso porque ese id factura no fue pagada
 exec facturacion.reembolsar_pago 1
@@ -1114,44 +1177,37 @@ exec facturacion.reembolsar_pago 1
 
 -- Se espera que se debite de la cuenta del usuario al realizar el pago con saldo
 -- Ademas se espera un descuento en el precio del 10% porque el socio ya esta inscripto en una actividad deportiva
-exec actividades.inscripcion_actividad 1,1,1
+exec actividades.inscripcion_actividad 1, 1, 1
 
 --Prueba de Inscripcion y Reserva de Sum
 
-select*from facturacion.factura
-select*from facturacion.pago
-select*from socios.usuario
-select*from actividades.inscripcion_actividades
-select*from actividades.inscripcion_act_extra
-select*from actividades.Sum_reservas
-
-exec actividades.insertar_actividad_extra 'Sum',9000
-exec actividades.inscripcion_actividad_extra 1,2,'2025-06-28','19:00:00','20:00:00',0
-
-
-select*from actividades.inscripcion_act_extra
+exec actividades.insertar_actividad_extra 'Sum', 9000
+exec actividades.inscripcion_actividad_extra 1, 2, '2025-06-28', '19:00:00', '20:00:00', 0
 
 -- Limpieza y preparación de las tablas necesarias
-exec eliminar_y_restaurar_tabla 'facturacion.pago'
-exec eliminar_y_restaurar_tabla 'facturacion.factura'
-exec eliminar_y_restaurar_tabla 'socios.socio'
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
-exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
-exec eliminar_y_restaurar_tabla 'socios.categoria'
-exec eliminar_y_restaurar_tabla 'socios.obra_social'
-exec eliminar_y_restaurar_tabla 'socios.rol'
-exec eliminar_y_restaurar_tabla 'facturacion.reembolso'
-exec eliminar_y_restaurar_tabla  'actividades.actividad'
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades'
-exec eliminar_y_restaurar_tabla 'actividades.Sum_reservas'
+exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades';
+exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra';
+exec eliminar_y_restaurar_tabla 'actividades.horario_actividades';
+exec eliminar_y_restaurar_tabla 'actividades.acceso_pileta';
+exec eliminar_y_restaurar_tabla 'facturacion.pago';
+exec eliminar_y_restaurar_tabla 'facturacion.factura';
+exec eliminar_y_restaurar_tabla 'socios.grupo_familiar';
+exec eliminar_y_restaurar_tabla 'socios.socio';
+exec eliminar_y_restaurar_tabla 'socios.usuario';
+exec eliminar_y_restaurar_tabla 'socios.categoria_precios';
+exec eliminar_y_restaurar_tabla 'socios.categoria';
+exec eliminar_y_restaurar_tabla 'socios.obra_social';
+exec eliminar_y_restaurar_tabla 'socios.rol';
+exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago';
+exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
+exec eliminar_y_restaurar_tabla 'actividades.actividad';
 
 -- Inserción de datos requeridos para relaciones
 exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
 exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
 exec facturacion.insertar_medio_de_pago 'Transferencia', 1
 exec socios.insertar_obra_social 'OSDE', 1134225566
-exec actividades.insertar_actividad 'Futbol',200.5
+exec actividades.insertar_actividad 'Futbol', 200.5, '2025-09-20'
 exec actividades.insertar_horario_actividad 'Lunes','20:00:00','21:00:00',1,1
 go
 
@@ -1165,5 +1221,86 @@ exec actividades.inscripcion_actividad_extra 1,2,'2025-06-28','19:00:00','20:00:
 -- Se espera que no pueda inscribirse y reservar la actividad Sum porque ya esta reservada para ese dia
 exec actividades.inscripcion_actividad_extra 1,2,'2025-06-28','19:00:00','20:00:00',0
 
+-- PRUEBAS PARA LA PILETA
+/***** actividades.inscribir_a_pileta
+		@id_socio int,
+		@es_invitado bit,
+		@nombre_invitado varchar(40) = null,
+		@apellido_invitado varchar(40) = null,
+		@dni_invitado int = null,
+		@edad_invitado int = null,
+		@id_concepto int *****/
 
+-- Limpieza de las tablas usadas por el SP
+exec eliminar_y_restaurar_tabla 'actividades.horario_actividades';
+exec eliminar_y_restaurar_tabla 'actividades.acceso_pileta';
+exec eliminar_y_restaurar_tabla 'facturacion.pago';
+exec eliminar_y_restaurar_tabla 'facturacion.factura';
+exec eliminar_y_restaurar_tabla 'socios.grupo_familiar';
+exec eliminar_y_restaurar_tabla 'socios.socio';
+exec eliminar_y_restaurar_tabla 'socios.usuario';
+exec eliminar_y_restaurar_tabla 'socios.categoria_precios';
+exec eliminar_y_restaurar_tabla 'socios.categoria';
+exec eliminar_y_restaurar_tabla 'socios.obra_social';
+exec eliminar_y_restaurar_tabla 'socios.rol';
+exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago';
+exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
+exec eliminar_y_restaurar_tabla 'actividades.actividad';
+exec eliminar_y_restaurar_tabla 'actividades.actividad_extra';
 
+-- Inserción de datos requeridos para relaciones
+exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
+exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
+exec facturacion.insertar_medio_de_pago 'Transferencia', 1
+exec socios.insertar_obra_social 'OSDE', 1134225566
+exec actividades.insertar_actividad 'Futbol', 200.5, '2025-09-20'
+exec actividades.insertar_horario_actividad 'Lunes','20:00:00','21:00:00', 1, 1
+go
+
+-- Se espera insercion exitosa del socio
+exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', 1133445566, 1133445577, 1, 1, 1, 1
+
+-- Se espera el mensaje de 'No existe una categoria creada para la edad de la persona que quiere ir a la pileta!'
+exec actividades.inscribir_a_pileta 
+     @id_socio = 1, 
+     @es_invitado = 0, 
+     @dni_invitado = null, 
+     @edad_invitado = 10, 
+     @id_concepto = 1
+
+-- Inserto categorias y tambien el concepto
+insert into actividades.categoria_pileta(nombre) values('Menores de 12 años'), ('Adultos');
+insert into actividades.concepto_pileta(nombre) values('Temporada');
+
+-- Se espera el mensaje 'No se encontro una tarifa vigente para esta categoria y concepto'
+exec actividades.inscribir_a_pileta 
+     @id_socio = 1, 
+     @es_invitado = 0, 
+     @dni_invitado = null, 
+     @edad_invitado = 8, 
+     @id_concepto = 1
+
+-- Insertar una tarifa valida para la pileta
+insert into actividades.tarifa_pileta(id_concepto, id_categoria_pileta, precio_socio, precio_invitado, vigencia_hasta)
+values(1, 2, 1000, 1500, dateadd(month, 1, getdate()));
+
+-- Se inscribe de manera exitosa
+exec actividades.inscribir_a_pileta 
+     @id_socio = 1,
+     @es_invitado = 0,
+     @edad_invitado = 8,
+     @id_concepto = 1;
+
+-- Inserto tarifa de adultos
+insert into actividades.tarifa_pileta(id_concepto, id_categoria_pileta, precio_socio, precio_invitado, vigencia_hasta)
+values(1, 2, 2000, 2500, dateadd(month, 1, getdate()));
+
+-- Insercion exitosa para un invitado
+exec actividades.inscribir_a_pileta 
+     @id_socio = 1,
+     @es_invitado = 1,
+     @nombre_invitado = 'María',
+     @apellido_invitado ='Gómez',
+     @dni_invitado = 87654321,
+     @edad_invitado = 30,
+     @id_concepto = 1;

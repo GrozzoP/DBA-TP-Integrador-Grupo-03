@@ -4,6 +4,16 @@ Parte 7
 Por otra parte, se requiere que los datos de los empleados se encuentren encriptados, dado
 que los mismos contienen información personal.
 
+    BASE DE DATOS APLICADAS
+
+Fecha de entrega: 19-06-2025
+Comision: 5600
+Numero de grupo: 03
+
+-Lazarte Ulises 42838702
+-Maximo Bertolin Graziano 46364320
+-Jordi Marcelo Pairo Albarez 41247253
+-Franco Agustin Grosso 46024348
 */
 
 

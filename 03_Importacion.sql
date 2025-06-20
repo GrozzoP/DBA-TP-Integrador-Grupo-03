@@ -1,4 +1,22 @@
-﻿use COM5600G03
+﻿/*
+Los archivos CSV/JSON no deben modificarse. En caso de que haya datos mal
+cargados, incompletos, erróneos, etc., deberá contemplarlo y realizar las correcciones
+en el fuente SQL. (Sería una excepción si el archivo está malformado y no es posible
+interpretarlo como JSON o CSV, pero los hemos verificado cuidadosamente).
+
+    BASE DE DATOS APLICADAS
+
+Fecha de entrega: 19-06-2025
+Comision: 5600
+Numero de grupo: 03
+
+-Lazarte Ulises 42838702
+-Maximo Bertolin Graziano 46364320
+-Jordi Marcelo Pairo Albarez 41247253
+-Franco Agustin Grosso 46024348
+*/
+
+use COM5600G03
 go
 
 -- CREACION DE ESQUEMAS Y TABLAS PARA LA IMPORTACION

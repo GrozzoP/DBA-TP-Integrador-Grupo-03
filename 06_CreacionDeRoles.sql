@@ -13,6 +13,17 @@ Autoridades	Presidente
 Autoridades	Vicepresidente
 Autoridades	Secretario
 Autoridades	Vocales
+
+    BASE DE DATOS APLICADAS
+
+Fecha de entrega: 19-06-2025
+Comision: 5600
+Numero de grupo: 03
+
+-Lazarte Ulises 42838702
+-Maximo Bertolin Graziano 46364320
+-Jordi Marcelo Pairo Albarez 41247253
+-Franco Agustin Grosso 46024348
 */
 
 Use COM5600G03

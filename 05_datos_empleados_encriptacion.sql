@@ -15,7 +15,7 @@ if exists(
 	where name = 'empleados'
 )
 	begin
-		print 'El esquema de los socios ya existe'
+		print 'El esquema de los empleados ya existe'
 	end
 else
 	begin
@@ -245,16 +245,23 @@ BEGIN
 			END
 			ELSE
 			BEGIN
-				INSERT INTO empleados.empleado VALUES
-				(ENCRYPTBYPASSPHRASE(@passphrase, CAST(@dni AS VARCHAR(10))),
-				ENCRYPTBYPASSPHRASE(@passphrase, @nombre),
-				ENCRYPTBYPASSPHRASE(@passphrase, @apellido),
-				ENCRYPTBYPASSPHRASE(@passphrase, @domicilio),
-				ENCRYPTBYPASSPHRASE(@passphrase, @correo),
-				ENCRYPTBYPASSPHRASE(@passphrase, @telefono),
-				ENCRYPTBYPASSPHRASE(@passphrase, CAST(@nro_cuil AS VARCHAR(30))),
-				ENCRYPTBYPASSPHRASE(@passphrase, CAST(@sueldo AS VARCHAR(30))),
-				@fecha_ingreso, NULL)
+				IF EXISTS (SELECT 1 FROM empleados.Empleado D WHERE CAST(CAST(DECRYPTBYPASSPHRASE(@passphrase, D.dni) AS VARCHAR(10)) AS INT) = @dni)
+				BEGIN
+					print 'Error, el dni debe ser unico'
+				END
+				ELSE
+				BEGIN
+					INSERT INTO empleados.empleado VALUES
+					(ENCRYPTBYPASSPHRASE(@passphrase, CAST(@dni AS VARCHAR(10))),
+					ENCRYPTBYPASSPHRASE(@passphrase, @nombre),
+					ENCRYPTBYPASSPHRASE(@passphrase, @apellido),
+					ENCRYPTBYPASSPHRASE(@passphrase, @domicilio),
+					ENCRYPTBYPASSPHRASE(@passphrase, @correo),
+					ENCRYPTBYPASSPHRASE(@passphrase, @telefono),
+					ENCRYPTBYPASSPHRASE(@passphrase, CAST(@nro_cuil AS VARCHAR(30))),
+					ENCRYPTBYPASSPHRASE(@passphrase, CAST(@sueldo AS VARCHAR(30))),
+					@fecha_ingreso, NULL)
+				END
 			END
 		END
 	END
@@ -392,3 +399,35 @@ BEGIN
 	END
 END
 go
+
+--------------------------------------------Prueba de los SP de Empleados------------------------------------------------------
+/*DELETE empleados.Empleado
+
+EXEC empleados.insertar_empleado 112233, 'Marcos', 'Suarez', 'Buenos Aires, La Matanza, Avenida Crovara 1200', 'marcossuarez@gmail.com', '1234-5678', 201122333,
+								200000, '2024-02-10', 'Buenos Dias'
+EXEC empleados.insertar_empleado 110055, 'Jose', 'Perez', 'Buenos Aires, La Matanza, Boulogne Sur Mer 300', 'joseperez@gmail.com', '4444-7878', 201100553,
+								250000, '2023-07-10', 'Buenos Dias'
+EXEC empleados.insertar_empleado 900990, 'Luis', 'Gonzalez', 'Buenos Aires, La Matanza, General Paz 8560', 'luisgonzalez@gmail.com', '9090-3434', 209009903,
+								340000, '2022-10-07', 'Buenos Dias'
+
+--Los datos de la siguiente consulta deberían aparecer encriptados
+SELECT * FROM empleados.Empleado
+
+
+--Mientras que esta consulta se los desencripta y se muestran como son correctamente
+SELECT nro_legajo, CAST(CAST(DECRYPTBYPASSPHRASE('Buenos Dias', dni) AS VARCHAR(10)) AS INT) dni, 
+		CAST(DECRYPTBYPASSPHRASE('Buenos Dias', nombre) AS VARCHAR(50)) nombre,
+		CAST(DECRYPTBYPASSPHRASE('Buenos Dias', apellido) AS VARCHAR(50)) apellido,
+		CAST(CAST(DECRYPTBYPASSPHRASE('Buenos Dias', sueldo) AS VARCHAR(10)) AS DECIMAL(10, 3)) sueldo, 
+		CAST(DECRYPTBYPASSPHRASE('Buenos Dias', correo_electronico) AS VARCHAR(100)) correo_electronico,
+		CAST(CAST(DECRYPTBYPASSPHRASE('Buenos Dias', nro_cuil) AS VARCHAR(30)) AS INT) nro_cuil, 
+		CAST(DECRYPTBYPASSPHRASE('Buenos Dias', telefono) AS VARCHAR(100)) telefono,
+		fecha_ingreso,
+		fecha_salida
+FROM empleados.Empleado
+
+EXEC empleados.actualizar_correo_empleado 1, 'nuevocorreo@gmail.com', 'Buenos Dias'
+EXEC empleados.actualizar_sueldo 1, 330000, 'Buenos Dias'
+
+DELETE empleados.Empleado
+*/

@@ -128,23 +128,27 @@ BEGIN
 END
 Go
 
--- Asignacion de permisos al administrativo morosos de tesorería
+--Asignacion de permisos para el rol administrativo_morosos
 GRANT EXEC ON	socios.eliminar_grupo_familiar TO tesoreria_administrativo_morosos
 GRANT EXEC ON	socios.eliminar_grupo_familiar TO tesoreria_administrativo_morosos
 GRANT EXEC ON	facturacion.morosos_recurrentes TO tesoreria_administrativo_morosos
 GO
 
--- Asignacion de permisos al administrativo cobranza de tesorería
+-- Asignacion de permisos para el rol administrativo_cobranza
 GRANT EXEC ON	facturacion.insertar_medio_de_pago TO tesoreria_administrativo_cobranza
 GRANT EXEC ON	facturacion.modificar_medio_de_pago TO tesoreria_administrativo_cobranza
 GRANT EXEC ON	facturacion.eliminar_medio_de_pago TO tesoreria_administrativo_cobranza
 GRANT EXEC ON	facturacion.pago_a_cuenta TO tesoreria_administrativo_cobranza
 GRANT EXEC ON	facturacion.reembolsar_pago TO tesoreria_administrativo_cobranza
+GRANT SELECT ON	facturacion.pago TO tesoreria_administrativo_facturacion
 GO
 
+-- Asignacion de permisos para el rol administrativo_facturacion
 GRANT EXEC ON	facturacion.crear_factura TO tesoreria_administrativo_facturacion
+GRANT SELECT ON	facturacion.factura TO tesoreria_administrativo_facturacion
 GO
 
+-- Asignacion de permisos para el rol jefe_de_tesoreria
 GRANT EXEC ON	socios.eliminar_grupo_familiar TO tesoreria_jefe_tesoreria
 GRANT EXEC ON	socios.eliminar_grupo_familiar TO tesoreria_jefe_tesoreria
 GRANT EXEC ON	facturacion.morosos_recurrentes TO tesoreria_jefe_tesoreria
@@ -155,8 +159,11 @@ GRANT EXEC ON	facturacion.eliminar_medio_de_pago TO tesoreria_jefe_tesoreria
 GRANT EXEC ON	facturacion.pago_a_cuenta TO tesoreria_jefe_tesoreria
 GRANT EXEC ON	facturacion.reembolsar_pago TO tesoreria_jefe_tesoreria
 GRANT EXEC ON	facturacion.crear_factura TO tesoreria_jefe_tesoreria
+GRANT SELECT ON	facturacion.pago TO tesoreria_administrativo_facturacion
+GRANT SELECT ON	facturacion.factura TO tesoreria_administrativo_facturacion
 GO
 
+-- Asignacion de permisos para el rol de administrativo_socio
 GRANT EXEC ON	socios.insertar_grupo_familiar TO socios_administrativo_socio
 GRANT EXEC ON	socios.eliminar_grupo_familiar TO socios_administrativo_socio
 GRANT EXEC ON	socios.insertar_socio TO socios_administrativo_socio
@@ -164,9 +171,10 @@ GRANT EXEC ON	socios.modificar_habilitar_socio TO socios_administrativo_socio
 GRANT EXEC ON	socios.eliminar_socio TO socios_administrativo_socio
 GRANT EXEC ON	socios.socios_con_ausentes TO socios_administrativo_socio
 GRANT EXEC ON	socios.socios_sin_presentismo_por_actividad TO socios_administrativo_socio
-
+GRANT SELECT ON socios.socio TO socios_administrativo_socio
 GO
 
+--Asignacion de permisos para el rol de socio
 GRANT EXEC ON 	socios.eliminar_socio TO socios_socio
 GRANT EXEC ON 	socios.eliminar_grupo_familiar TO socios_socio
 GRANT EXEC ON 	socios.obtener_precio_actual TO socios_socio
@@ -175,6 +183,8 @@ GRANT EXEC ON 	actividades.inscripcion_actividad TO socios_socio
 GRANT EXEC ON 	actividades.eliminar_inscripcion_actividad TO socios_socio
 GRANT EXEC ON 	actividades.eliminar_inscripcion_act_extra TO socios_socio
 GRANT EXEC ON 	facturacion.pago_factura TO socios_socio
+GRANT SELECT ON socios.socio TO socios_socio
+GRANT SELECT ON socios.socio TO socios_socio
 GO
 
 

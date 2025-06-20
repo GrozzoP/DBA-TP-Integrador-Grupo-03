@@ -551,7 +551,7 @@ BEGIN
 	CREATE TABLE facturacion.dias_lluviosos(
 		fecha DATE PRIMARY KEY,
 		lluvia BIT,
-		estado BIT
+		estado BIT default 0
 	)
 END
 ELSE

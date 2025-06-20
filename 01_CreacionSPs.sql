@@ -1948,21 +1948,26 @@ begin
     end catch
 end
 go
-/*
+
 create or alter procedure facturacion.descuento_pileta_lluvia(@fecha date)
 as
 begin
-  
-    with cte(dni,total)
-	as
-	(
+    update socios.usuario 
+	set saldo = saldo + (f.total*0.6)
+	from socios.usuario u
+	join socios.socio s
+	on u.id_usuario = s.id_usuario
+	join facturacion.factura f
+	on f.dni = s.DNI
+	where s.DNI in (
 	   select dni,total from facturacion.factura f
 	   join facturacion.dias_lluviosos d
 	   on d.fecha = f.fecha_emision
 	   where d.estado = 0 and d.lluvia = 1 and f.estado = 'PAGADO' and f.fecha_emision = @fecha
-	
-	)
-   
-    
+    )
+
+	update facturacion.dias_lluviosos 
+	set estado = 1
+	where fecha = @fecha
 end
-*/
+go

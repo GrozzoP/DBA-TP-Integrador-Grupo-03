@@ -66,7 +66,7 @@ begin
 				Actividad VARCHAR(16),
 				[Valor por mes] INT,
 				[Vigente hasta] CHAR(9)
-			);
+			)
 
 		declare @sql NVARCHAR(MAX);
 
@@ -85,8 +85,9 @@ begin
 
 		exec sp_executesql @sql;
 
-		insert into actividades.actividad(nombre_actividad) 
-		select Actividad
+		insert into actividades.actividad(nombre_actividad, precio_mensual) 
+		select Actividad,
+			   [Valor por mes]
 		from #TEMP_TARIFAS tp
 		where not exists (
 			select 1 from actividades.actividad a
@@ -114,8 +115,13 @@ begin
 end
 go
 
--- exec importacion.cargar_tarifas  @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+-- exec importacion.cargar_tarifas  @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
 go
+
+/*
+select * from actividades.actividad
+select * from actividades.actividad_precios
+*/
 
 -- IMPORTAR DE 'Datos socios.xlsx', en 'Tarifas', la segunda tabla
 
@@ -149,15 +155,21 @@ begin
 
 		exec sp_executesql @sql;
 
+		-- Si ya estan las categorias, actualizar los precios
+		update c
+		set c.costo_membresia = cs.[Valor cuota]
+		from socios.categoria c
+		join #TEMP_CUOTA_SOCIOS cs
+		on c.nombre_categoria = cs.[Categoria socio]
+
 		-- Inserto las categorias si no existen, lo pongo generico de 1 a 99 porque se supone que ya deberian estar
-		insert into socios.categoria(nombre_categoria, edad_minima, edad_maxima)
-		select t.[Categoria socio], 1, 99
+		insert into socios.categoria(nombre_categoria, edad_minima, edad_maxima, costo_membresia)
+		select t.[Categoria socio], 1, 99, t.[Valor cuota]
 		from #TEMP_CUOTA_SOCIOS t
 		where not exists (
 			select 1 from socios.categoria c
 			where c.nombre_categoria = t.[Categoria socio]
 		)
-		group by t.[Categoria socio]
 
 		-- Inserto los precios de las categorias
 		insert into socios.categoria_precios (id_categoria, fecha_vigencia_desde, fecha_vigencia_hasta, costo_membresia)
@@ -178,7 +190,12 @@ begin
 end
 go
 
--- exec importacion.cargar_cuotas_socios @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+-- exec importacion.cargar_cuotas_socios  @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+/*
+select * from socios.categoria
+select * from socios.categoria_precios
+*/
+
 go
 
 -- IMPORTAR DE 'Datos socios.xlsx', en 'Tarifas', la tercer tabla
@@ -201,8 +218,8 @@ begin
 			create table #TEMP_PILETA (
 				Concepto VARCHAR(40),
 				Categoria VARCHAR(40),
-				[Valor Socios] DECIMAL(9, 2),
-				[Valor Invitados] DECIMAL(9, 2),
+				[Valor Socios] DECIMAL(10, 2),
+				[Valor Invitados] DECIMAL(10, 2),
 				[Vigente Hasta] date
 			);
 
@@ -252,8 +269,8 @@ begin
 		insert into actividades.tarifa_pileta(id_concepto, id_categoria_pileta,  precio_socio, precio_invitado, vigencia_hasta)
 		select c.id_concepto,
 			   cat.id_categoria_pileta,
-			   try_cast(tp.[Valor Socios] as DECIMAL(9, 3)),
-			   try_cast(tp.[Valor Invitados] as DECIMAL(9, 3)),
+			   try_cast(tp.[Valor Socios] as DECIMAL(10, 2)),
+			   try_cast(tp.[Valor Invitados] as DECIMAL(10, 2)),
 			   convert(datetime, [Vigente hasta], 103)
 		from #TEMP_TARIFAS_PILETA tp
 		inner join actividades.concepto_pileta c on c.nombre = tp.concepto
@@ -270,8 +287,12 @@ begin
 end
 go
 
--- exec importacion.cargar_tarifas_pileta @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
-
+-- exec importacion.cargar_tarifas_pileta @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+/*
+select * from actividades.categoria_pileta
+select * from actividades.concepto_pileta
+select * from actividades.tarifa_pileta
+*/
 go
 
 -- TABLA 'RESPONSABLES PAGO'
@@ -313,7 +334,7 @@ begin
 		 from openrowset(
 			''Microsoft.ACE.OLEDB.12.0'',
 			''Excel 12.0;HDR=YES;IMEX=1;Database=' + replace(@file, '''', '''''') + ''',
-			''SELECT * FROM [Responsables de Pago$A1:K121]''
+			''SELECT * FROM [Responsables de Pago$]''
 		) as x;'
 
         exec sp_executesql @sql;
@@ -385,13 +406,17 @@ begin
 end
 go
 
--- exec importacion.cargar_responsables_de_pago @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx'
+-- exec importacion.cargar_responsables_de_pago @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+/*
+select * from socios.obra_social
+select * from socios.socio
+*/
 go
 
 create or alter procedure importacion.cargar_grupo_familiar @file varchar(max)
 as
 begin
-  set nocount on;
+  set nocount on
 
   begin try
     -- si no existe, creo la temp donde volcaré el Excel
@@ -402,11 +427,11 @@ begin
         [Nro de socio responsable] varchar(50),
         [Nombre] varchar(100),
         [Apellido] varchar(100),
-        [DNI] INT,
+        [DNI] int,
         [Email personal] varchar(200),
         [Fecha de nacimiento] varchar(50),
         [Telefono de contacto] varchar(100),
-        [Telefono de contacto emergencia] INT,
+        [Telefono de contacto emergencia] varchar(100),
         [Nombre obra social] varchar(200),
         [Nro obra social] varchar(50),
         [Telefono contacto de emergencia obra social] varchar(100)
@@ -419,11 +444,12 @@ begin
       from openrowset(
         ''Microsoft.ACE.OLEDB.12.0'',
         ''Excel 12.0;HDR=YES;IMEX=1;Database=' + replace(@file,'''','''''') + ''',
-        ''select * from [Grupo Familiar$A2:L35]''
+        ''select * from [Grupo Familiar$]''
       ) as x;'
 
     exec sp_executesql @sql;
 
+	-- Parsear numero socio
 	update #TEMP_GRUPO_FAMILIAR
     set [Nro de Socio] = CAST(PARSENAME(REPLACE([Nro de Socio], '-', '.'), 1) as int)
 
@@ -446,7 +472,6 @@ begin
 	)
 
 	-- INSERTO LOS SOCIOS MENORES DE EDAD
-
 	SET IDENTITY_INSERT socios.socio ON
 	insert into socios.socio (
 		id_socio,
@@ -462,25 +487,26 @@ begin
 		habilitado
 	)
 	select
-		[Nro de Socio],
+		TRY_CAST([Nro de Socio] as int),
 		[DNI],
 		[Nombre],
 		[Apellido],
 		[Email personal],
-		CONVERT(date, [Fecha de nacimiento], 103),
+		TRY_CONVERT(date, [Fecha de nacimiento], 103),
 		[Telefono de contacto],
 		[Telefono de contacto emergencia],
 		os.id_obra_social,
 		[Nro obra social],
 		'HABILITADO'
 		from #TEMP_GRUPO_FAMILIAR s
-		inner join socios.obra_social os
+		left join socios.obra_social os
 		on os.nombre_obra_social = s.[Nombre obra social]
 		where TRY_CAST(s.[DNI] as int) is not null
 		and not exists (
 		  select 1 from socios.socio ss where ss.dni = TRY_CAST(s.[DNI] as int)
 		)
 	SET IDENTITY_INSERT socios.socio OFF
+
 
 	insert into socios.grupo_familiar (id_socio_menor, id_responsable, parentesco)
 	select
@@ -490,135 +516,134 @@ begin
 	from #TEMP_GRUPO_FAMILIAR tf
 	join socios.socio s1 on s1.id_socio = tf.[Nro de Socio]
 	join socios.socio s2 on s2.id_socio = tf.[Nro de socio responsable]
-	where tf.[Nro de socio responsable] is not null;
+	where tf.[Nro de socio responsable] is not null
+	and not exists(
+		select 1
+		from socios.grupo_familiar gf
+		where gf.id_socio_menor = tf.[Nro de Socio]
+		and	  gf.id_responsable = tf.[Nro de socio responsable]
+	)
 
     print 'El dataset de Grupo Familiar fue cargado exitosamente!';
 
     drop table #TEMP_GRUPO_FAMILIAR;
   end try
   begin catch
-    print 'Error en cargar_grupo_familiar: ' + error_message();
+    print 'Error en cargar_grupo_familiar: ' + ERROR_MESSAGE()
   end catch
 end
 go
 
--- exec importacion.cargar_grupo_familiar @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
-
+-- exec importacion.cargar_grupo_familiar @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+/*
+select * from socios.obra_social
+select * from socios.socio
+select * from socios.grupo_familiar
+*/
 go
 
-IF OBJECT_ID('socios.pago_cuotas_historico', 'U') IS NULL
-Begin
-	CREATE TABLE socios.pago_cuotas_historico(
-    id_pago char(200),
-	fecha_pago date,
-	id_socio int,
-	monto decimal(9,2),
-	medio_pago varchar(100)
-)
-End
-else
-begin
-	print 'La tabla socios.pago_cuotas_historico ya existe'
-end
-go
-
-create or alter procedure socios.insertar_pago_couta_historico(@ruta nvarchar(MAX))
+create or alter procedure socios.cargar_pago_cuotas_historico(@ruta nvarchar(MAX))
 as
 begin
 	declare @bulkInsertar nvarchar(max)
-	set @bulkInsertar =    'bulk insert #pagocuotas
-							from ''' + @ruta + '''
-							with(
-							   fieldterminator = '''+';'+''',
-							   rowterminator = '''+'\n'+''',
-							   codepage = ''' + 'ACP' + ''',
-							   firstrow = 2)'
-	
-  create table #pagocuotas(
-	   idpago varchar(250),
-	   fechapago varchar(250),
-	   responsablepagoidsocio varchar(250),
-	   monto varchar(250),
-	   mediopago varchar(250)
-   )
 
-   exec sp_executesql @bulkInsertar
+	if object_id('COM5600G03.facturacion.#TEMP_PAGO_CUOTAS') is null
+	begin
+		create table #TEMP_PAGO_CUOTAS(
+			idpago varchar(250),
+			fechapago varchar(250),
+			responsablepagoidsocio varchar(250),
+			monto varchar(250),
+			mediopago varchar(250)
+		)
+	end
 
-   update #pagocuotas
-   set responsablepagoidsocio = SUBSTRING(responsablepagoidsocio,4,CHARINDEX('4',responsablepagoidsocio))
+	begin try
+		set @bulkInsertar = 'bulk insert #TEMP_PAGO_CUOTAS
+							 from ''' + @ruta + '''
+							 with(
+							 fieldterminator = '''+';'+''',
+							 rowterminator = '''+'\n'+''',
+							 codepage = ''' + 'ACP' + ''',
+							 firstrow = 2)'
 
-   insert into socios.pago_cuotas_historico(id_pago,fecha_pago,id_socio,monto,medio_pago)
-   select idpago,cast(fechapago as date),cast(responsablepagoidsocio as int),cast(monto as decimal(9,2)),mediopago
-   from #pagocuotas
+		exec sp_executesql @bulkInsertar
 
-   drop table #pagocuotas
+		update #TEMP_PAGO_CUOTAS
+		set responsablepagoidsocio = SUBSTRING(responsablepagoidsocio,4, CHARINDEX('4', responsablepagoidsocio))
 
+		insert into socios.pago_cuotas_historico(id_pago, fecha_pago, id_socio, monto, medio_pago)
+		select idpago, TRY_CONVERT(date, fechapago, 103), CAST(responsablepagoidsocio as int), CAST(monto as decimal(10, 2)), mediopago
+		from #TEMP_PAGO_CUOTAS
+
+		drop table #TEMP_PAGO_CUOTAS
+	end try
+	begin catch
+		print 'Error en cargar_pago_cuotas_historico: ' + ERROR_MESSAGE()
+	end catch
 end
 go
 
---exec socios.insertar_pago_couta_historico 'C:\Users\ulaza\OneDrive\Escritorio\imp\Datos socios 1(pago cuotas).csv'
+-- exec socios.cargar_pago_cuotas_historico 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios 1(pago cuotas).csv';
+/*
+select * from socios.pago_cuotas_historico
+*/
 
 -- Procedimiento para la importacion de los archivos con datos meteorológicos
+create or alter procedure importacion.cargar_clima @file varchar(max)
+as
+begin
+	set nocount on
+	begin try
+		if object_id('COM5600G03.facturacion.#TEMP_METEO') is null
+		begin
+			create table #TEMP_METEO(
+				fecha varchar(100),
+				temperatura decimal(3,1),
+				precipitaciones decimal(4,2),
+				humedad int,
+				viento decimal(4,2)
+			)
+		end
 
-CREATE OR ALTER PROCEDURE importacion.importar_archivos_metorologicos(@ruta varchar(MAX),
-								@fieldTerminator VARCHAR(3),
-								@rowterminator VARCHAR(5),
-								@codepage VARCHAR(20),
-								@datafiletype VARCHAR(20),
-								@firstRow INT)
-AS
-BEGIN
-	IF OBJECT_ID('COM5600G03.facturacion.#tabla_temp_meteo') IS NULL
-	BEGIN
-		Create table facturacion.#tabla_temp_meteo(
-		fecha VARCHAR(100),
-		temperatura DECIMAL(3,1),
-		precipitaciones DECIMAL(4,2),
-		humedad INT,
-		viento DECIMAL(4,2)
-		)
-	END
-	ELSE
-	BEGIN
-		DELETE facturacion.#tabla_temp_meteo
-	END
-	
-	IF OBJECT_ID('COM5600G03.facturacion.dias_lluviosos') IS NULL
-	BEGIN
-		CREATE TABLE facturacion.dias_lluviosos(
-			fecha DATE PRIMARY KEY,
-			lluvia BIT
-		)
-	END
+		declare @sql varchar(1000)
+		set @sql = '
+			bulk insert #TEMP_METEO
+			from ''' + @file + '''
+			with (
+				firstrow = 4,
+				fieldterminator = '','',
+				rowterminator = ''\n'',
+				codepage = ''ACP'',
+				datafiletype = ''char''
+			)'
 
-	DECLARE @SQL VARCHAR(500)
-	SET @SQL = 'Bulk insert facturacion.#tabla_temp_meteo
-	From ''' + @ruta +'''
-	with (
-	firstrow = ' + CAST(@firstRow AS VARCHAR(6)) + ',
-	rowterminator = ''' + @rowterminator + ''',
-	fieldterminator = ''' + @fieldterminator+''',
-	codepage = ''' + @codepage + ''',
-	DATAFILETYPE = ''' + @datafiletype + ''')'
+		exec sp_sqlexec @sql
 
-	EXEC sp_sqlexec @SQL
-	
-	INSERT INTO facturacion.dias_lluviosos
-	SELECT	CONVERT(DATE, dia),
-		CASE
-			WHEN SUM(precipitaciones) > 0 THEN 1
-			ELSE 0
-		END AS hubo_lluvia
-	FROM	(SELECT CAST(REPLACE(fecha, 'T', ' ')AS DATE) as dia, precipitaciones
-			FROM facturacion.#tabla_temp_meteo) T
-	GROUP BY CONVERT(DATE, dia)
-	ORDER BY CONVERT(DATE, dia)
-END
+		insert into facturacion.dias_lluviosos
+		select	convert(date, dia),
+				case
+					when sum(precipitaciones) > 0 then 1
+					else 0
+				end as hubo_lluvia
+		from (
+			select cast(replace(fecha, 'T', ' ') as date) as dia, precipitaciones
+			from #TEMP_METEO
+		) t
+		group by convert(date, dia)
+		order by convert(date, dia)
+
+		drop table #TEMP_METEO
+		print 'El dataset de clima fue cargado exitosamente!'
+	end try
+	begin catch
+		print 'Error en cargar_clima: ' + ERROR_MESSAGE();
+	end catch
+end
 go
 
---EXEC importacion.importar_archivos_metorologicos 'C:\Users\Maximo\Downloads\open-meteo-buenosaires_2024.csv', ',', '\n', 'ACP', 'char', 4
---EXEC importacion.importar_archivos_metorologicos 'C:\Users\Maximo\Downloads\open-meteo-buenosaires_2025.csv', ',', '\n', 'ACP', 'char', 4
---EXEC importacion.importar_archivos_metorologicos 'C:\Users\ulaza\OneDrive\Escritorio\TPDBA\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\open-meteo-buenosaires_2025.csv', ',', '\n', 'ACP', 'char', 4
+-- exec importacion.cargar_clima 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\open-meteo-buenosaires_2024.csv'
+-- exec importacion.cargar_clima 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\open-meteo-buenosaires_2025.csv'
 
 --SELECT * FROM facturacion.dias_lluviosos D ORDER BY D.fecha
 
@@ -636,9 +661,9 @@ begin
 				[Fecha de asistencia] CHAR(10),
 				[Asistencia] CHAR(2),
 				[Profesor] VARCHAR(65)
-			);
+			)
 
-		declare @sql NVARCHAR(MAX);
+		declare @sql NVARCHAR(MAX)
 
 		set @sql = N'
 		insert into #TEMP_PRESENTISMO ([Nro de Socio], [Actividad], [Fecha de asistencia], [Asistencia], [Profesor])
@@ -652,40 +677,81 @@ begin
 				''Microsoft.ACE.OLEDB.12.0'', 
 				''Excel 12.0;HDR=YES;IMEX=1;Database=' + replace(@file, '''', '''''') + ''', 
 				''SELECT * FROM [presentismo_actividades$A1:E928]''
-		) as x;';
+		) as x;'
 
-		exec sp_executesql @sql;
+		exec sp_executesql @sql
 
+		-- Parseo el numero de socio
 		update #TEMP_PRESENTISMO
 		set [Nro de Socio] = CAST(PARSENAME(REPLACE([Nro de Socio], '-', '.'), 1) as int)
-
-		print 'El dataset de presentismo fue cargado exitosamente!';
 
 		update #TEMP_PRESENTISMO
 		set [Asistencia] = 'P'
 		where [Asistencia] = 'PP'
 
 		update #TEMP_PRESENTISMO
-		set [Nro de Socio] = SUBSTRING([Nro de Socio],4,CHARINDEX('4',[Nro de Socio]))
+		set Profesor = 
+		case 
+			when CHARINDEX(';',Profesor) > 0 
+			then LEFT(Profesor, CHARINDEX(';',Profesor)-1)
+			else Profesor
+		end;
+		
+		-- Inserto la actividad (solo se inserta el nombre, puesto que en esta tabla no esta toda la informacion, se deberia ejecutar el SP correspondiente antes de este)
+		WITH ActividadesImportacion AS
+		(
+			select distinct tp.Actividad
+			from #TEMP_PRESENTISMO tp
+			where not exists(select 1 from actividades.actividad a
+							 where a.nombre_actividad = tp.Actividad)
+		)
+		insert into actividades.actividad(nombre_actividad)
+		select Actividad from ActividadesImportacion;
 
-		update #TEMP_PRESENTISMO
-		set [Profesor] = SUBSTRING([Profesor],0,CHARINDEX(';',[Profesor]))
+		-- Inserto el profesor
+		;WITH ProfesoresImportacion AS
+		(
+			select distinct tp.Profesor
+			from #TEMP_PRESENTISMO tp
+			where not exists(select 1 from actividades.profesor p
+							 where p.nombre_apellido = tp.Profesor)
+		)
+		insert into actividades.profesor(nombre_apellido)
+		select Profesor from ProfesoresImportacion
 
-		--Admite duplicados porque puedo hacer la misma actividad, con el mismo profesor en un mismo dia
 
-		insert into actividades.presentismo(id_socio, nombre_actividad, fecha_asistencia,asistencia,nombre_profesor)
-		select [Nro de Socio],[Actividad],[Fecha de asistencia],[Asistencia],[Profesor] from #TEMP_PRESENTISMO
+		-- Inserto en el presentismo
+		insert into actividades.presentismo
+			(id_socio, id_actividad, fecha_asistencia, asistencia, id_profesor)
+		select
+			tp.[Nro de Socio],
+			a.id_actividad,
+			tp.[Fecha de asistencia],
+			tp.Asistencia,
+			p.id_profesor
+		from #TEMP_PRESENTISMO tp
+			join socios.socio s on s.id_socio = tp.[Nro de Socio]
+			inner join actividades.actividad a
+				on a.nombre_actividad = tp.Actividad
+			inner join actividades.profesor p
+				on p.nombre_apellido = tp.Profesor
 
+		print 'El dataset de presentismo fue cargado exitosamente!';
 		drop table #TEMP_PRESENTISMO;
 	end try
 
 	begin catch
-		declare @ErrorMessage VARCHAR(4000) = error_message(),
-				@ErrorLine INT = error_line();
+		declare @ErrorMessage VARCHAR(4000) = ERROR_MESSAGE(),
+				@ErrorLine INT = ERROR_LINE();
 
 		print 'Ocurrio un error en la carga del dataset: ' + @ErrorMessage + ' (Linea ' + cast(@ErrorLine as varchar(5)) + ')';
 	end catch
 end
 go
 
---exec importacion.presentismo_actividades @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx'
+-- exec importacion.presentismo_actividades @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx'
+/*
+select * from socios.socio
+select * from actividades.profesor
+select * from actividades.presentismo where id_socio = 4148
+*/

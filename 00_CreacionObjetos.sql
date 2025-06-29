@@ -113,10 +113,11 @@ go
 IF OBJECT_ID('socios.rol', 'U') IS NULL
 begin
 	Create table socios.rol(
-		id_rol int identity(1,1),
-		nombre varchar(40)	UNIQUE,
+		id_rol int identity(1, 1),
+		nombre varchar(40) UNIQUE not null,
 		descripcion varchar(200),
-		Constraint Socios_rol_PK_id_rol Primary key(id_rol)
+		Constraint Socios_rol_PK_id_rol Primary key(id_rol),
+		Constraint CK_Nombre_No_Vacio CHECK(LTRIM(RTRIM(nombre)) <> '')
 	)
 end
 else
@@ -129,7 +130,7 @@ go
 IF OBJECT_ID('facturacion.medio_de_pago', 'U') IS NULL
 begin
 	Create table facturacion.medio_de_pago(
-		id_medio_de_pago int identity(1,1),
+		id_medio_de_pago int identity(1, 1),
 		nombre_medio_pago varchar(40),
 		permite_debito_automatico bit 
 		Constraint Facturacion_medio_de_pago_PK_id_medio_de_pago Primary key(id_medio_de_pago)
@@ -150,7 +151,7 @@ begin
 		usuario varchar(40),
 		contraseña varchar(40) not null,
 		fecha_vigencia_contraseña date,
-		saldo decimal(9,2) default 0,
+		saldo decimal(10, 2) default 0,
 		Constraint socios_usuario_PK_id_user Primary key(id_usuario),
 		Constraint socios_usuario_FK_id_rol Foreign Key(id_rol) References socios.rol(id_rol)
 	)
@@ -166,7 +167,7 @@ go
 IF OBJECT_ID('socios.obra_social', 'U') IS NULL
 Begin
 	Create table socios.obra_social(
-		id_obra_social int identity(1,1),
+		id_obra_social int identity(1, 1),
 		nombre_obra_social varchar(60) UNIQUE,
 		telefono_obra_social varchar(30)
 		Constraint Socios_obra_social_PK_id_obra_social Primary key(id_obra_social)
@@ -178,7 +179,6 @@ begin
 end
 go
 
-
 -- Creacion de la tabla socios.categoria
 if OBJECT_ID('socios.categoria', 'U') IS NULL
 begin
@@ -187,6 +187,7 @@ begin
 		nombre_categoria varchar(16) unique,
 		edad_minima int,
 		edad_maxima int,
+		costo_membresia decimal(10, 2)
 		constraint Socios_categoria_PK_id_categoria primary key(id_categoria)
 	)
 end
@@ -196,7 +197,6 @@ begin
 end
 go
 
-
 -- Creacion de la tabla socios.categoria_precios
 if OBJECT_ID('socios.categoria_precios', 'U') IS NULL
 begin
@@ -205,17 +205,32 @@ begin
 		id_categoria int not null,
 		fecha_vigencia_desde date not null,
 		fecha_vigencia_hasta date,
-		costo_membresia decimal(9,3),
+		costo_membresia decimal(10, 2),
 		constraint categoria_precios_historicos_PK primary key(id_precio),
 		constraint categoria_precios_historico_FK_id_categoria foreign key(id_categoria)
 			references socios.categoria(id_categoria)
 	)
-	Create nonclustered index IX_categoria_precios on
-		socios.categoria_precios(id_categoria, fecha_vigencia_desde, fecha_vigencia_hasta)
 end
 else
 begin
 	print 'La tabla  socios.categoria_precios ya existe'
+end
+go
+
+-- Crear indice para acelerar la busqueda en el caso de precios historicos de las categorias
+if not exists (
+    select 1
+    from sys.indexes
+    where name = 'IX_categoria_precios'
+    and object_id = object_id('socios.categoria_precios')
+)
+begin
+    create nonclustered index IX_categoria_precios
+    on socios.categoria_precios(id_categoria, fecha_vigencia_desde, fecha_vigencia_hasta)
+end
+else
+begin
+    print 'El índice IX_categoria_precios ya existe'
 end
 go
 
@@ -232,7 +247,7 @@ Begin
 		telefono_contacto char(18),
 		telefono_emergencia char(18),
 		habilitado varchar(15) check (habilitado like 'HABILITADO' or habilitado LIKE 'NO HABILITADO'),
-		id_obra_social int,
+		id_obra_social int null,
 		nro_socio_obra_social char(50),
 		id_categoria int,
 		id_usuario int,
@@ -274,6 +289,7 @@ Begin
 	Create table actividades.actividad(
 		id_actividad int identity(1,1),
 		nombre_actividad varchar(36) UNIQUE,
+		precio_mensual decimal(10, 2)
 		Constraint Actividades_actividad_PK_id_actividad Primary key(id_actividad)
 	)
 End
@@ -289,9 +305,9 @@ begin
 	Create table actividades.actividad_precios(
 		id_precio int identity(1,1),
 		id_actividad int not null,
-		costo_mensual decimal(9,3) not null,
+		costo_mensual decimal(10, 2) not null,
 		vigencia_desde date,
-		vigencia_hasta date null, 
+		vigencia_hasta date null
 		constraint Actividades_precios_PK primary key(id_precio),
 		constraint FK_actividad_precio_actividad 
 			foreign key (id_actividad) references actividades.actividad(id_actividad)
@@ -309,13 +325,29 @@ Begin
 	Create table actividades.actividad_extra(
 		id_actividad int identity(1,1),
 		nombre_actividad varchar(36) UNIQUE,
-		costo decimal(9,3)
+		costo decimal(10, 2)
 		Constraint Actividades_actividad_extra_PK_id_actividad Primary key(id_actividad)
 	)
 End
 else
 begin
 	print 'La tabla actividades.actividad_extra ya existe'
+end
+go
+
+-- Crear la tabla para los profesores, actividades.profesor
+if OBJECT_ID('actividades.profesor') IS NULL
+begin
+	create table actividades.profesor(
+		id_profesor int identity(1, 1),
+		nombre_apellido varchar(45),
+		email varchar(50),
+		constraint Actividades_id_profesor_PK Primary key(id_profesor)
+	)
+end
+else
+begin
+	print 'La tabla actividades.profesor ya existe'
 end
 go
 
@@ -329,11 +361,14 @@ begin
 		hora_fin time,
 		id_actividad int,
 		id_categoria int,
-		Constraint Actividades_horario_actividades_PK_id_horario Primary key(id_horario),
-		Constraint Actividades_horario_actividades_FK_id_actividad
+		id_profesor int
+		Constraint Actividades_horario_PK_id_horario Primary key(id_horario),
+		Constraint Actividades_horario_FK_id_actividad
 				Foreign Key(id_actividad) References actividades.actividad(id_actividad),
-		Constraint Actividades_horario_actividades_FK_id_categoria
-				Foreign Key(id_categoria) References socios.categoria(id_categoria)
+		Constraint Actividades_horario_FK_id_categoria
+				Foreign Key(id_categoria) References socios.categoria(id_categoria),
+		Constraint Actividades_horario_FK_id_profesor
+				Foreign Key(id_profesor) References actividades.profesor(id_profesor)
 	)
 end
 else
@@ -347,12 +382,10 @@ if OBJECT_ID('actividades.inscripcion_actividades', 'U') IS NULL
 begin
 	Create table actividades.inscripcion_actividades(
 		id_inscripcion int identity(1,1),
-		id_horario int,
-		id_socio int,
-		id_actividad int
+		id_socio int not null,
+		id_actividad int not null,
+		fecha_inscripcion datetime DEFAULT GETDATE()
 		Constraint Actividades_inscripcion_actividades_PK_id_inscripcion Primary key(id_inscripcion),
-		Constraint Actividades_inscripcion_actividades_FK_id_horario
-				Foreign Key(id_horario) References actividades.horario_actividades(id_horario),
 		Constraint Actividades_inscripcion_actividades_FK_id_socio
 				Foreign Key(id_socio) References socios.socio(id_socio),
 		Constraint Actividades_inscripcion_actividades_FK_id_actividad
@@ -363,6 +396,40 @@ else
 begin
 	print 'La tabla actividades.inscripcion_actividades ya existe'
 end
+go
+
+-- Crear indice para acelerar la busqueda con los id_socio + id_actividad
+if not exists (
+    select 1
+    from sys.indexes
+    where name = 'IX_inscripcion_actividades_id_socio_id_actividad'
+    and object_id = object_id('actividades.inscripcion_actividades')
+)
+begin
+    create nonclustered index IX_inscripcion_actividades_id_socio_id_actividad
+    on actividades.inscripcion_actividades(id_socio, id_actividad)
+end
+else
+begin
+    print 'El índice IX_inscripcion_actividades_id_socio_id_actividad ya existe!'
+end
+go
+
+-- Creacion de la tabla actividades.inscripcion_actividades_horarios
+if object_id('actividades.inscripcion_actividades_horarios', 'U') is null
+begin
+    create table actividades.inscripcion_actividades_horarios(
+        id_inscripcion int not null,
+        id_horario int not null,
+		constraint Activividades_inscripcion_horarios_FK_id_inscripcion foreign key(id_inscripcion)
+				references actividades.inscripcion_actividades(id_inscripcion),
+        constraint Activividades_inscripcion_horarios_FK_id_horario foreign key(id_horario)
+				references actividades.horario_actividades(id_horario),
+        constraint Actividades_inscripcion_horarios_PK_id_inscripcion_horario primary key(id_inscripcion, id_horario)
+    )
+end
+else
+    print 'La tabla actividades.inscripcion_actividades_horarios ya existe';
 go
 
 -- Creacion de la tabla actividades.inscripcion_act_extra
@@ -397,9 +464,9 @@ begin
 		fecha_emision date,
 		primer_vto date,
 		segundo_vto date,
-		total decimal(9,3),
-		total_con_recargo decimal(9,3),
-		estado varchar(30) check (estado like 'PAGADO' or estado LIKE 'NO PAGADO'),
+		total decimal(10,2),
+		total_con_recargo decimal(9, 2),
+		estado varchar(30) check (estado IN ('PAGADO', 'NO PAGADO')),
 		nombre varchar(40),
 		apellido varchar(40),
 		dni int,
@@ -424,7 +491,7 @@ begin
 	create table facturacion.pago(
 		id_pago int identity(1,1),
 		fecha_pago date,
-		monto_total decimal(9,3),
+		monto_total decimal(10, 2),
 		id_factura int,
 		tipo_movimiento varchar(20),
 		id_medio_pago int,
@@ -576,17 +643,21 @@ go
 IF OBJECT_ID('COM5600G03.actividades.presentismo') IS NULL
 BEGIN
 	CREATE TABLE actividades.presentismo(
-		id_socio int primary key,
-		nombre_actividad varchar(200),
+		id_presentismo int identity(1, 1),
+		id_socio int,
+		id_actividad int,
 		fecha_asistencia date,
 		asistencia char(2) check (asistencia like 'P' or asistencia like 'A' or asistencia like 'J'),
-		nombre_profesor varchar(200),
-		constraint fk_id_socio foreign key (id_socio) references socios.socio(id_socio)	 
+		id_profesor int,
+		Constraint id_socio_FK_Presentismo_Socios foreign key (id_socio) references socios.socio(id_socio),
+		Constraint id_actividad_FK_Presentismo_Socios foreign key (id_actividad) references actividades.actividad(id_actividad),
+		Constraint id_profesor_FK_Presentismo_Socios foreign key (id_profesor) references actividades.profesor(id_profesor),
+		Constraint Actividades_id_presentismo_PK Primary Key(id_presentismo)
 	)
 END
 ELSE
 BEGIN
-	print 'la tabla actividades.presentismo ya existe'
+	print 'La tabla actividades.presentismo ya existe'
 END
 go
 
@@ -595,14 +666,30 @@ IF OBJECT_ID('COM5600G03.actividades.Sum_Reservas') IS NULL
 BEGIN
 	CREATE TABLE actividades.Sum_Reservas(
 		id_reserva int identity(1,1),
-		monto decimal(9,3),
+		monto decimal(10, 2),
 		fecha_reserva date,
 		estado varchar(100) default 'RESERVADO'
     )
 END
 ELSE
 BEGIN
-	print 'la tabla actividades.Sum_Reservas ya existe'
+	print 'La tabla actividades.Sum_Reservas ya existe'
 END
 go
 
+IF OBJECT_ID('socios.pago_cuotas_historico', 'U') IS NULL
+Begin
+	CREATE TABLE socios.pago_cuotas_historico(
+    id_pago bigint,
+	fecha_pago date,
+	id_socio int,
+	monto decimal(10, 2),
+	medio_pago varchar(100),
+	Constraint Pago_historico_id_pago_PK Primary Key(id_pago)
+)
+End
+else
+begin
+	print 'La tabla socios.pago_cuotas_historico ya existe'
+end
+go

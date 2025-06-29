@@ -79,8 +79,9 @@ begin
 	end
 end
 go
---exec facturacion.morosos_recurrentes '2025-01-01', '2025-12-1', 2
+-- exec facturacion.morosos_recurrentes '2025-01-01', '2025-12-1', 2
 go
+
 --Reporte 2
 create or alter procedure facturacion.reporte_ingresos_por_actividad
 as
@@ -106,40 +107,55 @@ begin
 			([Enero], [Febrero], [Marzo], [Abril], [Mayo], [Junio], [Julio], [Agosto], [Septiembre], [Octubre], [Noviembre], [Diciembre]))nombre_pivot
 			for XML PATH('Reporte'), ROOT('Reporte_acumulado_mensual_de_ingresos_por_deporte')
 end
---exec facturacion.reporte_ingresos_por_actividad
+-- exec facturacion.reporte_ingresos_por_actividad
 go
 --Reporte 3
 create or alter procedure socios.socios_con_ausentes as
 begin
-	select ss.nombre [Nombre], ss.apellido [Apellido], 
-			sc.nombre_categoria [Categoria], ap.nombre_actividad [Actividad],
-			COUNT(ap.asistencia) [Cant_inasistencias]
+	select	ss.nombre [Nombre], 
+			ss.apellido [Apellido], 
+			sc.nombre_categoria [Categoria],
+			a.nombre_actividad [Actividad],
+			COUNT(ap.asistencia) as [Cant_inasistencias]
 	from actividades.presentismo ap
 	left join socios.socio ss on ap.id_socio = ss.id_socio
 	left join socios.categoria sc on ss.id_categoria = sc.id_categoria
+	inner join actividades.actividad a on ap.id_actividad = a.id_actividad
 	where ap.asistencia = 'A'
-	group by ss.nombre, ss.apellido, sc.nombre_categoria, ap.nombre_actividad
+	group by ss.nombre, ss.apellido, sc.nombre_categoria, a.nombre_actividad
 	order by COUNT(ap.asistencia) desc
 	for XML PATH('Socio'), ROOT('Reporte_de_inasistencia_por_Actividad')
 end
---exec socios_con_inasistencias
+
+-- exec socios.socios_con_ausentes
 go
+
 --Reporte 4
 create or alter procedure socios.socios_sin_presentismo_por_actividad
 as
 begin
-	with socios_con_asistencias (id_socio, [Actividad]) as
+	with socios_con_asistencias (id_socio, id_actividad) as
 	(
-		select ap.id_socio, ap.nombre_actividad 
+		select ap.id_socio, ap.id_actividad 
 		from actividades.presentismo ap
 		where ap.asistencia = 'A'
-		group by ap.id_socio, ap.nombre_actividad
-	)select ss.nombre [Nombre], ss.apellido [Apellido], DATEDIFF(YEAR, ss.fecha_nacimiento, GETDATE()) [Edad], sc.nombre_categoria [Categoria] , [Actividad]
+		group by ap.id_socio, ap.id_actividad
+	)
+	select	ss.nombre [Nombre], 
+			ss.apellido [Apellido], 
+			DATEDIFF(YEAR, ss.fecha_nacimiento, GETDATE()) [Edad], 
+			sc.nombre_categoria [Categoria], 
+			a.nombre_actividad [Actividad]
 	from socios_con_asistencias sca
 	left join socios.socio ss on ss.id_socio = sca.id_socio
 	left join socios.categoria sc on ss.id_categoria = sc.id_categoria
-	where not exists( select 1 from actividades.presentismo ap
-						where ap.id_socio = sca.id_socio and ap.nombre_actividad = sca.Actividad and ap.asistencia = 'P' )
+	inner join actividades.actividad a on sca.id_actividad = a.id_actividad
+	where not exists(select 1 
+					 from actividades.presentismo ap
+						where ap.id_socio = sca.id_socio 
+						and ap.id_actividad = sca.id_actividad
+						and ap.asistencia = 'P')
 	for XML PATH('Socio'), ROOT('Socios_sin_asistencias_por_actividad')
 end
--- exec socios_sin_asistencias_por_actividad
+
+-- exec socios.socios_sin_presentismo_por_actividad

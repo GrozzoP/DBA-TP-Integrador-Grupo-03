@@ -407,6 +407,7 @@ go
 -- Procedimiento para insertar un usuario
 create or alter procedure socios.insertar_usuario
 	@id_rol int,
+	@usuario varchar(40),
 	@contraseña varchar(40),
 	@fecha_vigencia_contraseña date
 as
@@ -417,67 +418,56 @@ begin
 	begin
 		print 'No existe un rol con ese id.'
 	end
-	else if(@contraseña is null)
+	else if (@contraseña is null or ltrim(rtrim(@contraseña)) = '')
 	begin
-		print 'La contraseña no puede ser nula o vacia'
+		print 'La contraseña no puede ser nula o vacia.'
 	end
+	else if (@usuario is null or ltrim(rtrim(@usuario)) = '')
+	begin
+		print 'El usuario no puede ser nulo o vacio.'
+	end
+	else if (@fecha_vigencia_contraseña is null)
+    begin
+        print 'La fecha de vigencia no puede ser nula.'
+    end
 	else if (CONVERT(date, GETDATE()) > @fecha_vigencia_contraseña)
 	begin
 		print 'La fecha de vigencia no puede ser anterior a la actual.'
 	end
 	else
 	begin
-		insert into socios.usuario(id_rol, contraseña, fecha_vigencia_contraseña)
-		values (@id_rol, @contraseña, @fecha_vigencia_contraseña)
+		insert into socios.usuario(id_rol, usuario, contraseña, fecha_vigencia_contraseña)
+		values (@id_rol, @usuario, @contraseña, @fecha_vigencia_contraseña)
 	end
 end
 go
 
 -- Procedimiento para modificar la contraseña del usuario
-create or alter procedure socios.modificar_contraseña_usuario
+create or alter procedure socios.modificar_usuario
 	@id_usuario int,
-	@contraseña varchar(40)
+	@usuario varchar(40) = NULL,
+	@contraseña varchar(40) = NULL,
+	@fecha_vigencia_contraseña date = NULL
 as
 begin
 	if not exists (select 1 from socios.usuario 
 					where id_usuario = @id_usuario)
+	begin
 		print 'No existe un usuario con ese id.'
+	end
 	else if(@contraseña is null)
+	begin
 		print 'La contraseña no puede ser nula'
+	end	
 	else if(LTRIM(RTRIM(@contraseña)) = '')
 		print 'La contraseña no puede estar vacia'
 	else
 	begin
 		update socios.usuario
-		set contraseña = @contraseña
+		set contraseña = ISNULL(@contraseña, contraseña),
+			usuario = ISNULL(@usuario, usuario),
+			fecha_vigencia_contraseña = ISNULL(@fecha_vigencia_contraseña, fecha_vigencia_contraseña)
 		where id_usuario = @id_usuario
-	end
-end
-go
-
--- Procedimiento para modificar la fecha de vigencia de la contraseña
-create or alter procedure socios.modificar_fecha_vigencia_usuario
-	@id_usuario int,
-	@fecha_vigencia_contraseña date
-as
-begin
-	if not exists (select 1 from socios.usuario 
-					where id_usuario = @id_usuario)
-	begin
-		print 'No existe un usuario con ese id.'
-	end
-	else
-	begin
-		if (CONVERT(date, GETDATE()) < @fecha_vigencia_contraseña)
-		begin
-			update socios.usuario
-			set fecha_vigencia_contraseña = @fecha_vigencia_contraseña
-			where id_usuario = @id_usuario
-		end
-		else
-		begin
-			print 'La fecha de vigencia no puede ser anterior a la actual.'
-		end
 	end
 end
 go
@@ -507,16 +497,29 @@ create or alter procedure socios.insertar_obra_social
 	@telefono_obra_social char(18)
 as
 begin
-	if exists (select 1 from socios.obra_social 
-				where nombre_obra_social = @nombre_obra_social)
-	begin
-		print 'Ya existe una obra social con ese nombre.'
-	end
-	else
-	begin
-		insert into socios.obra_social(nombre_obra_social, telefono_obra_social)
-		values (@nombre_obra_social, @telefono_obra_social)
-	end
+    if @nombre_obra_social is null or ltrim(rtrim(@nombre_obra_social)) = ''
+    begin
+        print 'El nombre de la obra social no puede ser nulo ni vacio.'
+    end
+
+    else if @telefono_obra_social is null or ltrim(rtrim(@telefono_obra_social)) = ''
+    begin
+        print 'El numero de teléfono no puede ser nulo ni vacio.'
+    end
+
+    else if exists (
+        select 1 from socios.obra_social 
+        where nombre_obra_social = @nombre_obra_social
+    )
+    begin
+        print 'Ya existe una obra social con ese nombre!'
+    end
+
+    else
+    begin
+        insert into socios.obra_social(nombre_obra_social, telefono_obra_social)
+        values (@nombre_obra_social, @telefono_obra_social)
+    end
 end
 go
 
@@ -592,8 +595,6 @@ create or alter procedure socios.insertar_categoria
 	@vigencia_hasta date
 as
 begin
-	set nocount on
-
 	if exists (select 1 from socios.categoria 
 				where nombre_categoria = @nombre_categoria)
 	begin
@@ -633,8 +634,6 @@ create or alter procedure socios.modificar_costo_categoria
 	@costo_membresia decimal(9, 3)
 as
 begin
-	set nocount on
-
 	if not exists (select 1 from socios.categoria where id_categoria = @id_categoria)
 	begin
 		print 'No existe una categoría con ese id.'
@@ -672,8 +671,6 @@ create or alter procedure socios.modificar_fecha_vigencia_categoria
 	@vigencia_hasta date
 as
 begin
-	set nocount on
-
 	if not exists (select 1 from socios.categoria where id_categoria = @id_categoria)
 	begin
 		print 'No existe una categoría con ese id.'
@@ -797,6 +794,92 @@ begin
 		end catch
 	end
 	print 'Se han generado las categorias de manera aleatoria!'
+end
+go
+
+-- ================================== MEDIO DE PAGO ==================================
+-- Crear un medio de pago
+create or alter procedure facturacion.insertar_medio_de_pago
+    @nombre_medio_pago varchar(40),
+    @permite_debito_automatico bit
+as
+begin
+    if @nombre_medio_pago is null or ltrim(rtrim(@nombre_medio_pago)) = ''
+    begin
+        print 'El nombre del medio de pago no puede ser nulo ni vacio.'
+    end
+    else if exists (
+        select 1 
+        from facturacion.medio_de_pago 
+        where nombre_medio_pago = @nombre_medio_pago
+    )
+    begin
+        print 'Ya existe un medio de pago con ese nombre!'
+    end
+    else
+    begin
+        insert into facturacion.medio_de_pago(nombre_medio_pago, permite_debito_automatico)
+        values (@nombre_medio_pago, @permite_debito_automatico)
+    end
+end
+go
+
+-- Modificar un medio de pago
+create or alter procedure facturacion.modificar_medio_de_pago
+    @id_medio_de_pago int,
+    @nombre_medio_pago varchar(40),
+    @permite_debito_automatico bit
+as
+begin
+    if not exists (
+        select 1 
+        from facturacion.medio_de_pago 
+        where id_medio_de_pago = @id_medio_de_pago
+    )
+    begin
+        print 'No existe un medio de pago con ese id.'
+    end
+    else if @nombre_medio_pago is null or ltrim(rtrim(@nombre_medio_pago)) = ''
+    begin
+        print 'El nombre del medio de pago no puede ser nulo ni vacio.'
+    end
+    else if exists (
+        select 1 
+        from facturacion.medio_de_pago 
+        where nombre_medio_pago = @nombre_medio_pago
+        and id_medio_de_pago <> @id_medio_de_pago
+    )
+    begin
+        print 'Ya existe un medio de pago que usa ese nombre.'
+    end
+    else
+    begin
+        update facturacion.medio_de_pago
+        set nombre_medio_pago = ISNULL(@nombre_medio_pago, nombre_medio_pago),
+            permite_debito_automatico = ISNULL(@permite_debito_automatico, permite_debito_automatico)
+        where id_medio_de_pago = @id_medio_de_pago
+    end
+end
+go
+
+-- Eliminar un medio de pago
+create or alter procedure facturacion.eliminar_medio_de_pago
+    @id_medio_de_pago int
+as
+begin
+    if not exists (
+        select 1 
+        from facturacion.medio_de_pago 
+        where id_medio_de_pago = @id_medio_de_pago
+    )
+    begin
+        print 'No existe un medio de pago con ese id'
+    end
+    else
+    begin
+        delete from facturacion.medio_de_pago
+        where id_medio_de_pago = @id_medio_de_pago
+    end
 end
 go
 
@@ -945,18 +1028,18 @@ create or alter procedure actividades.insertar_actividad
     @vigencia_hasta date = null
 as
 begin
-	set nocount on;
+	set nocount on
 
 	if exists(
 		select nombre_actividad from actividades.actividad
 		where nombre_actividad = @nombreActividad
 	)
 	begin
-		print 'El nombre de la actividad ya existe'
+		print 'El nombre de la actividad ya existe.'
 	end
 	else if(@costo_mensual < 0)
 	begin
-		print 'El costo de actividad no debe ser negativo'
+		print 'El costo de actividad no debe ser negativo.'
 	end
 	else
 	 begin
@@ -997,8 +1080,8 @@ go
 --Procedimiento para modificar una actividad
 create or alter procedure actividades.modificar_precio_actividad
     @id_actividad int,
-    @nuevo_precio decimal(9,3),
-    @nueva_vigencia date = null
+    @nuevo_precio decimal(9,3) = NULL,
+    @nueva_vigencia date = NULL
 as
 begin
     if not exists (
@@ -1006,7 +1089,7 @@ begin
         where id_actividad = @id_actividad
     )
     begin
-        print 'La actividad a modificar no existe'
+        print 'La actividad a modificar no existe.'
         return
     end
 
@@ -1020,7 +1103,7 @@ begin
 
 	-- Actualizar el precio de la actividad
 	update actividades.actividad
-	set precio_mensual = @nuevo_precio
+	set precio_mensual = ISNULL(@nuevo_precio, precio_mensual)
 	where id_actividad = @id_actividad
 
 	if(@nueva_vigencia = null)
@@ -1050,15 +1133,16 @@ begin
       select nombre_actividad from actividades.actividad_extra
 	  where nombre_actividad = @nombreActividad
    )begin
-       print 'El nombre de la actividad extra ya existe'
+       print 'El nombre de la actividad extra ya existe.'
     end
 	else if @costo < 0
 	begin
-		print 'El costo de la actividad extra no puede ser negativa'
+		print 'El costo de la actividad extra no puede ser negativa.'
 	end
 	else
 	 begin
-	    insert into actividades.actividad_extra(nombre_actividad, costo)values(@nombreActividad, @costo)
+	    insert into actividades.actividad_extra(nombre_actividad, costo)
+		values(@nombreActividad, @costo)
 	 end
 
 end
@@ -1078,7 +1162,7 @@ begin
     end
 	else
 	 begin
-	    print 'La actividad extra a eliminar no existe'
+	    print 'La actividad extra a eliminar no existe.'
 	 end
 
 end
@@ -1101,12 +1185,12 @@ begin
 	end
 	else
 	begin
-		print 'El nuevo costo de actividad extra no puede ser negativo'
+		print 'El nuevo costo de actividad extra no puede ser negativo.'
 	end
     end
 	else
 	 begin
-	    print 'La actividad extra a modificar no existe'
+	    print 'La actividad extra a modificar no existe.'
 	 end
 end
 go
@@ -1120,34 +1204,40 @@ create or alter procedure actividades.insertar_horario_actividad
 		@id_categoria int
 as
 begin
-       if exists(
-	     select id_actividad from actividades.actividad
-	     where id_actividad = @id_actividad
-	   )begin
-	       if exists(
-		        select id_categoria from socios.categoria
-				where id_categoria = @id_categoria
-		   )begin
-		       if(@dia_semana in ('Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'))
-			    begin
-			      insert into actividades.horario_actividades(dia_semana,hora_inicio,hora_fin,id_actividad,id_categoria)
-				  values (@dia_semana,@hora_inicio,@hora_fin,@id_actividad,@id_categoria)
-			    end
-				else
-				begin
-				   print 'El dia no es correcto'
-				end
-		       
-		    end
-			else
-			begin
-			   print 'No se encontro la categoria con ese id'
-			end
-	    end
-		else
-		begin
-		  print 'No se encontro la actividad con ese id'
-		end
+    set nocount on
+
+    -- Verificar existencia de la actividad
+    if not exists (
+        select 1 
+        from actividades.actividad 
+        where id_actividad = @id_actividad
+    )
+    begin
+        print 'No se encontro la actividad con ese id'
+        return
+    end
+
+    -- Verificar existencia de la categoria
+    if not exists (
+        select 1 
+        from socios.categoria 
+        where id_categoria = @id_categoria
+    )
+    begin
+        print 'No se encontro la categoría con ese id'
+        return
+    end
+
+    -- Verificar que el día de la semana sea valido
+    if @dia_semana not in ('Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo')
+    begin
+        print 'El día no es correcto!'
+        return
+    end
+
+    -- Insertar el nuevo horario
+    insert into actividades.horario_actividades (dia_semana, hora_inicio, hora_fin, id_actividad, id_categoria)
+    values (@dia_semana, @hora_inicio, @hora_fin, @id_actividad, @id_categoria)
 end
 go
 
@@ -1158,7 +1248,8 @@ begin
    if exists(
       select id_horario from actividades.horario_actividades
 	  where id_horario = @id_horario
-   )begin
+   )
+	begin
          delete actividades.horario_actividades
 		 where id_horario = @id_horario
     end
@@ -1172,56 +1263,66 @@ go
 -- Procedimiento para modificar un horario
 create or alter procedure actividades.modificar_horario_actividad 
         @id_horario int,
-		@dia_semana varchar(18),
-		@hora_inicio time,
-		@hora_fin time,
-		@id_actividad int,
-		@id_categoria int
+		@dia_semana varchar(18) = NULL,
+		@hora_inicio time = NULL,
+		@hora_fin time = NULL,
+		@id_actividad int = NULL,
+		@id_categoria int = NULL
 as
 begin
-   if exists(
-      select id_horario from actividades.horario_actividades
-	  where id_horario = @id_horario
-   )
-   begin 
-       if exists(
-	     select id_actividad from actividades.actividad
-	     where id_actividad = @id_actividad
-	   )begin
-	       if exists(
-		        select id_categoria from socios.categoria
-				where id_categoria = @id_categoria
-		   )begin
-		       if(@dia_semana in ('Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'))
-			    begin
-			      update actividades.horario_actividades
-				  set dia_semana = @dia_semana,
-				      hora_inicio = @hora_inicio,
-					  hora_fin = @hora_fin,
-					  id_categoria = @id_categoria,
-					  id_actividad = @id_actividad
-					  where id_horario = @id_horario
-			    end
-				else
-				begin
-				   print 'El dia no es correcto'
-				end
-		       
-		    end
-			else
-			begin
-			   print 'No se encontro la categoria con ese id'
-			end
-	    end
-		else
-		begin
-		  print 'No se encontro la actividad con ese id'
-		end
-	end
-	else
-	begin
-	  print 'No se encontro horario con ese id'
-	end
+    set nocount on
+
+    -- Verificar si el horario realmente existe
+    if not exists (
+        select 1 
+        from actividades.horario_actividades 
+        where id_horario = @id_horario
+    )
+    begin
+        print 'No se encontro un horario con ese id'
+        return
+    end
+
+    -- Si se envia una actividad, verificar si existe
+    if @id_actividad is not null and not exists (
+        select 1 
+        from actividades.actividad 
+        where id_actividad = @id_actividad
+    )
+    begin
+        print 'No se encontro la actividad con ese id'
+        return
+    end
+
+    -- Si se mando una categoria, verificar si existe
+    if @id_categoria is not null and not exists (
+        select 1 
+        from socios.categoria 
+        where id_categoria = @id_categoria
+    )
+    begin
+        print 'No se encontro la categoría con ese id'
+        return
+    end
+
+    -- si se especificó día, verificar que sea válido
+    if @dia_semana is not null and @dia_semana not in 
+		('Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo')
+    begin
+        print 'El dia ingresado no es correcto.'
+        return
+    end
+
+    -- Actualizar los valores
+    update actividades.horario_actividades
+    set dia_semana = isnull(@dia_semana, dia_semana),
+        hora_inicio = isnull(@hora_inicio, hora_inicio),
+        hora_fin = isnull(@hora_fin, hora_fin),
+        id_categoria = isnull(@id_categoria, id_categoria),
+        id_actividad = isnull(@id_actividad, id_actividad)
+    where id_horario = @id_horario
+
+    print 'Horario actualizado correctamente!'
 end
 go
 
@@ -1276,9 +1377,78 @@ begin
 end
 go
 
+
+-- ================================== PROFESOR ==================================
+--Procedimiento para insertar un profesor
+create or alter procedure actividades.insertar_profesor
+    @nombre_apellido varchar(45),
+    @email varchar(50)
+as
+begin
+    if exists (
+        select 1 from actividades.profesor 
+        where email = @email
+    )
+    begin
+        print 'Ya existe un profesor con ese email'
+    end
+    else
+    begin
+        insert into actividades.profesor(nombre_apellido, email)
+        values (@nombre_apellido, @email)
+    end
+end
+go
+
+--Procedimiento para modificar un profesor
+create or alter procedure actividades.modificar_profesor
+    @id_profesor int,
+    @nombre_apellido varchar(45) = NULL,
+    @email varchar(50) = NULL
+as
+begin
+    if not exists (
+        select 1 from actividades.profesor
+        where id_profesor = @id_profesor
+    )
+    begin
+        print 'No existe un profesor con ese id.'
+    end
+    else
+    begin
+        update actividades.profesor
+        set nombre_apellido = ISNULL(@nombre_apellido, nombre_apellido),
+            email = ISNULL(@email, email)
+        where id_profesor = @id_profesor
+    end
+end
+go
+
+--Procedimiento para eliminar un profesor
+create or alter procedure actividades.eliminar_profesor
+    @id_profesor int
+as
+begin
+    if not exists (
+        select 1 from actividades.profesor 
+        where id_profesor = @id_profesor
+    )
+    begin
+        print 'No existe un profesor con ese id.'
+    end
+    else
+    begin
+        delete from actividades.profesor
+        where id_profesor = @id_profesor
+    end
+end
+go
+
 -- ================================== FACTURA ==================================
+/*
+Hay que hacer modificaciones...
 --Procedimiento para generar una factura
-create or alter procedure facturacion.crear_factura(@total decimal(9,3), @dni int, @actividad varchar(250))
+create or alter procedure facturacion.crear_factura(@total decimal(9, 2), @dni int, @actividad varchar(250))
 as
 begin
 
@@ -1650,7 +1820,7 @@ begin
   COMMIT TRANSACTION
 end
 go
-
+*/
 -- ================================== INSCRIPCION ACTIVIDAD ==================================
 /* Procedimiento para inscribirse a una actividad...
 		Para enviar los horarios, se hara mediante una cadena separada por comas que enviara
@@ -1788,6 +1958,7 @@ end
 go
 
 -- ================================== INSCRIPCION ACTIVIDAD EXTRA ==================================
+/* Hay que hacer modificaciones...
 ---Procedimiento para inscripcion a actividad extra
 create or alter procedure actividades.inscripcion_actividad_extra
 (@id_socio int, @id_actividad_extra int, @fecha date, @hora_inicio time, @hora_fin time, @cant_invitados int)
@@ -2006,7 +2177,7 @@ begin
     end catch
 end
 go
-
+*/
 create or alter procedure facturacion.descuento_pileta_lluvia(@fecha date)
 as
 begin

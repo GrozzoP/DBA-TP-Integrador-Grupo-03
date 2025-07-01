@@ -17,280 +17,123 @@ Numero de grupo: 03
 -Franco Agustin Grosso 46024348
 */
 
-Use COM5600G03
-go
-
---
-/*** SP auxiliares ***/
--- Este SP sirve para eliminar y restaurar el incremento de los id de las tablas,
-create or alter procedure eliminar_y_restaurar_tabla @tabla nvarchar(512)
-as
-begin
-    declare @schema sysname = parsename(@tabla, 2),
-            @name sysname = parsename(@tabla, 1),
-            @sql nvarchar(max);
-
-	-- Si el esquema es nulo, entonces usar por default el dbo
-    if @schema is null 
-		set @schema = 'dbo';
-
-    -- Eliminar los registros relativos a la tabla
-    set @sql = 'delete from ' + quotename(@schema) + '.' + quotename(@name);
-    exec sp_executesql @sql;
-
-    -- resetear identidad si existe columna identity
-    if exists (
-        select 1 from sys.identity_columns ic
-        where ic.object_id = object_id(@schema + '.' + @name)
-    )
-    begin
-        -- reseed a 0 para que próximo valor sea 1
-        set @sql = 'dbcc checkident(''' + @schema + '.' + @name + ''', reseed, 0)';
-        exec sp_executesql @sql;
-    end
-end;
+use COM5600G03
 go
 
 
-/*** Fin de SP auxiliares ***/
 /*
-Limpiar si hace falta
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades';
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra';
-exec eliminar_y_restaurar_tabla 'actividades.presentismo';
-exec eliminar_y_restaurar_tabla 'actividades.acceso_pileta';
-exec eliminar_y_restaurar_tabla 'actividades.horario_actividades';
-exec eliminar_y_restaurar_tabla 'facturacion.pago';
-exec eliminar_y_restaurar_tabla 'actividades.tarifa_pileta';
-exec eliminar_y_restaurar_tabla 'actividades.invitado_pileta';
-exec eliminar_y_restaurar_tabla 'facturacion.factura';
-exec eliminar_y_restaurar_tabla 'facturacion.dias_lluviosos';
-exec eliminar_y_restaurar_tabla 'socios.grupo_familiar';
-exec eliminar_y_restaurar_tabla 'socios.socio';
-exec eliminar_y_restaurar_tabla 'socios.usuario';
-exec eliminar_y_restaurar_tabla 'socios.categoria_precios';
-exec eliminar_y_restaurar_tabla 'socios.categoria';
-exec eliminar_y_restaurar_tabla 'socios.obra_social';
-exec eliminar_y_restaurar_tabla 'socios.rol';
-exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago';
-exec eliminar_y_restaurar_tabla 'actividades.Sum_Reservas';
-exec eliminar_y_restaurar_tabla 'actividades.actividad_precios';
-exec eliminar_y_restaurar_tabla 'actividades.actividad';
-exec eliminar_y_restaurar_tabla 'actividades.actividad_extra';
-exec eliminar_y_restaurar_tabla 'actividades.concepto_pileta';
-exec eliminar_y_restaurar_tabla 'actividades.categoria_pileta';
-*/
-go
-
-
--- /////////////// ROLES ///////////////
+==========================================================================================================================
+												ROL
+========================================================================================================================== */
 /*****	socios.insertar_rol
 		@nombre_rol varchar(20), 
 		@descripcion_rol varchar(50))	******/
 
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'socios.rol'
+print '========================================ROL========================================'
 --Se espera que se inserten los siguientes registros
-
 exec socios.insertar_rol 'Usuario', 'Rol mas comun del sistema'
 exec socios.insertar_rol 'Moderador', 'Encargado de moderar el sistema'
-exec socios.insertar_rol '', ''
-exec socios.insertar_rol NULL, NULL
 exec socios.insertar_rol 'Administrador',  'Supervisar operaciones diarias'
 
--- No se podran insertar los siguientes mensajes, debera aparecer el mensaje correspondiente indicando el error
+-- No se podra insertar el siguiente rol, debera aparecer 'El rol que se quiere insertar ya existe en la tabla'
 exec socios.insertar_rol 'Usuario', 'Un socio que quiere usar el sistema'
-exec socios.insertar_rol '', 'Un invitado que quiere usar el sistema'
 
---Eliminando registros restantes de la prueba en la tabla
-exec eliminar_y_restaurar_tabla 'socios.rol'
-
+-- La constraint de la tabla no permite ingresar un rol con el nombre ''
+exec socios.insertar_rol '', ''
 
 /*****	socios.modificar_rol
 		@nombre_rol varchar(20), 
 		@nueva_descripcion_rol varchar(50))	*****/
 
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'socios.rol'
-
---Insertando registros para prueba
-exec socios.insertar_rol 'Usuario', 'Rol mas comun del sistema'
-exec socios.insertar_rol 'Administrador', 'Supervisar operaciones diarias'
-exec socios.insertar_rol '', 'Rol vacio'
-
---Se espera que los registros anteriores vean su descripcion = 'modificado'
+--Se espera que en los registros anteriores se modifique su descripcion
 exec socios.modificar_rol 'Usuario', 'Rol de usuario'
 exec socios.modificar_rol 'Administrador', 'Persona designada para revisar las operaciones'
-exec socios.modificar_rol '', 'Rol fantasma'
 
---Se espera mensaje 'El rol que se quiere modificar, no existe segun su nombre.'
+--Se espera mensaje 'El rol que se quiere modificar, no existe segun su nombre'
 exec socios.modificar_rol 'Controlador', 'modificado'
 exec socios.modificar_rol 'Deportista', 'modificado'
-
---Eliminando registros restantes de la prueba en la tabla
-exec eliminar_y_restaurar_tabla 'socios.rol'
 
 
 /*****	socios.eliminar_rol(@nombre_rol varchar(20))	*****/
 
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'socios.rol'
-
---Insertando registros para prueba
-exec socios.insertar_rol 'Usuario', 'Rol de usuario'
-exec socios.insertar_rol 'Administrador', 'Supervisar operaciones diarias'
-exec socios.insertar_rol '', ''
-
---Se espera la eliminacion exitosa de los registro anteriores
-exec socios.eliminar_rol 'Usuario'
+-- Se espera la eliminacion exitosa de los registro anteriores
+exec socios.eliminar_rol 'Moderador'
 exec socios.eliminar_rol 'Administrador'
+
+-- Se espera el mensaje 'El rol que se quiere eliminar, no existe segun su nombre'
 exec socios.eliminar_rol ''
 
---Se espera mensaje 'El rol que se quiere eliminar, no existe segun su nombre.'
-exec socios.eliminar_rol 'noExiste'
-
---Eliminando registros restantes de la prueba en la tabla
-exec eliminar_y_restaurar_tabla 'socios.rol'
-
--- /////////////// USUARIO ///////////////
+print '========================================USUARIO========================================'
+/*
+==========================================================================================================================
+												USUARIO
+========================================================================================================================== */
 /*****	socios.insertar_usuario
 						@id_rol int,
 						@contraseña varchar(40),
 						@fecha_vigencia_contraseña date	*****/
 
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'socios.rol'
+declare @fechaDePrueba date = GETDATE()
 
---Insertando registros para prueba
-exec socios.insertar_rol 'Usuario', 'Persona que utiliza la aplicacion'
-exec socios.insertar_rol 'Moderador', 'Encargado de moderar'
-exec socios.insertar_rol 'Ayudante', 'Encargado de brindar ayuda a los socios'
+-- Se espera la insercion exitosa de los sig usuarios con roles asignados validos
+exec socios.insertar_usuario @id_rol = 1, @usuario = 'franco@hotmail.com', @contraseña = 'hola123', @fecha_vigencia_contraseña = @fechaDePrueba
+exec socios.insertar_usuario @id_rol = 1, @usuario = 'agustin@hotmail.com', @contraseña = 'francoGrosso123', @fecha_vigencia_contraseña = @fechaDePrueba
+exec socios.insertar_usuario @id_rol = 1, @usuario = 'francisco@hotmail.com', @contraseña = 'pileta1456', @fecha_vigencia_contraseña = @fechaDePrueba
+exec socios.insertar_usuario @id_rol = 1, @usuario = 'roberto@hotmail.com', @contraseña = 'contraseniaSecreta1!', @fecha_vigencia_contraseña = @fechaDePrueba
 
---Se espera la insercion exitosa de los sig usuarios con roles asignados validos
-declare @fechaDePrueba date = GETDATE();
-exec socios.insertar_usuario 1, 'contraseñaDeUsuario1', @fechaDePrueba
-exec socios.insertar_usuario 2, 'contraseñaDeUsuario2', @fechaDePrueba
-exec socios.insertar_usuario 3, 'contraseñaDeUsuario3', @fechaDePrueba
-exec socios.insertar_usuario 3, 'contraseñaDeUsuario4', @fechaDePrueba
---Se espera el mensaje 'No existe un rol con ese id.'
-exec socios.insertar_usuario 4, 'contraseñaDeUsuario5', @fechaDePrueba
-
---Se espera el mensaje 'La fecha de vigencia no puede ser anterior a la actual.'
+-- Se espera el mensaje 'La fecha de vigencia no puede ser anterior a la actual.'
 set @fechaDePrueba = DATEADD(DAY, -5, @fechaDePrueba)
-exec socios.insertar_usuario 3, 'contraseñaDeUsuario5', @fechaDePrueba
+exec socios.insertar_usuario @id_rol = 1, @usuario = 'ruberto@hotmail.com', @contraseña = 'contraseñaDeUsuario5', @fecha_vigencia_contraseña = @fechaDePrueba
 
---Se espera la insercion exitosa del sig registro
-exec socios.insertar_usuario 3, 'contraseñaDeUsuario6', NULL
+-- Se devuelve 'La fecha de vigencia no puede ser nula.'
+exec socios.insertar_usuario @id_rol = 1, @usuario = 'equi-fernandez@hotmail.com', @contraseña = 'contraseñaDeUsuario6', @fecha_vigencia_contraseña =  NULL
 
---Eliminando registros restantes de la prueba en la tabla
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'socios.rol'
-go
+-- Se devuelve 'El usuario no puede ser nulo o vacio.'
+exec socios.insertar_usuario @id_rol = 1, @usuario = '', @contraseña = 'contraseñaDeUsuario6', @fecha_vigencia_contraseña = @fechaDePrueba
+exec socios.insertar_usuario @id_rol = 1 , @usuario =  NULL, @contraseña = 'contraseñaDeUsuario6', @fecha_vigencia_contraseña = @fechaDePrueba
 
 /*****	socios.modificar_contraseña_usuario 
 		@id_usuario int,
 		@contraseña varchar(40) *****/
 
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'socios.rol'
-
---Insertando registros para prueba
-exec socios.insertar_rol 'Usuario', 'Rol mas comun del sistema'
-exec socios.insertar_rol 'Moderador', 'Encargado de moderar el sistema'
-exec socios.insertar_rol 'Administrador', 'Supervisar operaciones diarias'
-
-DECLARE @fechaDePrueba date = GETDATE();
-
-exec socios.insertar_usuario 1, 'contraseñaOriginalDeUsuario1', @fechaDePrueba
-exec socios.insertar_usuario 2, 'contraseñaOriginalDeUsuario2', @fechaDePrueba
-exec socios.insertar_usuario 3, 'contraseñaOriginalDeUsuario3', @fechaDePrueba
-exec socios.insertar_usuario 3, 'contraseñaOriginalDeUsuario4', @fechaDePrueba
-
 --Se espera la modificacion exitosa de la contraseña
-exec socios.modificar_contraseña_usuario 1, 'contraseñaModificadaDeUsuario1'
-exec socios.modificar_contraseña_usuario 2, 'contraseñaModificadaDeUsuario2'
-exec socios.modificar_contraseña_usuario 3, 'contraseñaModificadaDeUsuario3'
-exec socios.modificar_contraseña_usuario 4, 'contraseñaModificadaDeUsuario4'
-exec socios.modificar_contraseña_usuario 4, ''
-exec socios.modificar_contraseña_usuario 4, NULL
+exec socios.modificar_usuario @id_usuario = 1, @contraseña = 'naruto456!'
+exec socios.modificar_usuario @id_usuario = 2, @contraseña = 'contraseña_super_secreta'
+exec socios.modificar_usuario @id_usuario = 3, @contraseña = 'auricularTeclado46!'
 
---Se espera mensaje 'No existe un usuario con ese id.'
-exec socios.modificar_contraseña_usuario 5, 'contraseñaModificadaDeUsuario5'
+-- Se espera mensaje 'La contraseña no puede estar vacia'
+exec socios.modificar_usuario @id_usuario = 1, @contraseña = ''
 
---Eliminando registros restantes de la prueba en la tabla
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'socios.rol'
-go
+-- Se espera mensaje 'La contraseña no puede ser nula'
+exec socios.modificar_usuario @id_usuario = 4, @contraseña = NULL
 
-/*****	socios.modificar_fecha_vigencia_usuario 
-		@id_usuario int, 
-		@fecha_vigencia_contraseña date *****/
+-- Se espera mensaje 'No existe un usuario con ese id'
+exec socios.modificar_usuario @id_usuario = 100, @contraseña = 'perroGatoMono55?'
 
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'socios.rol'
-
---Insertando registros para prueba
-exec socios.insertar_rol 'Usuario', 'Rol mas comun del sistema'
-exec socios.insertar_rol 'Administrador', 'Supervisar operaciones diarias'
-exec socios.insertar_rol 'Moderador', 'Modera usuarios'
-
-declare @fechaDePrueba date = GETDATE();
 declare @fechaDePruebaModificada date;
 
-exec socios.insertar_usuario 1, 'contraseñaDeUsuario1', @fechaDePrueba
-exec socios.insertar_usuario 2, 'contraseñaDeUsuario2', @fechaDePrueba
-exec socios.insertar_usuario 3, 'contraseñaDeUsuario3', @fechaDePrueba
-exec socios.insertar_usuario 3, 'contraseñaDeUsuario4', @fechaDePrueba
-
 --Se espera mensaje 'La fecha de vigencia no puede ser anterior a la actual' si fecha_vigencia_contraseña nueva es igual al original
-exec socios.modificar_fecha_vigencia_usuario 1, @fechaDePrueba
+exec socios.modificar_usuario @id_usuario = 1, @fecha_vigencia_contraseña = @fechaDePrueba
 
 --Se espera la modificacion exitosa de la fecha_vigencia_contraseña
 set @fechaDePruebaModificada = DATEADD(DAY, 1, @fechaDePrueba)
-exec socios.modificar_fecha_vigencia_usuario 1, @fechaDePruebaModificada
-exec socios.modificar_fecha_vigencia_usuario 2, @fechaDePruebaModificada
-exec socios.modificar_fecha_vigencia_usuario 3, @fechaDePruebaModificada
-exec socios.modificar_fecha_vigencia_usuario 4, @fechaDePruebaModificada
-exec socios.modificar_fecha_vigencia_usuario 4, @fechaDePruebaModificada
+exec socios.modificar_usuario @id_usuario = 1, @fecha_vigencia_contraseña = @fechaDePruebaModificada
+exec socios.modificar_usuario @id_usuario = 2, @fecha_vigencia_contraseña = @fechaDePruebaModificada
+exec socios.modificar_usuario @id_usuario = 3, @fecha_vigencia_contraseña = @fechaDePruebaModificada
+exec socios.modificar_usuario @id_usuario = 4, @fecha_vigencia_contraseña = @fechaDePruebaModificada
 
 --Se espera mensaje 'No existe un usuario con ese id.'
-exec socios.modificar_fecha_vigencia_usuario 5, @fechaDePrueba
+exec socios.modificar_usuario @id_usuario = 5, @fecha_vigencia_contraseña = @fechaDePrueba
 
 --Se espera mensaje 'La fecha de vigencia no puede ser anterior a la actual'
 set @fechaDePruebaModificada = DATEADD(DAY, -5, @fechaDePrueba)
-exec socios.modificar_fecha_vigencia_usuario 1, @fechaDePruebaModificada
-
---Eliminando registros restantes de la prueba en la tabla
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'socios.rol'
-go
+exec socios.modificar_usuario @id_usuario = 1, @fecha_vigencia_contraseña = @fechaDePruebaModificada
 
 /*****	socios.eliminar_usuario 
 		@id_usuario int *****/
 
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'socios.rol'
-
---Insertando registros para prueba
-exec socios.insertar_rol 'Usuario', 'Rol mas comun del sistema'
-exec socios.insertar_rol 'Administrador', 'Supervisar operaciones diarias'
-exec socios.insertar_rol 'Moderador', 'Modera usuarios'
-
-declare @fechaDePrueba date = GETDATE();
-
-exec socios.insertar_usuario 1, 'contraseñaDeUsuario1', @fechaDePrueba
-exec socios.insertar_usuario 2, 'contraseñaDeUsuario2', @fechaDePrueba
-exec socios.insertar_usuario 3, 'contraseñaDeUsuario3', @fechaDePrueba
-exec socios.insertar_usuario 3, 'contraseñaDeUsuario4', @fechaDePrueba
-
 --Se espera mensaje 'No existe un usuario con ese id.'
-exec socios.eliminar_usuario -1
-exec socios.eliminar_usuario 0
-exec socios.eliminar_usuario 5
+exec socios.eliminar_usuario 55
 
 --Se espera la eliminacion exitosa de los sig usuarios
 exec socios.eliminar_usuario 1
@@ -298,90 +141,51 @@ exec socios.eliminar_usuario 2
 exec socios.eliminar_usuario 3
 exec socios.eliminar_usuario 4
 
---Eliminando registros restantes de la prueba en la tabla
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'socios.rol'
-
--- /////////////// OBRA SOCIAL ///////////////
+print '========================================OBRA SOCIAL========================================'
+/*
+==========================================================================================================================
+												OBRA SOCIAL
+========================================================================================================================== */
 /*****	socios.insertar_obra_social 
 		@nombre_obra_social varchar(60), 
 		@telefono_obra_social int	*****/
 
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'socios.obra_social'
 
---Se espera la insercion exitosa de los sig registros
-exec socios.insertar_obra_social '', 0
-exec socios.insertar_obra_social 'obraSocial1', '0'
-exec socios.insertar_obra_social 'obraSocial2', '0'
-exec socios.insertar_obra_social 'obraSocial3', '0'
+-- Se espera la insercion exitosa de los sig registros
+exec socios.insertar_obra_social 'Swiss Medical', '4802-0022'
+exec socios.insertar_obra_social 'OSMTT', '0800 8888 733'
+exec socios.insertar_obra_social 'Hominis', '0810-888-3226'
+exec socios.insertar_obra_social 'Plan de Salud Hospital Italiano', '011 4371-7717'
+
+-- Se espera un mensaje 'El nombre de la obra social no puede ser nulo ni vacio.'
 exec socios.insertar_obra_social NULL, NULL
 
---Se espera un mensaje 'El numero de telefono no puede ser negativo'
-exec socios.insertar_obra_social 'obraSocial5', -1
-
---Se espera mensaje 'Ya existe una obra social con ese nombre.'
-exec socios.insertar_obra_social '', 0
-exec socios.insertar_obra_social 'obraSocial1', '11111111'
-exec socios.insertar_obra_social 'obraSocial2', '11111111'
-exec socios.insertar_obra_social 'obraSocial3', '11111111'
-
---Eliminando registros restantes de la prueba en la tabla
-exec eliminar_y_restaurar_tabla 'socios.obra_social'
+-- Se espera mensaje 'Ya existe una obra social con ese nombre.'
+exec socios.insertar_obra_social 'OSMTT', '11111111'
 
 /*****	socios.modificar_obra_social 
 		@nombre_obra_social varchar(60), 
 		@telefono_obra_social int	*****/
 
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'socios.obra_social'
-
---Insertando registros para prueba
-exec socios.insertar_obra_social 'obraSocial1', '11111111'
-exec socios.insertar_obra_social 'obraSocial2', '22222222'
-exec socios.insertar_obra_social 'obraSocial3', '33333333'
-exec socios.insertar_obra_social 'obraSocial4', '44444444'
-
---Se espera la modificacion del @telefono_obra_social de los siguientes registros con exito
-exec socios.modificar_obra_social 'obraSocial1', '0'
-exec socios.modificar_obra_social 'obraSocial2', '0'
-exec socios.modificar_obra_social 'obraSocial3', '0'
-exec socios.modificar_obra_social 'obraSocial4', '0'
+--Se espera la modificacion del @telefono_obra_social
+exec socios.modificar_obra_social 'OSMTT', '0800-268-3733'
 
 --Se espera mensaje 'No existe una obra social con ese nombre.'
-exec socios.modificar_obra_social 'obraSocial6', '0'
-exec socios.modificar_obra_social 'obraSocial7', '0'
-exec socios.modificar_obra_social 'obraSocial8', '0'
-
---Eliminando registros restantes de la prueba en la tabla
-exec eliminar_y_restaurar_tabla 'socios.obra_social'
+exec socios.modificar_obra_social 'OBRA-SOCIAL', '1120639622'
 
 /*****	socios.eliminar_obra_social @nombre_obra_social varchar(60)	*****/
 
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'socios.obra_social'
-
---Insertando registros para prueba
-exec socios.insertar_obra_social 'obraSocial1', '11111111'
-exec socios.insertar_obra_social 'obraSocial2', '22222222'
-exec socios.insertar_obra_social 'obraSocial3', '33333333'
-exec socios.insertar_obra_social 'obraSocial4', '44444444'
---Se espera la eliminacion de los siguientes registros
-exec socios.eliminar_obra_social 'obraSocial1'
-exec socios.eliminar_obra_social 'obraSocial2'
-exec socios.eliminar_obra_social 'obraSocial3'
-exec socios.eliminar_obra_social 'obraSocial4'
+--Se espera la eliminacion de la siguiente obra social
+exec socios.eliminar_obra_social 'Swiss Medical'
 
 --Se espera mensaje 'No existe una obra social con ese nombre.'
-exec socios.eliminar_obra_social 'obraSocial1'
+exec socios.eliminar_obra_social 'OBRA-SOCIAL'
 
-
--- Limpiar datos de pruebas anteriores
-exec eliminar_y_restaurar_tabla 'socios.categoria'
-exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
-go
-
--- /////////////// CATEGORIA ///////////////
+print '========================================CATEGORIA========================================'
+/*
+==========================================================================================================================
+												CATEGORIA
+========================================================================================================================== */
 /*****	socios.insertar_categoria 
 		@nombre_categoria varchar(16), 
 		@edad_minima int,
@@ -390,41 +194,24 @@ go
 		@vigencia_hasta date	*****/
 
 --Se espera la insercion exitosa de los siguientes registros
-exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
-exec socios.insertar_categoria 'Cadete', 19, 27, 1.01, '2026-01-15'  
-exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
-
-/*
-select c.id_categoria, c.nombre_categoria, c.edad_minima, c.edad_maxima,
-       p.costo_membresia, p.fecha_vigencia_desde, p.fecha_vigencia_hasta
-from socios.categoria c
-inner join socios.categoria_precios p on c.id_categoria = p.id_categoria
-order by c.id_categoria */
+exec socios.insertar_categoria 'Menor', 1, 12, 9.69, '2025-12-31'
+exec socios.insertar_categoria 'Cadete', 13, 17, 1.01, '2026-01-15'  
+exec socios.insertar_categoria 'Mayor', 18, 35, 0, '2025-08-30'
+exec socios.insertar_categoria 'MayorAlCuadrado', 35, 45, 0, '2025-08-30'
 
 --Se espera mensaje 'Ya existe una categoría con ese nombre.'
 exec socios.insertar_categoria 'Menor', 1, 18, 10.50, '2025-12-31'
 
 --Se espera mensaje 'Es incoherente que la edad minima sea mayor o igual que la maxima.'
 exec socios.insertar_categoria 'Veterano', 5, 5, 10.6, '2025-12-31'
-exec socios.insertar_categoria 'Sargento', 7, 5, 10.6, '2025-12-31'
 
 --Se espera mensaje 'El costo de la membresia no puede ser negativo.'
 exec socios.insertar_categoria 'Veterano', 36, 45, -1.99, '2025-12-31'
-
---Se espera mensaje sobre fecha de vigencia invalida
-exec socios.insertar_categoria 'Veterano', 36, 45, 15.99, '2020-01-01'
-go
 
 /*****	socios.modificar_costo_categoria @id_categoria int, @costo_membresia decimal(9,3) *****/
 
 exec socios.modificar_costo_categoria 1, 10.99  -- ID de 'Menor'
 exec socios.modificar_costo_categoria 2, 20.99  -- ID de 'Cadete'
-
-/*
-select c.id_categoria, c.nombre_categoria, p.costo_membresia
-from socios.categoria c
-inner join socios.categoria_precios p on c.id_categoria = p.id_categoria
-order by c.id_categoria*/
 
 -- Se espera mensaje 'El nuevo costo de la membresia no puede ser negativo.'
 exec socios.modificar_costo_categoria 1, -5.66
@@ -432,21 +219,14 @@ exec socios.modificar_costo_categoria 1, -5.66
 -- Se espera mensaje 'No existe una categoria con ese id.'
 exec socios.modificar_costo_categoria 999, 10.69
 
-go
-
 /*****	socios.modificar_fecha_vigencia_categoria 
-		@id_categoria int, @costo_membresia decimal(9,3), @vigencia_hasta date *****/
+		@id_categoria int, 
+		@costo_membresia decimal(9,3), 
+		@vigencia_hasta date *****/
 
 -- Se cambia de manera exitosa segun la nueva fecha de vigencia
 exec socios.modificar_fecha_vigencia_categoria 1, 12.50, '2026-06-30'
 exec socios.modificar_fecha_vigencia_categoria 2, 25.00, '2026-12-31'
-
-/*
-select c.id_categoria, c.nombre_categoria, p.costo_membresia, 
-       p.fecha_vigencia_desde, p.fecha_vigencia_hasta
-from socios.categoria c
-inner join socios.categoria_precios p on c.id_categoria = p.id_categoria
-order by c.id_categoria*/
 
 -- Se espera mensaje 'La nueva fecha limite no puede ser menor a la actual'
 exec socios.modificar_fecha_vigencia_categoria 1, 15.00, '2020-01-01'
@@ -456,15 +236,12 @@ exec socios.modificar_fecha_vigencia_categoria 1, -10.00, '2026-12-31'
 
 -- Se espera mensaje 'No existe una categoría con ese id'
 exec socios.modificar_fecha_vigencia_categoria 999, 20.00, '2026-12-31'
-go
 
 /******	socios.eliminar_categoria 
 		@id_categoria int	*****/
 
---Se espera la eliminacion de los siguientes registros
-exec socios.eliminar_categoria 1
-exec socios.eliminar_categoria 2   
-exec socios.eliminar_categoria 3
+--Se espera la eliminacion del siguiente registro
+exec socios.eliminar_categoria 4
 
 --Se espera mensaje 'No existe una categoría con ese id.'
 exec socios.eliminar_categoria 999
@@ -477,6 +254,7 @@ declare @precio decimal(9,3),
 		@fecha_desde date, 
 		@fecha_hasta date;
 
+-- Esto se hacep ara obtener el precio mas vigente dentro del historico
 exec socios.obtener_precio_actual
 	@id_categoria = 5,
 	@precio_actual = @precio output,
@@ -485,7 +263,62 @@ exec socios.obtener_precio_actual
 
 -- select @precio as precio, @fecha_desde as fecha_desde, @fecha_hasta as fecha_hasta
 
--- /////////////// SOCIO ///////////////
+print '========================================MEDIO DE PAGO========================================'
+/*
+==========================================================================================================================
+												MEDIO DE PAGO
+========================================================================================================================== */
+/*****   facturacion.insertar_medio_de_pago
+        @nombre_medio_pago varchar(40),
+        @permite_debito_automatico bit  *****/
+
+--Inserción exitosa de nuevos medios de pago
+exec facturacion.insertar_medio_de_pago 'Tarjeta de Credito', 0
+exec facturacion.insertar_medio_de_pago 'Banco Santander', 1
+exec facturacion.insertar_medio_de_pago 'Cuenta DNI', 1
+exec facturacion.insertar_medio_de_pago 'Medio de pago', 1
+
+-- Se espera mensaje 'El nombre del medio de pago no puede ser nulo ni vacio.'
+exec facturacion.insertar_medio_de_pago NULL, 0
+exec facturacion.insertar_medio_de_pago '   ', 1
+
+-- Medio de pago duplicado, se espera mensaje 'Ya existe un medio de pago con ese nombre!
+exec facturacion.insertar_medio_de_pago 'Tarjeta de Credito', 1
+
+
+/*****   facturacion.modificar_medio_de_pago
+        @id_medio_de_pago int,
+        @nombre_medio_pago varchar(40),
+        @permite_debito_automatico bit  *****/
+
+-- Se modifican los medios de pago de manera correcta
+exec facturacion.modificar_medio_de_pago 1, 'Tarjeta Visa', 0
+exec facturacion.modificar_medio_de_pago 2, 'Banco Galicia', 0
+
+-- No existe el id, se espera mensaje 'No existe un medio de pago con ese id.'
+exec facturacion.modificar_medio_de_pago 999, 'Otro Pago', 1
+
+-- Se espera mensaje 'El nombre del medio de pago no puede ser nulo ni vacio.'
+exec facturacion.modificar_medio_de_pago 1, NULL, 1
+exec facturacion.modificar_medio_de_pago 2, '   ', 0
+
+-- Medio de pago ya existente, se espera mensaje 'Ya existe un medio de pago con ese nombre!
+exec facturacion.modificar_medio_de_pago 2, 'Tarjeta Visa', 1
+
+/*****   facturacion.eliminar_medio_de_pago
+        @id_medio_de_pago int  *****/
+
+-- Error al eliminar, se espera mensaje 'No existe un medio de pago con ese id'
+exec facturacion.eliminar_medio_de_pago 999
+
+-- Se elimina el siguiente registro
+exec facturacion.eliminar_medio_de_pago 1
+
+print '========================================SOCIO========================================'
+/*
+==========================================================================================================================
+												SOCIO
+========================================================================================================================== */
 /***** socios.insertar_socio 
 						@dni int,
 						@nombre varchar(40),
@@ -501,30 +334,6 @@ exec socios.obtener_precio_actual
 						@id_responsable_menor int = 0,
 						@parentesco varchar(15) = ''	*****/
 
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'facturacion.pago'
-exec eliminar_y_restaurar_tabla 'facturacion.factura'
-exec eliminar_y_restaurar_tabla 'socios.grupo_familiar'
-exec eliminar_y_restaurar_tabla 'socios.socio'
-exec eliminar_y_restaurar_tabla 'socios.obra_social'
-exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
-exec eliminar_y_restaurar_tabla 'socios.categoria'
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'socios.rol'
-exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
-
--- Crear los roles
-insert into socios.rol (nombre, descripcion) values ('Usuario', 'Rol comun'), ('Admin', 'Administracion')
-
--- Creo los medios de pago
-insert into facturacion.medio_de_pago (nombre_medio_pago) values ('Mercadopago'), ('Tarjeta')
-
--- Crear las obras sociales
-insert into socios.obra_social (nombre_obra_social) values ('OSDE'), ('GALENO')
-
--- Crear las categorias por edad
-insert into socios.categoria (edad_minima, edad_maxima, nombre_categoria) values (1, 17, 'menor'), (18, 64, 'adulto'), (65, 85, 'mayor')
-go
 
 -- Insercion exitosa de un socio adulto, 'Se ha creado de manera automatica una cuenta para que disfrutes de los servicios de los socios!'
 exec socios.insertar_socio
@@ -635,7 +444,11 @@ exec socios.eliminar_socio @dni = 88888;
 go
 
 
--- /////////////// GRUPO FAMILIAR ///////////////
+print '========================================GRUPO FAMILIAR========================================'
+/*
+==========================================================================================================================
+												GRUPO FAMILIAR
+========================================================================================================================== */
 -- Insertar un grupo familiar
 /*****	create or alter procedure socios.insertar_grupo_familiar
 		@id_socio_menor int,
@@ -652,27 +465,27 @@ exec socios.insertar_grupo_familiar @id_socio_menor = 4, @id_responsable = 2;
 exec socios.insertar_grupo_familiar @id_socio_menor = 2, @id_responsable = 888;
 
 -- Relacion duplicada, 'Ya existe una relación entre este menor y este responsable.'
-exec socios.insertar_grupo_familiar @id_socio_menor = 3, @id_responsable = 1;
-go
+exec socios.insertar_grupo_familiar @id_socio_menor = 3, @id_responsable = 1
 
 /***** pruebas de socios.eliminar_grupo_familiar *****/
 
 -- Eliminar una relacion que no existe, 'No existe una relación entre ese socio menor y ese responsable.'
-exec socios.eliminar_grupo_familiar @id_socio_menor = 5, @id_responsable = 3;
+exec socios.eliminar_grupo_familiar @id_socio_menor = 5, @id_responsable = 3
 
 -- Eliminar relacion de forma exitosa
-exec socios.eliminar_grupo_familiar @id_socio_menor = 3, @id_responsable = 1;
-go
+exec socios.eliminar_grupo_familiar @id_socio_menor = 3, @id_responsable = 1
 
--- /////////////// ACTIVIDAD ///////////////
-/*****	actividades.insertar_actividad(@nombreActividad varchar(36),@costoMensual decimal(9,3))	*****/
-
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'socios.grupo_familiar'
-exec eliminar_y_restaurar_tabla 'actividades.actividad'
+print '========================================ACTIVIDAD========================================'
+/*
+==========================================================================================================================
+												ACTIVIDAD
+========================================================================================================================== */
+/*****	create or alter procedure actividades.insertar_actividad
+		@nombreActividad varchar(36),
+		@costoMensual decimal(9,3)	*****/
 
 --Se espera la insercion exitosa de los siguientes registros
-exec actividades.insertar_actividad 'Voley', 2.9, '2025-07-27'
+exec actividades.insertar_actividad 'Voley', 3.9, '2025-07-27'
 exec actividades.insertar_actividad 'Baile', 9999.5, '2025-08-29'
 
 --Se espera mensaje 'El costo de actividad no debe ser negativo'
@@ -682,15 +495,7 @@ exec actividades.insertar_actividad 'Futbol', -1.5, '2026-06-19'
 exec actividades.insertar_actividad 'Baile', 1000, '2025-07-27'
 exec actividades.insertar_actividad 'Voley', 2.9, '2025-08-29'
 
---Eliminando registros restantes de la prueba en la tabla
-exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
-exec eliminar_y_restaurar_tabla 'actividades.actividad'
-
 /*****	actividades.eliminar_actividad(@id_actividad int)	*****/
-
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
-exec eliminar_y_restaurar_tabla 'actividades.actividad'
 
 --Insertanto registros para la prueba
 exec actividades.insertar_actividad 'Voley', 2.9, '2025-08-29'
@@ -704,15 +509,7 @@ exec actividades.eliminar_actividad 2
 exec actividades.eliminar_actividad 1
 exec actividades.eliminar_actividad 3
 
---Eliminando registros restantes de la prueba en la tabla
-exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
-exec eliminar_y_restaurar_tabla 'actividades.actividad'
-
 /*****	actividades.modificar_precio_actividad(@id_actividad int, @nuevoPrecio decimal(9,3))	*****/
-
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
-exec eliminar_y_restaurar_tabla 'actividades.actividad'
 
 --Insertanto registros para la prueba
 exec actividades.insertar_actividad 'Voley', 2.9, '2026-06-19'
@@ -729,10 +526,6 @@ exec actividades.modificar_precio_actividad 3, 99.5, '2026-06-19'
 
 /*****	actividades.insertar_actividad_extra(@nombreActividad varchar(36),@costo decimal(9,3))   *****/
 
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
-exec eliminar_y_restaurar_tabla 'actividades.actividad_extra'
-
 --Se espera la insercion exitosa de los siguiente registros
 exec actividades.insertar_actividad_extra 'Pileta verano', 5.9 
 exec actividades.insertar_actividad_extra 'Colonia de verano', 99.5
@@ -743,13 +536,7 @@ exec actividades.insertar_actividad_extra 'Colonia de verano', 10.9
 --Se espera mensaje 'El costo de la actividad no puede ser negativo'
 exec actividades.insertar_actividad_extra 'Alquiler del SUM', -10.9
 
---Eliminando registros restantes de la prueba en la tabla
-exec eliminar_y_restaurar_tabla 'actividades.actividad_extra'
-
 /*****	actividades.eliminar_actividad_extra(@id_actividad_extra int)	*****/
-
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'actividades.actividad_extra'
 
 --Insertanto registros para la prueba
 exec actividades.insertar_actividad_extra 'Pileta verano', 5.9 
@@ -763,13 +550,7 @@ exec actividades.eliminar_actividad_extra 2
 exec actividades.eliminar_actividad_extra 1
 exec actividades.eliminar_actividad_extra 3
 
---Eliminando registros restantes de la prueba en la tabla
-exec eliminar_y_restaurar_tabla 'actividades.actividad_extra'
-
 /*****	actividades.modificar_precio_actividad_extra(@id_actividad_extra int, @nuevoPrecio decimal(9,3))	*****/
-
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'actividades.actividad_extra'
 
 --Insertanto registros para la prueba
 exec actividades.insertar_actividad_extra 'Pileta vserano', 5.9 
@@ -785,18 +566,12 @@ exec actividades.modificar_precio_actividad_extra 1, -5.5
 --Se espera mensaje 'La actividad extra a modificar no existe'
 exec actividades.modificar_precio_actividad_extra 3, 5
 
---Eliminando registros restantes de la prueba en la tabla
-exec eliminar_y_restaurar_tabla 'actividades.actividad_extra'
-
--- /////////////// HORARIO ACTIVIDADES ///////////////
+print '========================================HORARIO ACTIVIDADES========================================'
+/*
+==========================================================================================================================
+												HORARIO ACTIVIDADES
+========================================================================================================================== */
 /****actividades.insertar_horario_actividad****/
-
---Preparando tablas para la prueba
-exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
-exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
-exec eliminar_y_restaurar_tabla 'actividades.actividad'
-exec eliminar_y_restaurar_tabla 'socios.categoria'
-
 
 --insertando registros para la prueba
 exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
@@ -819,14 +594,6 @@ exec actividades.insertar_horario_actividad 'Sabado', '18:00:00', '19:30:00', 8,
 
 --Se espera un mensaje de 'no se encontro la categoria con ese id'
 exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 10
-
---Eliminando registros restantes de la tabla de pruebas
-exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
-exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
-exec eliminar_y_restaurar_tabla 'actividades.actividad'
-exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
-exec eliminar_y_restaurar_tabla 'socios.categoria'
-
 
 /*****actividades.eliminar_horario_actividad(@id_horario int)****/
 
@@ -853,13 +620,6 @@ exec actividades.eliminar_horario_actividad 1
 exec actividades.eliminar_horario_actividad 7
 
 /*****actividades.modificar_horario_actividad*****/
---Preparando tablas para la prueba
-exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
-exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
-exec eliminar_y_restaurar_tabla 'actividades.actividad'
-exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
-exec eliminar_y_restaurar_tabla 'socios.categoria'
-go
 
 --insertando registros para la prueba
 exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
@@ -891,32 +651,22 @@ exec actividades.modificar_horario_actividad 2, 'Miercoles', '18:00:00', '19:30:
 --Se espera un mensaje de 'No se encontro horario con ese id'
 exec actividades.modificar_horario_actividad 9, 'Miercoles', '18:00:00', '19:30:00', 1, 1
 
-
--- /////////////// INSCRIPCION ACTIVIDAD ///////////////
+print '========================================INSCRIPCION ACTIVIDAD========================================'
+/*
+==========================================================================================================================
+												INSCRIPCION ACTIVIDAD
+========================================================================================================================== */
 /********	actividades.inscripcion_actividad
 			@id_socio int,
-			@id_horario int,
-			@id_actividad int)  ******/
---Preparando tabla para pruebas
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades'
-exec eliminar_y_restaurar_tabla 'facturacion.factura'
-exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
-exec eliminar_y_restaurar_tabla 'socios.socio'
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
-exec eliminar_y_restaurar_tabla 'actividades.actividad'
-exec eliminar_y_restaurar_tabla 'socios.obra_social'
-exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
-exec eliminar_y_restaurar_tabla 'socios.categoria'
-exec eliminar_y_restaurar_tabla 'socios.rol'
-exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
+			@id_actividad int,
+			@lista_id_horarios varchar(200)  ******/
 
 --Insertanto registros para la prueba
 declare @fechaDePrueba date = GETDATE();
 exec socios.insertar_rol 'Cliente', @fechaDePrueba
-exec socios.insertar_usuario 1, 'passwordDeUsuario1', @fechaDePrueba
-exec socios.insertar_usuario 1, 'passwordDeUsuario2', @fechaDePrueba
-exec socios.insertar_usuario 1, 'passwordDeUsuario3', @fechaDePrueba
+exec socios.insertar_usuario @id_rol = 1, @usuario = 'grosso@gmail.com', @contraseña = 'passwordDeUsuario1', @fecha_vigencia_contraseña = @fechaDePrueba
+exec socios.insertar_usuario @id_rol = 1, @usuario = 'lautaro@gmail.com', @contraseña = 'passwordDeUsuario2', @fecha_vigencia_contraseña = @fechaDePrueba
+exec socios.insertar_usuario @id_rol = 1, @usuario = 'federico@gmail.com', @contraseña = 'passwordDeUsuario3', @fecha_vigencia_contraseña = @fechaDePrueba
 exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
 exec socios.insertar_categoria 'Cadete', 19, 27, 1.01, '2026-01-15'  
 exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
@@ -935,12 +685,15 @@ exec actividades.insertar_actividad 'tenis', 13000, '2025-09-20'
 
 --Insercion de horarios
 exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 1
+exec actividades.insertar_horario_actividad 'Martes', '18:00:00', '19:30:00', 1, 1
 exec actividades.insertar_horario_actividad 'Jueves', '18:00:00', '19:30:00', 3, 2
 exec actividades.insertar_horario_actividad 'Martes', '19:00:00', '20:00:00', 2, 2
 
+select * from  actividades.horario_actividades
+
 --Se deberían insertar con éxito los siguientes registros
-exec actividades.inscripcion_actividad 1, 1, 1
-exec actividades.inscripcion_actividad 1, 3, 2
+exec actividades.inscripcion_actividad 1, 1, '1,4'
+exec actividades.inscripcion_actividad 1, 3, '2'
 
 --Se deberia generar un mensaje de 'No se encontro un horario para esa actividad'
 exec actividades.inscripcion_actividad 1, 3, 1
@@ -965,25 +718,11 @@ exec actividades.eliminar_inscripcion_actividad 2
 exec actividades.eliminar_inscripcion_actividad 1
 exec actividades.eliminar_inscripcion_actividad 7
 
---Eliminando registros restantes de la tabla de pruebas
-exec eliminar_y_restaurar_tabla 'facturacion.pago'
-exec eliminar_y_restaurar_tabla 'facturacion.factura'
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades'
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra'
-exec eliminar_y_restaurar_tabla 'actividades.actividad_extra'
-exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
-exec eliminar_y_restaurar_tabla 'socios.socio'
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
-exec eliminar_y_restaurar_tabla 'actividades.actividad'
-exec eliminar_y_restaurar_tabla 'socios.obra_social'
-exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
-exec eliminar_y_restaurar_tabla 'socios.categoria'
-exec eliminar_y_restaurar_tabla 'socios.rol'
-exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
-go
-
--- /////////////// ACTIVIDAD EXTRA ///////////////
+print '========================================ACTIVIDAD EXTRA========================================'
+/*
+==========================================================================================================================
+												ACTIVIDAD EXTRA
+========================================================================================================================== */
 /****	actividades.inscripcion_actividad_extra
 		@id_socio int,
 		@id_actividad_extra int,
@@ -993,11 +732,10 @@ go
 		@cant_invitados int)  *****/
 
 --Insertanto registros para la prueba
-declare @fechaDePrueba date = GETDATE();
 exec socios.insertar_rol 'Cliente', @fechaDePrueba
-exec socios.insertar_usuario 1, 'passwordDeUsuario1', @fechaDePrueba
-exec socios.insertar_usuario 1, 'passwordDeUsuario2', @fechaDePrueba
-exec socios.insertar_usuario 1, 'passwordDeUsuario3', @fechaDePrueba
+exec socios.insertar_usuario @id_rol = 1, @usuario = 'damian@gmail.com', @contraseña = 'passwordDeUsuario1', @fecha_vigencia_contraseña = @fechaDePrueba
+exec socios.insertar_usuario @id_rol = 1, @usuario = 'nicolas@gmail.com', @contraseña = 'passwordDeUsuario2', @fecha_vigencia_contraseña = @fechaDePrueba
+exec socios.insertar_usuario @id_rol = 1, @usuario = 'rivero@gmail.com', @contraseña = 'passwordDeUsuario3', @fecha_vigencia_contraseña = @fechaDePrueba
 exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
 exec socios.insertar_categoria 'Cadete', 19, 27, 1.01, '2026-01-15'  
 exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
@@ -1014,6 +752,7 @@ exec actividades.insertar_actividad_extra 'pileta', 10000
 exec actividades.insertar_actividad_extra 'SUM', 25000
 exec actividades.insertar_actividad_extra 'Colonia', 40000
 
+/* Lo dejo comentado para hacer las modificaciones...
 --Se deberIan insertar con Exito los siguientes registros
 exec actividades.inscripcion_actividad_extra 1, 1, '2025-06-12', '14:00:00', '16:00:00', 3
 exec actividades.inscripcion_actividad_extra 2, 2, '2025-06-13', '16:00:00', '17:30:00', 10
@@ -1039,24 +778,15 @@ exec actividades.eliminar_inscripcion_act_extra 2
 exec actividades.eliminar_inscripcion_act_extra 1
 exec actividades.eliminar_inscripcion_act_extra 7
 
--- /////////////// FACTURA ///////////////
+
+/*
+==========================================================================================================================
+												FACTURA
+========================================================================================================================== */
 /*****  facturacion.crear_factura  
 		@total decimal(9,3),
 		@dni int,
 		@actividad varchar(250)  *****/
-
--- Limpieza y preparación de las tablas necesarias
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra'
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades'
-exec eliminar_y_restaurar_tabla 'facturacion.factura'
-exec eliminar_y_restaurar_tabla 'socios.socio'
-exec eliminar_y_restaurar_tabla 'socios.usuario'
-exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago'
-exec eliminar_y_restaurar_tabla 'actividades.horario_actividades'
-exec eliminar_y_restaurar_tabla 'socios.categoria_precios'
-exec eliminar_y_restaurar_tabla 'socios.categoria'
-exec eliminar_y_restaurar_tabla 'socios.obra_social'
-exec eliminar_y_restaurar_tabla 'socios.rol'
 
 -- Inserción de datos requeridos para relaciones
 exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
@@ -1084,25 +814,6 @@ exec facturacion.crear_factura 15000.000, 4521515, 999
 		@tipo_movimiento varchar(20),
 		@id_medio_pago int  *****/
 
--- Limpieza y preparación de las tablas necesarias
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades';
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra';
-exec eliminar_y_restaurar_tabla 'actividades.horario_actividades';
-exec eliminar_y_restaurar_tabla 'actividades.acceso_pileta';
-exec eliminar_y_restaurar_tabla 'facturacion.pago';
-exec eliminar_y_restaurar_tabla 'facturacion.factura';
-exec eliminar_y_restaurar_tabla 'socios.grupo_familiar';
-exec eliminar_y_restaurar_tabla 'socios.socio';
-exec eliminar_y_restaurar_tabla 'socios.usuario';
-exec eliminar_y_restaurar_tabla 'socios.categoria_precios';
-exec eliminar_y_restaurar_tabla 'socios.categoria';
-exec eliminar_y_restaurar_tabla 'socios.obra_social';
-exec eliminar_y_restaurar_tabla 'socios.rol';
-exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago';
-exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
-exec eliminar_y_restaurar_tabla 'actividades.actividad';
-exec eliminar_y_restaurar_tabla 'actividades.actividad_extra';
-
 -- Inserción de datos requeridos para relaciones
 exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
 exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
@@ -1127,24 +838,6 @@ exec facturacion.pago_factura 2, 'PAGO', 999
 
 /*****  facturacion.reembolsar_pago
 		@id_factura int  *****/
-
--- Limpieza y preparación de las tablas necesarias
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades';
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra';
-exec eliminar_y_restaurar_tabla 'actividades.horario_actividades';
-exec eliminar_y_restaurar_tabla 'actividades.acceso_pileta';
-exec eliminar_y_restaurar_tabla 'facturacion.pago';
-exec eliminar_y_restaurar_tabla 'facturacion.factura';
-exec eliminar_y_restaurar_tabla 'socios.grupo_familiar';
-exec eliminar_y_restaurar_tabla 'socios.socio';
-exec eliminar_y_restaurar_tabla 'socios.usuario';
-exec eliminar_y_restaurar_tabla 'socios.categoria_precios';
-exec eliminar_y_restaurar_tabla 'socios.categoria';
-exec eliminar_y_restaurar_tabla 'socios.obra_social';
-exec eliminar_y_restaurar_tabla 'socios.rol';
-exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago';
-exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
-exec eliminar_y_restaurar_tabla 'actividades.actividad';
 
 -- Inserción de datos requeridos para relaciones
 exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
@@ -1184,24 +877,6 @@ exec actividades.inscripcion_actividad 1, 1, 1
 exec actividades.insertar_actividad_extra 'Sum', 9000
 exec actividades.inscripcion_actividad_extra 1, 2, '2025-06-28', '19:00:00', '20:00:00', 0
 
--- Limpieza y preparación de las tablas necesarias
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_actividades';
-exec eliminar_y_restaurar_tabla 'actividades.inscripcion_act_extra';
-exec eliminar_y_restaurar_tabla 'actividades.horario_actividades';
-exec eliminar_y_restaurar_tabla 'actividades.acceso_pileta';
-exec eliminar_y_restaurar_tabla 'facturacion.pago';
-exec eliminar_y_restaurar_tabla 'facturacion.factura';
-exec eliminar_y_restaurar_tabla 'socios.grupo_familiar';
-exec eliminar_y_restaurar_tabla 'socios.socio';
-exec eliminar_y_restaurar_tabla 'socios.usuario';
-exec eliminar_y_restaurar_tabla 'socios.categoria_precios';
-exec eliminar_y_restaurar_tabla 'socios.categoria';
-exec eliminar_y_restaurar_tabla 'socios.obra_social';
-exec eliminar_y_restaurar_tabla 'socios.rol';
-exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago';
-exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
-exec eliminar_y_restaurar_tabla 'actividades.actividad';
-
 -- Inserción de datos requeridos para relaciones
 exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
 exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
@@ -1216,12 +891,17 @@ exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000
 
 -- Se espera que inserte la actividad extra Sum
 exec actividades.insertar_actividad_extra 'Sum',9000
--- Se espera que inscriba al socio en la actividad y reserve el Sum, se genere la factura 
-exec actividades.inscripcion_actividad_extra 1,2,'2025-06-28','19:00:00','20:00:00',0
--- Se espera que no pueda inscribirse y reservar la actividad Sum porque ya esta reservada para ese dia
-exec actividades.inscripcion_actividad_extra 1,2,'2025-06-28','19:00:00','20:00:00',0
 
--- PRUEBAS PARA LA PILETA
+-- Se espera que inscriba al socio en la actividad y reserve el Sum, se genere la factura 
+exec actividades.inscripcion_actividad_extra 1, 1, '2025-06-28','19:00:00','20:00:00', 0
+
+-- Se espera que no pueda inscribirse y reservar la actividad Sum porque ya esta reservada para ese dia
+exec actividades.inscripcion_actividad_extra 1, 1, '2025-06-28','19:00:00','20:00:00', 0
+
+/*
+==========================================================================================================================
+												PILETA
+========================================================================================================================== */
 /***** actividades.inscribir_a_pileta
 		@id_socio int,
 		@es_invitado bit,
@@ -1230,23 +910,6 @@ exec actividades.inscripcion_actividad_extra 1,2,'2025-06-28','19:00:00','20:00:
 		@dni_invitado int = null,
 		@edad_invitado int = null,
 		@id_concepto int *****/
-
--- Limpieza de las tablas usadas por el SP
-exec eliminar_y_restaurar_tabla 'actividades.horario_actividades';
-exec eliminar_y_restaurar_tabla 'actividades.acceso_pileta';
-exec eliminar_y_restaurar_tabla 'facturacion.pago';
-exec eliminar_y_restaurar_tabla 'facturacion.factura';
-exec eliminar_y_restaurar_tabla 'socios.grupo_familiar';
-exec eliminar_y_restaurar_tabla 'socios.socio';
-exec eliminar_y_restaurar_tabla 'socios.usuario';
-exec eliminar_y_restaurar_tabla 'socios.categoria_precios';
-exec eliminar_y_restaurar_tabla 'socios.categoria';
-exec eliminar_y_restaurar_tabla 'socios.obra_social';
-exec eliminar_y_restaurar_tabla 'socios.rol';
-exec eliminar_y_restaurar_tabla 'facturacion.medio_de_pago';
-exec eliminar_y_restaurar_tabla 'actividades.actividad_precios'
-exec eliminar_y_restaurar_tabla 'actividades.actividad';
-exec eliminar_y_restaurar_tabla 'actividades.actividad_extra';
 
 -- Inserción de datos requeridos para relaciones
 exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
@@ -1307,10 +970,10 @@ exec actividades.inscribir_a_pileta
 
 /*Prueba descuento por dia de lluvia*/
 
---Se inserta una facturacion en un dia en el que llovio manualmente '2025-01-01',previamente se inserto el archivo de meteorologia 2025
+-- Se inserta una facturacion en un dia en el que llovio manualmente '2025-01-01',previamente se inserto el archivo de meteorologia 2025
 insert into facturacion.factura (dni,fecha_emision,total,estado,nombre,apellido,servicio)
 values(42838702,'2025-01-01',5000,'PAGADO','Juan','Roman','Pileta')
---Se espera que realice el reembolso de una factura pagada, en esa fecha, si llovio y si el dni es de socio
+
+-- Se espera que realice el reembolso de una factura pagada, en esa fecha, si llovio y si el dni es de socio
 exec facturacion.descuento_pileta_lluvia '2025-01-01'
-
-
+*/

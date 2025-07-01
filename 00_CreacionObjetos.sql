@@ -148,7 +148,7 @@ begin
 	Create table socios.usuario(
 		id_usuario int identity(1,1),
 		id_rol int,
-		usuario varchar(40),
+		usuario varchar(40) UNIQUE,
 		contraseña varchar(40) not null,
 		fecha_vigencia_contraseña date,
 		saldo decimal(10, 2) default 0,
@@ -341,7 +341,7 @@ begin
 	create table actividades.profesor(
 		id_profesor int identity(1, 1),
 		nombre_apellido varchar(45),
-		email varchar(50),
+		email varchar(50) UNIQUE,
 		constraint Actividades_id_profesor_PK Primary key(id_profesor)
 	)
 end
@@ -369,6 +369,7 @@ begin
 				Foreign Key(id_categoria) References socios.categoria(id_categoria),
 		Constraint Actividades_horario_FK_id_profesor
 				Foreign Key(id_profesor) References actividades.profesor(id_profesor)
+				ON DELETE SET NULL
 	)
 end
 else
@@ -474,9 +475,27 @@ begin
 		punto_venta varchar(40) default 'Club SQL Norte Janson 1145',
 		condicion_frente_iva varchar(30) default 'IVA Sujeto extento',
 		email varchar(30) default 'sqlnorte10@gmail.com',
-		cant char(1) default '1',
-		servicio varchar(60) default 'Actividad',
+		cant char(1) default '1'
 		Constraint Facturacion_factura_PK_id_factura Primary key(id_factura)
+	)
+end
+else
+begin
+	print 'La tabla facturacion.factura ya existe'
+end
+go
+
+-- Creacion de la tabla facturacion.detalle_factura
+if OBJECT_ID('facturacion.detalle_factura', 'U') IS NULL
+begin
+	Create table facturacion.detalle_factura(
+		id_detalle_factura int identity(1,1),
+		id_factura int,
+		servicio varchar(60),
+		monto decimal(10, 2),
+		Constraint Facturacion_detalle_factura_PK_id_factura Primary key(id_detalle_factura),
+		Constraint Facturacion_detalle_factura_FK_id_factura
+				Foreign Key(id_factura) References facturacion.factura(id_factura)
 	)
 end
 else

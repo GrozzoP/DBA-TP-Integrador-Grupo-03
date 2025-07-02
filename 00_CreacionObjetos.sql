@@ -267,7 +267,7 @@ go
 
 -- Creacion de la tabla socios.grupo_familiar
 IF OBJECT_ID('socios.grupo_familiar', 'U') IS NULL
-Begin
+begin
 	Create table socios.grupo_familiar(
 		id_socio_menor int,
 		id_responsable int,
@@ -276,7 +276,7 @@ Begin
 		Constraint Grupo_familiar_fk_responsable foreign key (id_responsable) references socios.socio(id_socio),
 		Constraint Grupo_familiar_fk_socio_menor foreign key (id_socio_menor) references socios.socio(id_socio)
 	)
-End
+end
 else
 begin
 	print 'La tabla socios.grupo_familiar ya existe'
@@ -462,16 +462,17 @@ if OBJECT_ID('facturacion.factura', 'U') IS NULL
 begin
 	Create table facturacion.factura(
 		id_factura int identity(1,1),
+		id_socio int,
 		fecha_emision date,
 		primer_vto date,
 		segundo_vto date,
 		total decimal(10,2),
-		total_con_recargo decimal(9, 2),
+		total_con_recargo decimal(10, 2),
+		periodo_desde date,
+		periodo_hasta date,
 		estado varchar(30) check (estado IN ('PAGADO', 'NO PAGADO')),
-		nombre varchar(40),
-		apellido varchar(40),
+		razon_social varchar(80),
 		dni int,
-		id_socio int,
 		tipo_comprobante char(1) default 'B',
 		punto_venta varchar(40) default 'Club SQL Norte Janson 1145',
 		condicion_frente_iva varchar(30) default 'IVA Sujeto extento',
@@ -490,15 +491,15 @@ go
 if OBJECT_ID('facturacion.detalle_factura', 'U') IS NULL
 begin
 	Create table facturacion.detalle_factura(
-		id_detalle_factura int identity(1,1),
+		id_detalle_factura int identity(1, 1),
+		id_factura int,
 		servicio varchar(60),
-		monto decimal(10, 2),
-		estado varchar(20) check (estado like 'NO GENERADO' or estado like 'GENERADO') default 'NO GENERADO',
-		fecha_detalle date default getdate(),
-		id_socio int,
+		precio_unitario decimal(10, 2),
+		subtotal decimal(10, 2),
+		cantidad tinyint DEFAULT 1
 		Constraint Facturacion_detalle_factura_PK_id_factura Primary key(id_detalle_factura),
-		Constraint Facturacion_detalle_factura_PK_id_socio Foreign key(id_socio) references
-		socios.socio(id_socio)
+		Constraint Facturacion_detalle_factura_FK_id_factura
+				Foreign Key(id_factura) References facturacion.factura(id_factura)
 	)
 end
 else

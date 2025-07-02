@@ -1484,68 +1484,145 @@ begin
    end
 end
 go
+
 --Procedimiento para generar una factura
-create or alter procedure facturacion.crear_factura(@id_socio int, @fecha_mes date)
+create or alter procedure facturacion.crear_factura(@id_socio int, @periodo date)
 as
 begin
-    declare @nombre varchar(40),
-            @apellido varchar(40),
-			@dni int,
-			@total decimal(10,2),
-			@id_menor int
+	set nocount on
+	declare @cuota_categoria int,
+			@edad int
 
-	set @total = 0
-
-    select @nombre = nombre,
-           @apellido = apellido,
-		   @dni = DNI
-    from socios.socio
-    where id_socio = @id_socio
-
-	if (@nombre is not null and @apellido is not null)
+	-- Verificar si el socio existe
+	if not exists(select 1 from socios.socio where id_socio = @id_socio)
 	begin
-
-	    set @total = (select SUM(monto) from facturacion.detalle_factura
-					  where MONTH(fecha_detalle) = MONTH(@fecha_mes) 
-					  and id_socio = @id_socio and estado = 'NO GENERADO')
-
-		set @id_menor = (select id_socio_menor from socios.grupo_familiar
-			             where id_responsable = @id_socio)
-
-		if(@id_menor is not null)
-		  begin
-		     set @total = @total + (
-			          select SUM(monto) from facturacion.detalle_factura
-					  where MONTH(fecha_detalle) = MONTH(@fecha_mes) 
-					  and id_socio = @id_menor and estado = 'NO GENERADO'
-			 )
-		  end
-		if(@total != 0)
-	    begin
-
-		--Actualizo en la tabla de detalles las facturas que fueron agregadas a la factura
-		update facturacion.detalle_factura
-		set estado = 'GENERADO'
-		where MONTH(fecha_detalle) = MONTH(@fecha_mes) 
-	    and (id_socio = @id_socio or id_socio = @id_menor) and estado = 'NO GENERADO' 
-
-		--Se realizan los descuentos
-		exec facturacion.descuento_actividad @id_socio , @total
-
-		insert into facturacion.factura(fecha_emision, primer_vto, segundo_vto, total, total_con_recargo,
-										estado, dni, nombre, apellido,id_socio)
-		values(getdate(), dateadd(day, 5, getdate()), dateadd(day, 10, getdate()), @total,
-			   @total + (@total * 0.1), 'NO PAGADO', @dni, @nombre, @apellido,@id_socio);
-		end
-		else
-		begin
-		  print 'Ya se genero una factura previa con ese socio este mes!'
-		end
+		print 'El usuario con ese id no existe.'
+		return
 	end
-	else
+
+	-- Si el socio es menor de edad, claramente no puedo hacerle una factura
+	-- Primero calculo la edad
+	select @edad =	DATEDIFF(YEAR, fecha_nacimiento, GETDATE()) -
+						CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, fecha_nacimiento, GETDATE()), fecha_nacimiento) > GETDATE()
+							THEN 1
+							ELSE 0
+						end
+					from socios.socio
+					where id_socio = @id_socio
+
+	if(@edad < 18)
 	begin
-	  print 'No se encontro un socio con ese dni'
+		print 'No se le puede hacer la factura a un menor de edad!'
+		return
 	end
+			
+	-- Obtengo el valor de la cuota correspondiente a la categoria
+	select @cuota_categoria = costo_membresia
+	from socios.categoria
+	where id_categoria = (select id_categoria from socios.socio where id_socio = @id_socio)
+
+	-- Verifico que la cuota tenga un valor realmente
+	if(@cuota_categoria IS NULL)
+	begin
+		print 'No se pudo definir el valor de la cuota correspondiente a la categoria del socio'
+		return
+	end
+
+	begin transaction
+		begin try
+			declare @total_cuotas decimal(10, 2),
+					@total_actividades decimal(10, 2),
+					@total_actividades_menores decimal(10, 2),
+					@descuento_actividad int = 0,
+					@cuota_categoria_menor decimal(10, 2),
+					@cantidad_menores int,
+					@cantidad_actividades int,
+					@fecha_emision date,
+					@vencimiento_1 date,
+					@vencimiento_2 date,
+					@periodo_desde date,
+					@periodo_hasta date,
+					@razon_social varchar(80)
+
+			-- Defino las fechas de vencimiento
+			set @fecha_emision = GETDATE()
+			set @vencimiento_1 = DATEADD(DAY, 5, @fecha_emision)
+			set @vencimiento_2 = DATEADD(DAY, 5, @vencimiento_1)
+
+			-- Voy a generar la razon social del socio (Nombre y apellido)
+			select @razon_social = CONCAT(nombre, ' ', apellido)
+			from socios.socio
+			where id_socio = @id_socio
+
+			-- Ahora, el periodo de facturacion
+			set @periodo_desde = DATEFROMPARTS(YEAR(@periodo), MONTH(@periodo), 1)
+			set @periodo_hasta = EOMONTH(@periodo)
+
+			-- Primero, trato el tema de las cuotas, de base, tengo la cuota del socio en particular
+			set @total_cuotas = @cuota_categoria
+
+			-- Luego, deberia verificar si forma parte de un grupo familiar
+			if exists(select 1 from socios.grupo_familiar where id_responsable = @id_socio)
+			begin
+				-- Busco cuanto vale la categoria del socio menor
+				select @cuota_categoria_menor = costo_membresia 
+				from socios.categoria 
+				where nombre_categoria = 'Menor'
+
+				-- Valido que exista
+				if(@cuota_categoria_menor IS NULL)
+				begin
+					print 'No se pudo encontrar el valor de la cuota para los socios afiliados al grupo familiar que son menores de edad.'
+					return
+				end
+
+				-- Busco cuantos menores hay en el grupo familiar
+				select @cantidad_menores = COUNT(*)
+				from socios.grupo_familiar
+				where id_responsable = @id_socio
+
+				-- Actualizo el valor total de las membresias
+				set @total_cuotas = (@total_cuotas + (@cantidad_menores * @cuota_categoria_menor)) * 0.85
+			end
+
+			-- Ahora, verifico por el lado de las actividades
+			select @total_actividades =	ISNULL(SUM(a.precio_mensual), 0),
+				   @cantidad_actividades = COUNT(*)
+			from actividades.inscripcion_actividades ia
+			join actividades.actividad a on a.id_actividad = ia.id_actividad
+			where ia.id_socio = @id_socio
+
+			-- Pero si tengo un grupo familiar, seguramente ellos tambien realicen actividades...
+			if exists (select 1 from socios.grupo_familiar where id_responsable = @id_socio)
+			begin
+				select @total_actividades_menores = ISNULL(SUM(a.precio_mensual), 0),
+					   @cantidad_actividades = @cantidad_actividades + COUNT(*)
+				from socios.grupo_familiar gf
+				join actividades.inscripcion_actividades ia on gf.id_socio_menor = ia.id_socio
+				join actividades.actividad a on a.id_actividad = ia.id_actividad
+				where gf.id_responsable = @id_socio
+
+				-- Sumo las actividades de los menores y del socio mayor
+				set @total_actividades = @total_actividades + @total_actividades_menores
+			end
+
+			-- Si se verifica esto, aplico el descuento
+			if(@cantidad_actividades > 1)
+			begin
+				set @total_actividades = @total_actividades * 0.9
+			end
+
+			-- Ahora, puedo insertar en la factura
+			insert into facturacion.factura(id_socio, fecha_emision, primer_vto, segundo_vto, estado, total, total_con_recargo,
+			periodo_desde, periodo_hasta, razon_social)
+			values (@id_socio, @fecha_emision, @vencimiento_1, @vencimiento_2, 'NO PAGADO', @total_actividades + @total_cuotas,
+			@periodo_desde, @periodo_hasta, @razon_social)
+
+			commit transaction
+		end try
+	begin catch
+		rollback transaction
+	end catch
 end
 go
 

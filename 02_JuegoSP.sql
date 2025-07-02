@@ -779,7 +779,7 @@ exec actividades.eliminar_inscripcion_act_extra 1
 exec actividades.eliminar_inscripcion_act_extra 7
 
 
-/*
+
 ==========================================================================================================================
 												FACTURA
 ========================================================================================================================== */
@@ -797,18 +797,53 @@ exec socios.insertar_obra_social 'OSDE', '1134225566'
 -- Se espera inserción exitosa del socio
 exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', '1133445566', '1133445577', 1, 12, 1, 1, 1
 
--- Se espera que se cree correctamente una nueva factura
-exec facturacion.crear_factura 10000.000, 42838702, 1
+-- Se espera que se inserten las actividades correctamente para cobrarlas a fin de mes
+exec facturacion.generar_detalle_factura 'Futbol Tenis',440.50,1
+exec facturacion.generar_detalle_factura 'Rugby Tenis',1440.50,1
+exec facturacion.generar_detalle_factura 'Voley',140.50,1
+exec facturacion.generar_detalle_factura 'Baile Artistico',12440.50,1
 
--- Se espera mensaje: 'El total a facturar no puede ser menor o igual a 0!'
-exec facturacion.crear_factura 0.000, 42838702, 1
+select*from facturacion.detalle_factura
 
--- Se espera mensaje: 'El total a facturar no puede ser menor o igual a 0!'
-exec facturacion.crear_factura -500.000, 42838702, 1
+--Se espera que se genere la factura del mes actual, 01-07-2025
+exec facturacion.crear_factura 1,'2025-07-01'
 
--- Se espera mensaje: 'No existe ningun individuo que posea ese DNI en el sistema'
-exec facturacion.crear_factura 15000.000, 4521515, 999
+--Luego de generar la factura, los detalles de la facturan pasan a estar generados
+--denegando la posibilidad de generar nuevamente una factura con esos cobros
 
+select*from facturacion.factura
+--Se agregan nuevamente actividades
+
+exec facturacion.generar_detalle_factura 'Futbol Tenis',440.50,1
+exec facturacion.generar_detalle_factura 'Rugby Tenis',1440.50,1
+exec facturacion.generar_detalle_factura 'Voley',140.50,1
+
+--Te genera mas facturas en ese mes, por si en algun caso, se genero y nuevamente se requeria generar
+exec facturacion.crear_factura 1,'2025-07-01'
+--Se paga la factura, el estado de factura se cambia a pagado, y se registra como pago en la tabla de pagos
+exec facturacion.pago_factura 1,'PAGO',1
+-- Se realiza un reembolso del pago, pago a cuenta del usuario
+exec facturacion.reembolsar_pago 2
+/*
+select*from facturacion.factura
+select*from facturacion.pago
+select*from socios.usuario
+select*from facturacion.detalle_factura
+**/
+--Se ingresa nuevamente actividades para poder realizar pagos con saldo a favor
+exec facturacion.generar_detalle_factura 'Rugby Tenis',1440.50,1
+--Se paga la factura con saldo a favor
+exec facturacion.pago_factura_debito 3,'PAGO',1
+--Se espera que debite del saldo del usuario, pague la factura y se registre el pago
+/*
+select*from facturacion.factura
+select*from facturacion.pago
+select*from socios.usuario
+select*from facturacion.detalle_factura
+*/
+
+--================================================
+/*
 /*****  facturacion.pago_factura 
 		@id_factura int,
 		@tipo_movimiento varchar(20),
@@ -897,7 +932,7 @@ exec actividades.inscripcion_actividad_extra 1, 1, '2025-06-28','19:00:00','20:0
 
 -- Se espera que no pueda inscribirse y reservar la actividad Sum porque ya esta reservada para ese dia
 exec actividades.inscripcion_actividad_extra 1, 1, '2025-06-28','19:00:00','20:00:00', 0
-
+*/
 /*
 ==========================================================================================================================
 												PILETA

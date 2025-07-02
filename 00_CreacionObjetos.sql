@@ -471,12 +471,13 @@ begin
 		nombre varchar(40),
 		apellido varchar(40),
 		dni int,
+		id_socio int,
 		tipo_comprobante char(1) default 'B',
 		punto_venta varchar(40) default 'Club SQL Norte Janson 1145',
 		condicion_frente_iva varchar(30) default 'IVA Sujeto extento',
 		email varchar(30) default 'sqlnorte10@gmail.com',
-		cant char(1) default '1'
-		Constraint Facturacion_factura_PK_id_factura Primary key(id_factura)
+		Constraint Facturacion_factura_PK_id_factura Primary key(id_factura),
+		Constraint Facturacion_factura_FK_id_socio Foreign key (id_socio) references socios.socio(id_socio)
 	)
 end
 else
@@ -490,17 +491,19 @@ if OBJECT_ID('facturacion.detalle_factura', 'U') IS NULL
 begin
 	Create table facturacion.detalle_factura(
 		id_detalle_factura int identity(1,1),
-		id_factura int,
 		servicio varchar(60),
 		monto decimal(10, 2),
+		estado varchar(20) check (estado like 'NO GENERADO' or estado like 'GENERADO') default 'NO GENERADO',
+		fecha_detalle date default getdate(),
+		id_socio int,
 		Constraint Facturacion_detalle_factura_PK_id_factura Primary key(id_detalle_factura),
-		Constraint Facturacion_detalle_factura_FK_id_factura
-				Foreign Key(id_factura) References facturacion.factura(id_factura)
+		Constraint Facturacion_detalle_factura_PK_id_socio Foreign key(id_socio) references
+		socios.socio(id_socio)
 	)
 end
 else
 begin
-	print 'La tabla facturacion.factura ya existe'
+	print 'La tabla facturacion.detalle_factura ya existe'
 end
 go
 
@@ -515,7 +518,6 @@ begin
 		tipo_movimiento varchar(20),
 		id_medio_pago int,
 		id_socio int,
-		servicio varchar(250),
 		Constraint Facturacion_pago_PK_id_pago Primary key(id_pago),
 		Constraint Facturacion_pago_FK_id_factura
 				Foreign Key(id_factura) References facturacion.factura(id_factura),

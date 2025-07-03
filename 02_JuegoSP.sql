@@ -807,8 +807,8 @@ exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000
 exec socios.insertar_socio  41288888, 'Messi', 'Messi', 'messi@gmail.com', '1990-06-01', '1121555566', '1333445577', 1, 12, 1, 1, 1
 exec socios.insertar_socio  51283188,'Liomeñ', 'Messi', 'lion@gmail.com', '2015-06-01', '1123445566', '1333445577', 1, 12, 1, 1, 2,'PADRE'
 --Inscribimos a Lionel y al Hijo de lionel a actividades
-exec actividades.inscripcion_actividad  2,1,'1'
-exec actividades.inscripcion_actividad  3,2,'3'
+exec actividades.inscripcion_actividad 2, 1, '1'
+exec actividades.inscripcion_actividad 3, 2, '3'
 --Se espera que se encuentre en detalles de factura, ambas inscripciones
 select*from facturacion.detalle_factura
 --Una vez inscriptos, se cargaran mas actividades de esos socios en el club
@@ -828,18 +828,17 @@ select*from facturacion.detalle_factura
 --Luego se abona la factura creada
 exec facturacion.pago_factura 1,'PAGO', 1
 
---Roman, no se inscribio a ninguna actividad durante el mes, sin embargo continua siendo socio
---Por lo tanto solo se generara la factura que contiene la membresia incluida.
 exec facturacion.crear_factura 1,'2025-07-02'
 
-select*from actividades.horario_actividades
-select*from actividades.actividad
-select*from facturacion.detalle_factura
-select*from socios.socio
-select*from facturacion.factura
-select*from facturacion.pago
-select*from actividades.inscripcion_actividades
-select*from socios.grupo_familiar
+select * from actividades.horario_actividades
+select * from actividades.actividad
+select * from facturacion.detalle_factura
+select * from socios.socio
+select * from socios.obra_social
+select * from facturacion.factura
+select * from facturacion.pago
+select * from actividades.inscripcion_actividades
+select * from socios.grupo_familiar
 
 --Se agregan nuevamente actividades
 --================================================

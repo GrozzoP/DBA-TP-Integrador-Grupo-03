@@ -1524,12 +1524,25 @@ as
 begin
 	set nocount on
 	declare @cuota_categoria int,
-			@edad int
+			@edad int,
+			@nombre_categoria varchar(50)
 
 	-- Verificar si el socio existe
 	if not exists(select 1 from socios.socio where id_socio = @id_socio)
 	begin
-		print 'El usuario con ese id no existe.'
+		raiserror('El usuario con ese id no existe.', 16, 1)
+		return
+	end
+
+	if exists (
+		select 1
+		from facturacion.factura
+		where id_socio = @id_socio
+		and periodo_desde = DATEFROMPARTS(YEAR(@periodo), MONTH(@periodo), 1)
+		and estado = 'NO PAGADO'
+	)
+	begin
+		raiserror('Ya existe una factura pendiente para ese socio en el período indicado.', 16, 1)
 		return
 	end
 
@@ -1545,7 +1558,7 @@ begin
 
 	if(@edad < 18)
 	begin
-		print 'No se le puede hacer la factura a un menor de edad!'
+		raiserror('No se le puede hacer la factura a un menor de edad!', 16, 1)
 		return
 	end
 	
@@ -1555,19 +1568,20 @@ begin
 		 and (id_factura IS NOT NULL) and (YEAR(fecha_inscripcion) = YEAR(@periodo))
 	)
 	begin
-	   print 'Ya se genero una factura para ese mes, anio y socio'
-	   return 
+		raiserror('Ya se genero una factura para ese mes, anio y socio', 16, 1)
+		return 
 	end
 
 	-- Obtengo el valor de la cuota correspondiente a la categoria
-	select @cuota_categoria = costo_membresia
+	select @cuota_categoria = costo_membresia,
+		   @nombre_categoria = nombre_categoria
 	from socios.categoria
 	where id_categoria = (select id_categoria from socios.socio where id_socio = @id_socio)
 
 	-- Verifico que la cuota tenga un valor realmente
 	if(@cuota_categoria IS NULL)
 	begin
-		print 'No se pudo definir el valor de la cuota correspondiente a la categoria del socio'
+		raiserror('No se pudo definir el valor de la cuota correspondiente a la categoria del socio', 16, 1)
 		return
 	end
 
@@ -1578,8 +1592,11 @@ begin
 					@total_actividades_menores decimal(10, 2),
 					@descuento_actividad int = 0,
 					@cuota_categoria_menor decimal(10, 2),
+					@cuota_categoria_cadete decimal(10, 2),
 					@cantidad_menores int,
+					@cantidad_cadetes int,
 					@cantidad_actividades int,
+					@id_factura int,
 					@fecha_emision date,
 					@vencimiento_1 date,
 					@vencimiento_2 date,
@@ -1597,7 +1614,7 @@ begin
 			from socios.socio
 			where id_socio = @id_socio
 
-			-- Ahora, el periodo de facturacion//ELIMINAR(?)
+			-- Ahora, el periodo de facturacion
 			set @periodo_desde = DATEFROMPARTS(YEAR(@periodo), MONTH(@periodo), 1)
 			set @periodo_hasta = EOMONTH(@periodo)
 
@@ -1610,93 +1627,165 @@ begin
 				-- Busco cuanto vale la categoria del socio menor
 				select @cuota_categoria_menor = costo_membresia 
 				from socios.categoria 
-				where nombre_categoria = 'Menor'--'Menor'
+				where nombre_categoria = 'Menor'
 
-				-- Valido que exista
-				if(@cuota_categoria_menor IS NULL)
+				-- Busco cuanto vale la categoria del socio 'cadete' (que tambien es menor)
+				select @cuota_categoria_cadete = costo_membresia 
+				from socios.categoria 
+				where nombre_categoria = 'Cadete'
+
+				-- Busco la cantidad de socios con categoria 'menor' y 'cadete' a cargo del socio
+				select @cantidad_menores = SUM(case when sc.nombre_categoria = 'Menor'  then 1 else 0 end),
+					   @cantidad_cadetes = SUM(case when sc.nombre_categoria = 'Cadete' then 1 else 0 end)
+				from socios.grupo_familiar gf
+				join socios.socio s on gf.id_socio_menor = s.id_socio
+				join socios.categoria sc on s.id_categoria = sc.id_categoria
+				where gf.id_responsable = @id_socio;
+
+				-- Valido que exista el valor de la cuota de la categoria 'menor'
+				if(@cantidad_menores > 0 AND @cuota_categoria_menor IS NULL)
 				begin
-					print 'No se pudo encontrar el valor de la cuota para los socios afiliados al grupo familiar que son menores de edad.'
+					raiserror('No se pudo encontrar el valor de la cuota (MENOR) para los socios afiliados al grupo familiar que son menores de edad.', 16, 1)
 					return
 				end
 
-				-- Busco cuantos menores hay en el grupo familiar
-				select @cantidad_menores = COUNT(*)
-				from socios.grupo_familiar
-				where id_responsable = @id_socio
+				-- Valido que exista el valor de la cuota de la categoria 'cadete'
+				if(@cantidad_cadetes > 0 AND @cuota_categoria_cadete IS NULL)
+				begin
+					raiserror('No se pudo encontrar el valor de la cuota (CADETE) para los socios afiliados al grupo familiar que son menores de edad.', 16, 1)
+					return
+				end
 
 				-- Actualizo el valor total de las membresias
-				set @total_cuotas = (@total_cuotas + (@cantidad_menores * @cuota_categoria_menor)) * 0.85
+				set @total_cuotas = @total_cuotas + 
+									(@cantidad_menores * ISNULL(@cuota_categoria_menor, 0)) + 
+									(@cantidad_cadetes * ISNULL(@cuota_categoria_cadete, 0))
 			end
 
 			-- Ahora, verifico por el lado de las actividades
-		
-			select @total_actividades = ISNULL(SUM(precio_unitario), 0) from facturacion.detalle_factura
-			where id_socio = @id_socio and (MONTH(fecha_inscripcion) = MONTH(@periodo))
-			and (YEAR(fecha_inscripcion) = YEAR(@periodo))
-			and (id_factura IS NULL)
+			select @total_actividades =	ISNULL(SUM(a.precio_mensual), 0),
+				   @cantidad_actividades = COUNT(*)
+			from actividades.inscripcion_actividades ia
+			join actividades.actividad a on a.id_actividad = ia.id_actividad
+			where ia.id_socio = @id_socio
 
 			-- Pero si tengo un grupo familiar, seguramente ellos tambien realicen actividades...
 			if exists (select 1 from socios.grupo_familiar where id_responsable = @id_socio)
 			begin
-			
-			 --Tengo que sumar al total, a todos los menores que hicieron actividades, que tengan por responsables
-			 --al id socio
-			    select @total_actividades_menores = ISNULL(SUM(precio_unitario), 0) from facturacion.detalle_factura d
-				join socios.grupo_familiar g
-				on g.id_responsable = @id_socio
-				where g.id_responsable = @id_socio and (MONTH(fecha_inscripcion) = MONTH(@periodo))
-				and (id_factura IS NULL) and (YEAR(fecha_inscripcion) = YEAR(@periodo))
+				select @total_actividades_menores = ISNULL(SUM(a.precio_mensual), 0),
+					   @cantidad_actividades = @cantidad_actividades + COUNT(*)
+				from socios.grupo_familiar gf
+				join actividades.inscripcion_actividades ia on gf.id_socio_menor = ia.id_socio
+				join actividades.actividad a on a.id_actividad = ia.id_actividad
+				where gf.id_responsable = @id_socio
 
 				-- Sumo las actividades de los menores y del socio mayor
 				set @total_actividades = @total_actividades + @total_actividades_menores
 			end
+
+			-- Si se verifica esto, aplico el descuento
+			if(@cantidad_actividades > 1)
+			begin
+				set @total_actividades = @total_actividades * 0.9
+			end
+
 			-- Ahora, puedo insertar en la factura
-			declare @dni int
-			set @dni = (
-			            select DNI from socios.socio
-						where id_socio = @id_socio
-			)
-
-			exec facturacion.descuento_pileta_lluvia @id_socio,@periodo,@total_actividades OUTPUT
-
 			insert into facturacion.factura(id_socio, fecha_emision, primer_vto, segundo_vto, estado, total, total_con_recargo,
-			periodo_desde, periodo_hasta, razon_social,dni)
-			values (@id_socio, @fecha_emision, @vencimiento_1, @vencimiento_2, 'NO PAGADO', (@total_actividades + @total_cuotas),
-			(@total_actividades + @total_cuotas)*1.1,@periodo_desde, @periodo_hasta, @razon_social,@dni)
+			periodo_desde, periodo_hasta, razon_social)
+			values (@id_socio, @fecha_emision, @vencimiento_1, @vencimiento_2, 'NO PAGADO', @total_actividades + @total_cuotas,
+			(@total_actividades + @total_cuotas) * 1.1, @periodo_desde, @periodo_hasta, @razon_social)
 
-			declare @id_factura int
-			set @id_factura = (
-			   select top 1 id_factura from facturacion.factura
-			   where id_socio = @id_socio and fecha_emision = @fecha_emision
-			)
+			set @id_factura = SCOPE_IDENTITY()
 
-			update facturacion.detalle_factura
-			set id_factura = @id_factura
-			where id_socio = @id_socio and (MONTH(fecha_inscripcion) = MONTH(@periodo))
-			and (id_factura IS NULL) and (YEAR(fecha_inscripcion) = YEAR(@periodo))
+			-- CUOTA DEL SOCIO RESPONSABLE / MAYOR DE EDAD
+			insert into facturacion.detalle_factura (id_factura, id_socio, servicio, precio_unitario, cantidad, subtotal)
+			values (@id_factura, @id_socio, CONCAT('Cuota membresia ', @nombre_categoria), @cuota_categoria, 1, @cuota_categoria)
+
+			-- CUOTA DEL SOCIO MENOR VINCULADOS CON EL SOCIO MAYOR
+			if(@cantidad_menores > 0)
+			begin
+				insert into facturacion.detalle_factura (id_factura, id_socio, servicio, precio_unitario, cantidad, subtotal)
+				values (@id_factura, @id_socio, 'Cuota membresia menor', @cuota_categoria_menor, @cantidad_menores,
+						@cuota_categoria_menor * @cantidad_menores)
+			end
+
+			-- CUOTA DEL SOCIO CADETE VINCULADOS CON EL SOCIO MAYOR
+			if(@cantidad_cadetes > 0)
+			begin
+				insert into facturacion.detalle_factura (id_factura, id_socio, servicio, precio_unitario, cantidad, subtotal)
+				values (@id_factura, @id_socio, 'Cuota membresia cadete', @cuota_categoria_cadete, @cantidad_cadetes,
+						@cuota_categoria_cadete * @cantidad_cadetes)
+			end
 			
+			-- Ahora, inserto las actividades del socio titular
+			insert into facturacion.detalle_factura(id_factura, id_socio, servicio, precio_unitario, subtotal, cantidad)
+			select @id_factura, 
+				   ia.id_socio, 
+				   a.nombre_actividad, 
+				   a.precio_mensual, 
+				   a.precio_mensual, 
+				   1
+			from actividades.inscripcion_actividades ia
+			join actividades.actividad a
+				on ia.id_actividad = a.id_actividad
+			where ia.id_socio = @id_socio
+
+			-- Ahora, inserto las actividades del socio menor
 			if exists (select 1 from socios.grupo_familiar where id_responsable = @id_socio)
 			begin
-				update facturacion.detalle_factura 
-				set id_factura = @id_factura
-				from facturacion.detalle_factura
-				join socios.grupo_familiar g 
-					on g.id_responsable = @id_socio
-				where g.id_responsable = @id_socio and (MONTH(fecha_inscripcion) = MONTH(@periodo))
-				and (id_factura IS NULL) and (YEAR(fecha_inscripcion) = YEAR(@periodo))
-            end
-			
+            insert into facturacion.detalle_factura(id_factura, id_socio, servicio, precio_unitario, subtotal, cantidad)
+            select @id_factura,
+				   ia.id_socio,
+                   a.nombre_actividad,
+                   a.precio_mensual,
+                   a.precio_mensual,
+                   1
+            from socios.grupo_familiar gf
+            join actividades.inscripcion_actividades ia
+              on gf.id_socio_menor = ia.id_socio
+            join actividades.actividad a
+              on ia.id_actividad = a.id_actividad
+			end
+            
+			print CONCAT('La factura para el socio ', @id_socio, ' se genero corectamente!')
 			commit transaction
 		end try
 	begin catch
-		rollback transaction
+		if @@TRANCOUNT > 0
+			rollback transaction
+
+		declare @msg nvarchar(4000) = ERROR_MESSAGE();
+        throw 50000, @msg, 1
 	end catch
+end
+go
+
+-- Procedimiento para eliminar/anular factura
+create or alter procedure facturacion.anular_factura(@id_factura int)
+as
+begin
+	set nocount on
+
+	if not exists(select 1
+		from facturacion.factura
+		where id_factura = @id_factura
+		or estado = 'Anulada'
+	)
+	begin
+		print 'La factura no ha sido creada o ya fue anulada!' 
+	end
+
+	update facturacion.factura
+	set estado = 'Anulada'
+	where id_factura = @id_factura
+
+	print 'La factura con id ' + @id_factura + ' fue anulada correctamente!'
 end
 go
 
 -- Procedimiento encargado de descontar el saldo del usuario en caso de que pague con saldo de su cuenta
 create or alter procedure facturacion.descuento_saldo_usuario
-(@id_socio int, @monto decimal(9,3))
+(@id_socio int, @monto decimal(10, 2))
 as
 begin
     declare @monto_total int = 0
@@ -1739,81 +1828,82 @@ create or alter procedure facturacion.pago_factura(
 )
 as
 begin
-  SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-  BEGIN TRANSACTION
+    set nocount on
 
-    declare @monto decimal(9,3)
-
-    if exists(
-	   select id_factura from facturacion.factura
-	   where id_factura = @id_factura and estado like 'NO PAGADO'
+	-- Valido que exista el id de la factura
+	if not exists(
+		select 1
+		from facturacion.factura
+		where id_factura = @id_factura
 	)
 	begin
-	    if exists(
-		  select id_medio_de_pago from facturacion.medio_de_pago
-		  where id_medio_de_pago = @id_medio_pago
-		)
-		begin
-			 if exists(
-			   select primer_vto from facturacion.factura
-			   where primer_vto >= GETDATE()
-			 ) 
-			 begin
-			      set @monto = (
-								 select total from facturacion.factura
-								 where id_factura = @id_factura
-			                    )
-			 end
-			 else
-			 begin
-			    if exists(
-				   select segundo_vto from facturacion.factura
-				   where segundo_vto >= GETDATE()
-				)
-				  begin
-				  set @monto = (
-								 select total_con_recargo from facturacion.factura
-								 where id_factura = @id_factura
-			                    )
-				  end
-				  else
-				  begin
-				      set @monto = -1
-				  end
-			 end
-
-			 if(@monto = -1)
-			 begin
-			     print 'La factura ya excedio la fecha de pago'
-			 end
-			 else
-			 begin		
-			     declare @id_socio int
-                 set @id_socio = (
-				    select id_socio from facturacion.factura
-					where id_factura = @id_factura
-				 )
-
-			     -- Inserto los datos en la tabla de pago
-				 insert into facturacion.pago(id_factura,id_socio,fecha_pago,monto_total,tipo_movimiento,id_medio_pago)
-				 values(@id_factura, @id_socio, getdate(), @monto, 'PAGO', @id_medio_pago)
-				 -- Modifico el estado de la factura
-
-				 update facturacion.factura
-				 set estado = 'PAGADO'
-				 where id_factura = @id_factura
-			 end		 
-		end
-		else
-		begin
-		   print 'No se encontro el id de ese medio de pago'
-		end
+		raiserror('No existe factura con id %d.', 16, 1, @id_factura)
 	end
-	else
-	begin
-	   print 'No se encontro factura con ese id o la factura ya fue abonada'
-	end
-  COMMIT TRANSACTION
+
+	-- Validar medio de pago
+    if not exists(
+        select 1 
+        from facturacion.medio_de_pago
+        where id_medio_de_pago = @id_medio_pago
+    )
+    begin
+        raiserror('Medio de pago con id% es invalido!', 16, 1, @id_medio_pago)
+    end
+
+    set transaction isolation level read committed
+    begin transaction
+    begin try
+        declare @estado varchar(30),
+				@primer_vto date,
+				@segundo_vto date,
+				@total decimal(10,2),
+				@total_con_recargo decimal(10,2),
+				@id_socio int
+
+        select	@estado = estado,
+				@primer_vto = primer_vto,
+				@segundo_vto = segundo_vto,
+				@total = total,
+				@total_con_recargo = total_con_recargo,
+				@id_socio = id_socio
+        from facturacion.factura
+        where id_factura = @id_factura
+
+        if @estado <> 'NO PAGADO'
+        begin
+            raiserror('La factura %d ya fue abonada o no esta en estado "NO PAGADO".', 16, 1, @id_factura)
+        end
+
+		-- Calculo el monto segun la fecha de vencimiento
+        declare @monto decimal(10,2),
+                @hoy date = CAST(GETDATE() as date)
+
+        if @hoy <= @primer_vto
+            set @monto = @total
+        else if @hoy <= @segundo_vto
+            set @monto = @total_con_recargo
+        else
+		begin
+			raiserror('La factura %d ya excedio el segundo vencimiento!', 16, 1, @id_factura)
+		end
+
+        -- Una vez validado todo, puedo asegurarme insertar el pago
+        insert into facturacion.pago(id_factura, id_socio, fecha_pago, monto_total, tipo_movimiento, id_medio_pago)
+        values(@id_factura, @id_socio, GETDATE(), @monto, @tipo_movimiento, @id_medio_pago)
+
+		-- Ya puedo actualizar la factura, asegurando que se pago
+        update facturacion.factura
+        set estado = 'PAGADO'
+        where id_factura = @id_factura
+
+        commit transaction
+    end try
+    begin catch
+        rollback transaction
+
+        declare @err_msg nvarchar(4000) = ERROR_MESSAGE()
+        raiserror('Error en pago_factura: %s', 16, 1, @err_msg)
+    end catch
 end
 go
 
@@ -1907,25 +1997,34 @@ end
 go
 
 -- Procedimiento encargado de sumar el saldo en caso de algun reembolso o pago a cuenta
--- Se hace uso del float para establecer porcentajes 0.1, 0.05, 0.2, 0.5
-create or alter procedure facturacion.pago_a_cuenta(@id_socio int,@monto_reembolo decimal(9,3),@porcentaje float)
+create or alter procedure facturacion.pago_a_cuenta(@id_socio int,@monto_reembolo decimal(9,3), @porcentaje float)
 as
 begin
     declare @monto_final decimal(9,3)
     declare @id_user int
 
+	begin try
+		if not exists(select 1 from socios.socio where id_socio = @id_socio)
+		begin
+			raiserror('El usuario con ese id no existe.', 16, 1)
+			return
+		end
 
-	set @monto_final = (@monto_reembolo*@porcentaje)
+		set @monto_final = (@monto_reembolo*@porcentaje)
 
-	set @id_user = (
-	     select id_usuario from socios.socio
-		 where id_socio = @id_socio
-	)
+		set @id_user = (
+			 select id_usuario from socios.socio
+			 where id_socio = @id_socio
+		)
 
-	update socios.usuario
-	set saldo = (saldo + @monto_final)
-	where id_usuario = @id_user
-
+		update socios.usuario
+		set saldo = (saldo + @monto_final)
+		where id_usuario = @id_user
+	end try
+	begin catch
+		declare @err_msg nvarchar(4000) = ERROR_MESSAGE()
+		raiserror('Error en pago_a_cuenta: %s', 16, 1, @err_msg)
+	end catch
 end
 go
 
@@ -2037,12 +2136,11 @@ begin
 		)
 
 		if @total_horarios_encontrados != @total_horarios_ok
-            throw 50000, 'Lo/s ID/s de los horarios insertados no se corresponden con la actividad!', 1;
+            throw 50000, 'Lo/s ID/s de los horarios insertados no se corresponden con la actividad!', 1
 
 		-- Ya revisado todo, puedo insertar tranquilamente
 		insert into actividades.inscripcion_actividades(id_socio, id_actividad)
 		values (@id_socio, @id_actividad)
-
 
 		set @id_inscripcion = SCOPE_IDENTITY()
 
@@ -2051,21 +2149,8 @@ begin
 		select @id_inscripcion, h.id_horario
 		from #TEMP_ID_HORARIOS h
 
-
-			declare @nombre_actividad varchar(300)
-			set @nombre_actividad = (
-					 select nombre_actividad from actividades.actividad
-					 where id_actividad = @id_actividad
-			)
-
-			declare @fecha_generacion date
-			set @fecha_generacion = getdate()
-
-			exec facturacion.descuento_actividad  @id_socio, @monto OUTPUT
-			exec facturacion.generar_detalle_factura @id_socio,@nombre_actividad,@monto, @fecha_generacion
-
         commit transaction
-        print 'Inscripción correctamente!'
+        print 'Inscripción generada correctamente!'
 		drop table #TEMP_ID_HORARIOS
     end try
     begin catch
@@ -2108,7 +2193,7 @@ begin
         where id_inscripcion = @id_inscripcion
 
         commit
-        print 'Inscripcion eliminada correctamente!';
+        print 'Inscripcion eliminada correctamente!'
     end try
     begin catch
         rollback
@@ -2202,32 +2287,47 @@ begin
 	  print 'No se encontro el id del socio a inscribir a la actividad'
 	end
 end
-go
+go*/
+
 -- ================================== PILETA ==================================
 -- Procedimiento para anotarse al uso de la pileta, ya sea un socio o un invitado del mismo
 create or alter procedure actividades.inscribir_a_pileta
     @id_socio int,
     @es_invitado bit,
+	@id_concepto int,
     @nombre_invitado varchar(40) = null,
     @apellido_invitado varchar(40) = null,
     @dni_invitado int = null,
-    @edad_invitado int = null,
-	@id_concepto int
+    @edad_invitado int = null
 as
 begin
-    set nocount on;
+    set nocount on
 
-    declare @id_invitado int = null,
-			@id_tarifa int,
-			@dni int,
-			@id_factura int,
-			@id_categoria_pileta int,
-			@tarifa int,
-			@edad int,
-			@nombre_categoria varchar(30)
+	if not exists(select 1 from socios.socio where id_socio = @id_socio)
+	begin
+		print 'No existe un socio con ese id!'
+		return
+	end
 
     begin try
-        begin tran
+        begin transaction
+
+		declare @id_invitado int = null,
+				@id_tarifa int,
+				@dni int,
+				@id_factura int,
+				@id_categoria_pileta int,
+				@tarifa int,
+				@edad int,
+				@id_concepto_dia int,
+				@nombre_categoria varchar(30),
+				@descripcion varchar(35),
+				@nombre_concepto varchar(35),
+				@razon_social varchar(60),
+				@fecha_emision date = CAST(GETDATE() as date),
+				@primer_vencimiento date,
+				@segundo_vencimiento date,
+				@reembolso decimal(10, 2) = 0
 
 		if @es_invitado = 1
 			set @edad = @edad_invitado;
@@ -2250,7 +2350,6 @@ begin
 		if @id_categoria_pileta is null
 		begin
 			print 'No existe una categoria creada para la edad de la persona que quiere ir a la pileta!'
-			rollback tran
 			return
 		end
 		else
@@ -2263,59 +2362,123 @@ begin
 
 				set @id_invitado = scope_identity()
 				set @dni = @dni_invitado
-
-				select top 1 @id_tarifa = id_tarifa,
-							 @tarifa = precio_invitado
-				from actividades.tarifa_pileta
-				where id_categoria_pileta = @id_categoria_pileta
-				  and id_concepto = @id_concepto
-				  and (vigencia_hasta is null or vigencia_hasta >= getdate())
-				order by vigencia_hasta
 			end
 			else
 			begin
-				select @dni = DNI from socios.socio where id_socio = @id_socio
-
-				select top 1 @id_tarifa = id_tarifa,
-							 @tarifa = precio_socio
-				from actividades.tarifa_pileta
-				where id_categoria_pileta = @id_categoria_pileta
-				  and id_concepto = @id_concepto
-				  and (vigencia_hasta is null or vigencia_hasta >= getdate())
-				order by vigencia_hasta
+				select @dni = DNI
+				from socios.socio
+				where id_socio = @id_socio
 			end
 
-			-- Validar si la tarifa no fue encontrada
-			if @id_tarifa is null or @tarifa is null
+			select top 1 @tarifa = (case when @es_invitado = 1 then precio_invitado else precio_socio end)
+			from actividades.tarifa_pileta
+			where id_categoria_pileta = @id_categoria_pileta
+				and id_concepto = @id_concepto
+				and (vigencia_hasta is NULL or vigencia_hasta >= GETDATE())
+			order by vigencia_hasta
+
+			-- Validar si la tarifa no existe
+			if @tarifa is null
 			begin
 				print 'No se encontro una tarifa vigente para esta categoria y concepto'
-				rollback tran
 				return
 			end
 
-			-- Creo la factura en base a la tarifa correspondiente a la pileta
-			exec facturacion.crear_factura @tarifa, @dni, 'Pileta'
+			set @primer_vencimiento = DATEADD(DAY, 5, @fecha_emision)
+			set @segundo_vencimiento = DATEADD(DAY, 5, @primer_vencimiento)
+			set @descripcion = CONCAT('Acceso pileta - ', @nombre_categoria)
 
-			-- Obtengo el id de la factura recien insertada
-			select top 1 @id_factura = id_factura
-			from facturacion.factura
-			where dni = @dni
-			  and servicio = 'Pileta'
-			  and total = @tarifa
-			order by fecha_emision desc;
+			-- Voy a verificar si tengo que hacer un reintegro por lluvia
+			select @id_concepto_dia = id_concepto
+			from actividades.concepto_pileta
+			where nombre = 'Valor del dia'
 
-			-- Guardo los datos en el acceso a pileta, por ahora la factura la dejo NULL porque hay que modificar cosas
+			if(@nombre_concepto = 'Valor del dia')
+			begin
+				if exists(
+					select 1
+					from facturacion.dias_lluviosos
+					where fecha = CAST(GETDATE() as date)
+					and lluvia = 1
+				)
+				begin
+					declare @precio decimal(10, 2)
+
+					select top 1 @precio = 
+						case when @es_invitado = 1 then precio_invitado else precio_socio end
+					from actividades.tarifa_pileta
+					where id_concepto = @id_concepto_dia
+					  and id_categoria_pileta = @id_categoria_pileta
+					  and (vigencia_hasta is NULL or vigencia_hasta >= CAST(GETDATE() as date))
+					order by vigencia_hasta
+
+					set @reembolso = @precio * 0.6
+				end
+			end
+
+			if(@es_invitado = 1)
+			begin
+				-- Creo la factura para el invitado con sus datos
+				insert into facturacion.factura(id_socio, fecha_emision, primer_vto, segundo_vto, estado, total, total_con_recargo, 
+				periodo_desde, periodo_hasta, razon_social, dni)
+				values (@id_socio, @fecha_emision, @primer_vencimiento, @segundo_vencimiento, 'PAGADO', @tarifa, @tarifa * 1.1, @fecha_emision,
+				@fecha_emision, CONCAT(@nombre_invitado, ' ', @apellido_invitado), @dni_invitado)
+
+				-- Obtengo el id de la factura creada
+				set @id_factura = SCOPE_IDENTITY()
+
+				-- Inserto el detalle de la factura
+				insert into facturacion.detalle_factura(id_factura, id_socio, servicio, precio_unitario, cantidad, subtotal)
+				values (@id_factura, @id_socio, @descripcion, @tarifa - ISNULL(@reembolso, 0), 1, @tarifa - ISNULL(@reembolso, 0))
+				
+				-- El invitado realiza el pago
+				insert into facturacion.pago(id_factura, id_socio, fecha_pago, monto_total, tipo_movimiento, id_medio_pago)
+				values (@id_factura, @id_socio, GETDATE(), @tarifa, 'PAGO INMEDIATO',
+						(select id_medio_de_pago from socios.socio where id_socio = @id_socio))
+			end
+			else
+			begin
+				-- Si todavia hay una factura que no se pago, le agrego el pago a esa misma
+				select top 1 @id_factura = id_factura
+				from facturacion.factura
+				where id_socio = @id_socio and estado = 'NO PAGADO'
+				order by fecha_emision desc
+
+				if(@id_factura is NULL)
+				begin
+					select @razon_social = CONCAT(nombre, ' ', apellido)
+					from socios.socio
+					where id_socio = @id_socio
+
+					insert into facturacion.factura (id_socio, fecha_emision, primer_vto, segundo_vto, estado, total, total_con_recargo,
+					periodo_desde, periodo_hasta, razon_social, dni)
+					values (@id_socio, @fecha_emision, @primer_vencimiento, @segundo_vencimiento, 'NO PAGADO', @tarifa, @tarifa * 1.1, 
+					@fecha_emision, @fecha_emision, @razon_social, @dni);
+					
+					set @id_factura = SCOPE_IDENTITY()
+				end
+
+				-- Insertar el item en la factura recien creada o en la que ya estaba
+				insert into facturacion.detalle_factura (id_factura, id_socio, fecha_inscripcion, servicio, precio_unitario, subtotal, cantidad)
+				values (@id_factura, @id_socio, @fecha_emision, @descripcion, @tarifa, @tarifa, 1)
+
+				-- Si llovio ese dia...
+				if(@reembolso <> 0)
+					exec facturacion.pago_a_cuenta @id_socio, @reembolso, 1
+			end
+
+
+			-- Guardo los datos en el acceso a pileta
 			insert into actividades.acceso_pileta(fecha_inscripcion, id_socio, id_invitado, id_tarifa, id_factura)
-			values(getdate(), @id_socio, @id_invitado, @id_tarifa, @id_factura);
+			values(getdate(), @id_socio, @id_invitado, @id_tarifa, @id_factura)
 
-			commit tran;
+			commit transaction
 			end
     end try
     begin catch
         if @@trancount > 0
-            rollback tran
+            rollback transaction
         print 'No se pudo realizar la inscripcion a la pileta!'
     end catch
 end
 go
-*/

@@ -2118,6 +2118,66 @@ begin
 end
 go
 
+create or alter procedure facturacion.ver_factura(@id_factura int)
+as
+begin
+   if exists(
+        select id_factura from facturacion.factura
+		where id_factura = @id_factura
+   )
+   begin
+          create table #informacion(
+		      id_factura int, 
+			  fecha_emision date,
+			  fecha_inscripcion date,
+			  servicio varchar(300),
+			  id_socio int,
+			  total decimal(10,2),
+			  precio_unitario decimal(10,2),
+			  estado varchar(50),
+			  nombre varchar(200),
+			  dni int		  	
+		  )
+
+		  declare @total decimal(10,2)
+
+		  set @total = (
+		    select total from facturacion.factura
+			where id_factura = @id_factura
+		  )
+
+		  declare @estado varchar(50)
+
+		  set @estado = (
+		     select estado from facturacion.factura
+			 where id_factura = @id_factura
+		  )
+		  declare @fecha_emitir date
+		  set @fecha_emitir = (
+		     select fecha_emision from facturacion.factura
+			 where id_factura = @id_factura
+		  )
+
+		  insert into #informacion(id_factura,id_socio,fecha_emision,servicio,estado,nombre,dni,total)
+		  select id_factura,id_socio,fecha_emision,'FACTURA',estado,razon_social,dni,total from facturacion.factura
+		  where id_factura = @id_factura
+
+		  insert into #informacion(id_factura,id_socio,fecha_emision,fecha_inscripcion,servicio,total,precio_unitario,estado,nombre,dni)
+		  select id_factura,f.id_socio,@fecha_emitir,fecha_inscripcion,servicio,@total,precio_unitario,@estado,(nombre + '' + apellido),s.DNI from facturacion.detalle_factura f
+		  join socios.socio s
+		  on s.id_socio = f.id_socio
+		  where id_factura = @id_factura 
+
+		  select*from #informacion
+
+		  drop table #informacion
+   end
+   else
+   begin
+      print 'No se encontro una factura con ese id'
+   end
+end
+go
 -- ================================== INSCRIPCION ACTIVIDAD ==================================
 /* Procedimiento para inscribirse a una actividad...
 		Para enviar los horarios, se hara mediante una cadena separada por comas que enviara

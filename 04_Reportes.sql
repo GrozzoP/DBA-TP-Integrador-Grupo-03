@@ -59,125 +59,144 @@ BEGIN
 		END
 END
 go
-	
+-- En las nuevos reportes facturacion.nombre_mes_a_espaniol no es utilizado.
+
+--FuncionAuxiliar para sacar la edad
+create or alter function socios.calcular_edad (@fecha_nacimiento date)
+returns int
+as
+begin
+	declare @edad int
+	declare @fecha_actual date
+	set @fecha_actual = GETDATE()
+	set @edad = DATEDIFF(YEAR, @fecha_nacimiento, @fecha_actual)
+	if MONTH(@fecha_nacimiento) >= MONTH(@fecha_actual) AND
+		DAY(@fecha_nacimiento) >= DAY(@fecha_actual)
+		begin
+			set @edad = @edad
+		end
+	else
+		begin
+			set @edad = @edad - 1
+		end
+	return @edad
+end
+go
+--Fin de FuncionAuxiliar
+
 --Reporte 1
 create or alter procedure facturacion.morosos_recurrentes(@inicio date, @fin date, @cant_faltas_minimas int)
 as
 begin
-	if @inicio > @fin
+	if(@inicio > @fin)
 	begin
 		print('El inicio del rango es una fecha posterior a la fecha fin del rango.')
+		return
 	end
-	else
-	begin
-		declare @rango varchar(50)
-		set @rango = CONCAT('Periodo_de_',FORMAT(@inicio, 'yyyy-MM-dd'),'_a_',FORMAT(@fin, 'yyyy-MM-dd'));
-		declare @SQL nvarchar(MAX)
-		set @SQL = '
-		with morosos_recurrentes_cant([Nro de socio], [Nombre y apellido], [Mes incumplido], [Cant Incumplidas]) as
-		(
-			select	ss.id_socio as [Nro de socio], 
-			CONCAT(ff.nombre,'' '',ff.apellido) as [Nombre y apellido], 
-			DATENAME(MONTH, ff.fecha_emision) as [Mes incumplido],
-			COUNT(DATENAME(MONTH, ff.fecha_emision)) as [Cant Incumplidas]
-			from socios.socio ss
-			inner join facturacion.factura ff on ss.dni = ff.dni 
-			where (ff.fecha_emision between '''+FORMAT(@inicio, 'yyyy-MM-dd')+''' and '''+FORMAT(@fin, 'yyyy-MM-dd')+''') and (ff.segundo_vto < '''+FORMAT(@fin, 'yyyy-MM-dd')+''') and ff.estado = ''NO PAGADO''
-			group by ss.id_socio, CONCAT(ff.nombre,'' '',ff.apellido), DATENAME(MONTH, ff.fecha_emision)
-		),
-		morosos_recurrentes_rank ([Nro de socio], [Nombre y apellido], [Mes incumplido], [Cant Incumplidas], [Ranking]) as
-		(
-			select [Nro de socio], [Nombre y apellido], [Mes incumplido], [Cant Incumplidas], 
-			RANK() over (partition by [Mes incumplido] order by [Cant Incumplidas] desc) [Ranking] from morosos_recurrentes_cant
-		)
-		select 
-		(
-		select [Nro de socio] as Nro_de_socio, [Nombre y apellido] as Nombre_y_apellido, [Mes incumplido] as Mes_incumplido from morosos_recurrentes_rank where [Cant Incumplidas] > '''+CAST(@cant_faltas_minimas as varchar(2))+''' order by [Ranking]
-		for XML PATH(''Socio''), ROOT('''+@rango+'''), TYPE
-		)
-		for XML PATH(''Morosos_recurrentes'');'
-		EXEC sp_executesql @SQL
-	end
+	else if (@fin > GETDATE())
+		begin
+			set @fin = GETDATE()
+		end
+	declare @periodo varchar(23)
+	set @periodo = CONCAT(CONVERT(VARCHAR(10), @inicio, 120),' - ', CONVERT(VARCHAR(10), @fin, 120));
+	with morosos_recurrentes(Nro_de_Socio, Nombre_y_Apellido, Mes, Cant_Incumplida)
+	as
+	(
+		select ff.id_socio, CONCAT(ss.nombre,' ',ss.apellido) , DATENAME(MONTH,ff.fecha_emision), COUNT(*) over(partition by ff.id_socio) from facturacion.factura ff
+		left join socios.socio ss on ss.id_socio = ff.id_socio
+		where (ff.segundo_vto between @inicio and @fin) and ff.estado = 'NO PAGADO'
+	)
+	select @periodo as Periodo, Nro_de_Socio, Nombre_y_Apellido, Mes from morosos_recurrentes
+	where Cant_Incumplida > @cant_faltas_minimas
+	order by Cant_Incumplida desc
+	for XML PATH('Socio'), ROOT('Morosos_Recurrentes')
 end
 go
--- exec facturacion.morosos_recurrentes '2025-01-01', '2025-12-1', 2
-go
+-- exec facturacion.morosos_recurrentes '2024-01-01', '2025-12-1', 2
 
 --Reporte 2
 create or alter procedure facturacion.reporte_ingresos_por_actividad
 as
 begin
-	 declare @fecha_actual date
-	 declare @fecha_inicio date
-	 set @fecha_actual = GETDATE()
-	 set @fecha_inicio = CONCAT(YEAR(@fecha_actual),'-','01','-','01');
-	with facturas_de_deportes_pagadas ([Deporte], [Mes de pago], [Monto]) as
+	declare @fecha_actual date
+	set @fecha_actual = GETDATE();
+	with Meses(nro_mes, nombre_mes) AS
 	(
-		select aa.nombre_actividad [Deporte], [Mes de pago], [Monto] from 
-		(
-			select df.servicio, facturacion.nombre_mes_a_espaniol(DATENAME(MONTH, fp.fecha_pago)) [Mes de pago] ,fp.monto_total [Monto] from facturacion.factura ff 
-			inner join facturacion.pago fp on ff.id_factura = fp.id_factura
-			inner join facturacion.detalle_factura df on ff.id_factura = df.id_factura
-			where fp.fecha_pago >= @fecha_inicio
-		) t1
-		right join actividades.actividad aa on aa.nombre_actividad = t1.servicio
-	)select [Deporte],
-			ISNULL([Enero], 0) [Enero], ISNULL([Febrero], 0) [Febrero], ISNULL([Marzo], 0) [Marzo], ISNULL([Abril], 0) [Abril],
-			ISNULL([Mayo], 0) [Mayo], ISNULL([Junio], 0) [Junio], ISNULL([Julio], 0) [Julio], ISNULL([Agosto], 0) [Agosto],
-			ISNULL([Septiembre], 0) [Septiembre], ISNULL([Octubre], 0) [Octubre], ISNULL([Noviembre], 0) [Noviembre], ISNULL([Diciembre], 0) [Diciembre] 
-			from facturas_de_deportes_pagadas pivot( sum([Monto]) for [Mes de pago] in 
-			([Enero], [Febrero], [Marzo], [Abril], [Mayo], [Junio], [Julio], [Agosto], [Septiembre], [Octubre], [Noviembre], [Diciembre]))nombre_pivot
-			for XML PATH('Reporte'), ROOT('Reporte_acumulado_mensual_de_ingresos_por_deporte')
+		select 1, 'Enero' UNION ALL
+		select 2, 'Febrero' UNION ALL
+		select 3, 'Marzo' UNION ALL
+		select 4, 'Abril' UNION ALL
+		select 5, 'Mayo' UNION ALL
+		select 6, 'Junio' UNION ALL
+		select 7, 'Julio' UNION ALL
+		select 8, 'Agosto' UNION ALL
+		select 9, 'Septiembre' UNION ALL
+		select 10, 'Octubre' UNION ALL
+		select 11, 'Noviembre' UNION ALL
+		select 12, 'Diciembre'
+	),
+	actividad_por_mes(Actividad, Mes, facturado) as
+	(
+		select aa.nombre_actividad, m.nombre_mes, ISNULL(fdf.precio_unitario,0) from actividades.actividad aa
+		cross join Meses m
+		left join facturacion.detalle_factura fdf on fdf.servicio = aa.nombre_actividad
+		and YEAR(fdf.fecha_inscripcion) = YEAR(@fecha_actual) 
+		and MONTH(fdf.fecha_inscripcion) = m.nro_mes
+	)
+	select * from actividad_por_mes
+	pivot( sum(facturado) for Mes in ([Enero], [Febrero], [Marzo], [Abril], [Mayo], [Junio], [Julio], [Agosto], [Septiembre], [Octubre], [Noviembre], [Diciembre])) as t1
+	for XML PATH('Reporte'), ROOT('Reporte_acumulado_mensual_de_ingresos_por_deporte')
 end
+go
 -- exec facturacion.reporte_ingresos_por_actividad
-go
---Reporte 3
-create or alter procedure socios.socios_con_ausentes as
-begin
-	select	ss.nombre [Nombre], 
-			ss.apellido [Apellido], 
-			sc.nombre_categoria [Categoria],
-			a.nombre_actividad [Actividad],
-			COUNT(ap.asistencia) as [Cant_inasistencias]
-	from actividades.presentismo ap
-	left join socios.socio ss on ap.id_socio = ss.id_socio
-	left join socios.categoria sc on ss.id_categoria = sc.id_categoria
-	inner join actividades.actividad a on ap.id_actividad = a.id_actividad
-	where ap.asistencia = 'A'
-	group by ss.nombre, ss.apellido, sc.nombre_categoria, a.nombre_actividad
-	order by COUNT(ap.asistencia) desc
-	for XML PATH('Socio'), ROOT('Reporte_de_inasistencia_por_Actividad')
-end
 
--- exec socios.socios_con_ausentes
+--Reporte 3
+create or alter procedure socios.cant_inasitencia_por_cat_act as
+begin
+	declare @fecha_actual date
+	--set @fecha_actual = '2025-03-10';
+	set @fecha_actual = GETDATE();
+	--set @fecha_actual = poner una fecha aca porque en presentismo no hay datos para el mes actual ej 2025-03-10;
+	--asegurarse que los socios tiene una categoria asociada sino el informe no cumplira con lo pedido
+
+	with presentismo_por_cat_y_act (id_socio, Categoria, Actividad, cant_asistencias, cant_inasistencia) as
+	(
+		select distinct ss.id_socio, sc.nombre_categoria, aa.nombre_actividad, COUNT(case when ap.asistencia = 'P' then 1 end) over (partition by ss.id_socio,aa.nombre_actividad), COUNT(case when ap.asistencia = 'A' then 1 end) over (partition by ss.id_socio,aa.nombre_actividad)
+		from actividades.presentismo ap
+		inner join socios.socio ss on ss.id_socio = ap.id_socio
+		left join actividades.actividad aa on ap.id_actividad = aa.id_actividad
+		left join socios.categoria sc on ss.id_categoria = sc.id_categoria
+		where YEAR(ap.fecha_asistencia) = YEAR(@fecha_actual) and MONTH(ap.fecha_asistencia) = MONTH(@fecha_actual)
+	)
+	select Categoria, Actividad, COUNT(id_socio) AS cantidad_socios from presentismo_por_cat_y_act
+	where cant_asistencias != 0 and cant_inasistencia != 0
+	group by categoria, actividad
+	order by cantidad_socios desc
+	for XML PATH('Socio'), ROOT('Reporte_de_inasistencia_por_Categoria_y_Actividad')
+end
 go
+-- exec socios.cant_inasitencia_por_cat_act
 
 --Reporte 4
 create or alter procedure socios.socios_sin_presentismo_por_actividad
 as
 begin
-	with socios_con_asistencias (id_socio, id_actividad) as
+	declare @fecha_actual date
+	set @fecha_actual = GETDATE();
+	--set @fecha_actual = poner una fecha aca porque en presentismo no hay datos para el mes actual ej 2025-03-10;
+	with socios_con_asistencias (nombre, apellido, edad, categoria, actividad, cant_asistencias) as
 	(
-		select ap.id_socio, ap.id_actividad 
+		select ss.nombre, ss.apellido, socios.calcular_edad(ss.fecha_nacimiento), sc.nombre_categoria, aa.nombre_actividad,COUNT(case when ap.asistencia = 'P' then 1 end)
 		from actividades.presentismo ap
-		where ap.asistencia = 'A'
-		group by ap.id_socio, ap.id_actividad
+		left join socios.socio ss on ss.id_socio = ap.id_socio
+		left join actividades.actividad aa on ap.id_actividad = aa.id_actividad
+		left join socios.categoria sc on ss.id_categoria = sc.id_categoria
+		where YEAR(ap.fecha_asistencia) = YEAR(@fecha_actual) and MONTH(ap.fecha_asistencia) = MONTH(@fecha_actual)
+		group by ss.nombre, ss.apellido, socios.calcular_edad(ss.fecha_nacimiento), sc.nombre_categoria, aa.nombre_actividad
 	)
-	select	ss.nombre [Nombre], 
-			ss.apellido [Apellido], 
-			DATEDIFF(YEAR, ss.fecha_nacimiento, GETDATE()) [Edad], 
-			sc.nombre_categoria [Categoria], 
-			a.nombre_actividad [Actividad]
-	from socios_con_asistencias sca
-	left join socios.socio ss on ss.id_socio = sca.id_socio
-	left join socios.categoria sc on ss.id_categoria = sc.id_categoria
-	inner join actividades.actividad a on sca.id_actividad = a.id_actividad
-	where not exists(select 1 
-					 from actividades.presentismo ap
-						where ap.id_socio = sca.id_socio 
-						and ap.id_actividad = sca.id_actividad
-						and ap.asistencia = 'P')
+	select nombre, apellido, edad, categoria, actividad from socios_con_asistencias
+	where cant_asistencias = 0
 	for XML PATH('Socio'), ROOT('Socios_sin_asistencias_por_actividad')
 end
-
+go
 -- exec socios.socios_sin_presentismo_por_actividad

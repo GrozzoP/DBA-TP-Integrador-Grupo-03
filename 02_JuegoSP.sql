@@ -1052,6 +1052,14 @@ exec actividades.insertar_actividad 'Arte', 3200, '2026-08-25'
 
 	select*from actividades.actividad
 
+--Se insertan los profesores para esas actividades
+exec actividades.insertar_profesor 'Jose Manuel','josema@email.com'
+exec actividades.insertar_profesor 'Mario Luis','ma@email.com'
+exec actividades.insertar_profesor 'Albert Rolser','a@email.com'
+exec actividades.insertar_profesor 'Federico F','ff@email.com'
+
+	select*from actividades.profesor
+
 --Se agregan horarios para esas actividades
 exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 2
 exec actividades.insertar_horario_actividad 'Martes', '18:00:00', '19:30:00', 2, 2
@@ -1060,9 +1068,16 @@ exec actividades.insertar_horario_actividad  'Jueves', '18:00:00', '19:30:00', 1
 --En este caso se inserta la actividad Arte los viernes
 exec actividades.insertar_horario_actividad 'Viernes', '13:00:00', '16:30:00', 3, 2
 
+--Tambien se insertan los id de profesores que dan esa clase a esa hora
 
+exec actividades.insertar_profesor_actividad 1,1,1
+exec actividades.insertar_profesor_actividad 1,1,3
+exec actividades.insertar_profesor_actividad 2,2,2
+exec actividades.insertar_profesor_actividad 3,3,4
+
+--Se muestra como quedaron los horarios definidos
 	select*from actividades.horario_actividades
---//////GENERAR INSERCION DE PROFESORES
+
 -- Se espera inserción exitosa del socio Roman
 exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', '1133445566', '1133445577', 1, 10, 1, 1, 1
 
@@ -1127,7 +1142,7 @@ exec facturacion.reembolsar_pago 1
 --Ya que no se puede generar una factura del mes, dos veces el mismo mes
 --Entonces creamos una factura de una fecha pasada
 INSERT INTO actividades.inscripcion_actividades(id_socio,id_actividad,fecha_inscripcion)
-values(2,3,'2025-11-03')
+values(2,3,'2025-03-11')
 
      select*from actividades.inscripcion_actividades
 
@@ -1137,23 +1152,14 @@ exec facturacion.crear_factura 2,'2025-11-03'
 	select*from facturacion.detalle_factura
 	select*from facturacion.pago
 	select*from socios.usuario
+
 --Se cuenta con una factura no paga del socio 2, por lo tanto vamos a pagarla con saldo a favor del socio
+--se visualiza como se descuenta del saldo a favor del socio
 exec facturacion.pago_factura_debito 3,'PAGO',1
 
-
---Se espera que no te deje crear la factura del socio menor
-exec facturacion.crear_factura 3,'2025-07-02'
---Se espera que te deje crear la factura del socio mayor, y agregue los gastos del menor 
---Tambien a la factura
-exec facturacion.crear_factura 4,'2025-07-02'
-select*from facturacion.factura
---Si se ejecuta nuevamente, no te dejara crear mas facturas porque ya se ejecuto la factura del mes
-exec facturacion.crear_factura 2,'2025-07-02'
---Tambien en detalle factura, aparece la factura a la cual pertenecen las actividades
-select*from facturacion.detalle_factura
---Luego se abona la factura creada
-exec facturacion.pago_factura 1,'PAGO', 1
-
-exec facturacion.crear_factura 1,'2025-07-02'
+	select*from facturacion.factura
+	select*from facturacion.detalle_factura
+	select*from facturacion.pago
+	select*from socios.usuario
 
 

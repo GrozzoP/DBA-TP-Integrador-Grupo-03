@@ -1444,6 +1444,40 @@ begin
 end
 go
 
+create or alter procedure actividades.insertar_profesor_actividad
+    @id_profesor int,
+    @id_actividad int,
+	@id_horario int
+as
+begin
+    if exists (
+        select 1 from actividades.profesor 
+        where id_profesor = @id_profesor
+    )
+    begin
+	   if exists(
+	        select 1 from actividades.actividad a
+			join actividades.horario_actividades h
+			on h.id_actividad = a.id_actividad
+			where h.id_actividad = @id_actividad and h.id_horario = @id_horario
+	   )
+	   begin
+	         update actividades.horario_actividades
+			 set id_profesor = @id_profesor
+			 where id_horario = @id_horario
+	   end
+	   else
+	   begin
+	      print 'No existe actividad,horario con ese id'
+	   end 
+    end
+    else
+    begin
+        print 'No existe profesor con ese id'
+    end
+end
+go
+
 -- ================================== FACTURA ==================================
 
 create or alter procedure facturacion.generar_detalle_factura

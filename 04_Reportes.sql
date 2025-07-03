@@ -94,8 +94,9 @@ begin
 	(
 		select aa.nombre_actividad [Deporte], [Mes de pago], [Monto] from 
 		(
-			select ff.servicio , DATENAME(MONTH, fp.fecha_pago) [Mes de pago] ,fp.monto_total [Monto] from facturacion.factura ff 
+			select df.servicio, facturacion.nombre_mes_a_espaniol(DATENAME(MONTH, fp.fecha_pago)) [Mes de pago] ,fp.monto_total [Monto] from facturacion.factura ff 
 			inner join facturacion.pago fp on ff.id_factura = fp.id_factura
+			inner join facturacion.detalle_factura df on ff.id_factura = df.id_factura
 			where fp.fecha_pago >= @fecha_inicio
 		) t1
 		right join actividades.actividad aa on aa.nombre_actividad = t1.servicio
@@ -159,3 +160,23 @@ begin
 end
 
 -- exec socios.socios_sin_presentismo_por_actividad
+
+-- Creacion de una funcion para pasar los nombres de los meses a español en los reportes
+CREATE OR ALTER FUNCTION facturacion.nombre_mes_a_espaniol(@mes VARCHAR(20)) RETURNS VARCHAR(20) AS
+BEGIN
+	RETURN CASE 
+		WHEN @mes = 'January' THEN 'Enero'
+		WHEN @mes = 'February' THEN 'Febrero'
+		WHEN @mes = 'March' THEN 'Marzo'
+		WHEN @mes = 'April' THEN 'Abril'
+		WHEN @mes = 'May' THEN 'Mayo'
+		WHEN @mes = 'June' THEN 'Junio'
+		WHEN @mes = 'July' THEN 'Julio'
+		WHEN @mes = 'August' THEN 'Agosto'
+		WHEN @mes = 'September' THEN 'Septiembre'
+		WHEN @mes = 'October' THEN 'Octubre'
+		WHEN @mes = 'November' THEN 'Noviembre'
+		WHEN @mes = 'December' THEN 'Diciembre'
+			ELSE 'Error, mes no valido'
+		END
+END

@@ -1667,7 +1667,8 @@ begin
 				   @cantidad_actividades = COUNT(*)
 			from actividades.inscripcion_actividades ia
 			join actividades.actividad a on a.id_actividad = ia.id_actividad
-			where ia.id_socio = @id_socio
+			where ia.id_socio = @id_socio and (MONTH(ia.fecha_inscripcion) = MONTH(@periodo))
+			and (YEAR(ia.fecha_inscripcion) = YEAR(@periodo))
 
 			-- Pero si tengo un grupo familiar, seguramente ellos tambien realicen actividades...
 			if exists (select 1 from socios.grupo_familiar where id_responsable = @id_socio)
@@ -1677,7 +1678,8 @@ begin
 				from socios.grupo_familiar gf
 				join actividades.inscripcion_actividades ia on gf.id_socio_menor = ia.id_socio
 				join actividades.actividad a on a.id_actividad = ia.id_actividad
-				where gf.id_responsable = @id_socio
+				where gf.id_responsable = @id_socio and (MONTH(ia.fecha_inscripcion) = MONTH(@periodo))
+			    and (YEAR(ia.fecha_inscripcion) = YEAR(@periodo))
 
 				-- Sumo las actividades de los menores y del socio mayor
 				set @total_actividades = @total_actividades + @total_actividades_menores
@@ -1704,22 +1706,22 @@ begin
 			set @id_factura = SCOPE_IDENTITY()
 
 			-- CUOTA DEL SOCIO RESPONSABLE / MAYOR DE EDAD
-			insert into facturacion.detalle_factura (id_factura, id_socio, servicio, precio_unitario, cantidad, subtotal)
-			values (@id_factura, @id_socio, CONCAT('Cuota membresia ', @nombre_categoria), @cuota_categoria, 1, @cuota_categoria)
+			insert into facturacion.detalle_factura (id_factura,fecha_inscripcion ,id_socio, servicio, precio_unitario, cantidad, subtotal)
+			values (@id_factura,@periodo ,@id_socio, CONCAT('Cuota membresia ', @nombre_categoria), @cuota_categoria, 1, @cuota_categoria)
 
 			-- CUOTA DEL SOCIO MENOR VINCULADOS CON EL SOCIO MAYOR
 			if(@cantidad_menores > 0)
 			begin
-				insert into facturacion.detalle_factura (id_factura, id_socio, servicio, precio_unitario, cantidad, subtotal)
-				values (@id_factura, @id_socio, 'Cuota membresia menor', @cuota_categoria_menor, @cantidad_menores,
+				insert into facturacion.detalle_factura (id_factura,fecha_inscripcion, id_socio, servicio, precio_unitario, cantidad, subtotal)
+				values (@id_factura,@periodo ,@id_socio, 'Cuota membresia Menor', @cuota_categoria_menor, @cantidad_menores,
 						@cuota_categoria_menor * @cantidad_menores)
 			end
-
+			
 			-- CUOTA DEL SOCIO CADETE VINCULADOS CON EL SOCIO MAYOR
 			if(@cantidad_cadetes > 0)
 			begin
-				insert into facturacion.detalle_factura (id_factura, id_socio, servicio, precio_unitario, cantidad, subtotal)
-				values (@id_factura, @id_socio, 'Cuota membresia cadete', @cuota_categoria_cadete, @cantidad_cadetes,
+				insert into facturacion.detalle_factura (id_factura,fecha_inscripcion, id_socio, servicio, precio_unitario, cantidad, subtotal)
+				values (@id_factura,@periodo ,@id_socio, 'Cuota membresia Cadete', @cuota_categoria_cadete, @cantidad_cadetes,
 						@cuota_categoria_cadete * @cantidad_cadetes)
 			end
 			
@@ -1735,14 +1737,16 @@ begin
 			from actividades.inscripcion_actividades ia
 			join actividades.actividad a
 				on ia.id_actividad = a.id_actividad
-			where ia.id_socio = @id_socio
+			where ia.id_socio = @id_socio and (MONTH(ia.fecha_inscripcion) = MONTH(@periodo))
+			and (YEAR(ia.fecha_inscripcion) = YEAR(@periodo))
 
 			-- Ahora, inserto las actividades del socio menor
 			if exists (select 1 from socios.grupo_familiar where id_responsable = @id_socio)
 			begin
-            insert into facturacion.detalle_factura(id_factura, id_socio, servicio, precio_unitario, subtotal, cantidad)
+            insert into facturacion.detalle_factura(id_factura,id_socio,fecha_inscripcion, servicio, precio_unitario, subtotal, cantidad)
             select @id_factura,
 				   ia.id_socio,
+				   ia.fecha_inscripcion,
                    a.nombre_actividad,
                    a.precio_mensual,
                    a.precio_mensual,
@@ -1752,6 +1756,8 @@ begin
               on gf.id_socio_menor = ia.id_socio
             join actividades.actividad a
               on ia.id_actividad = a.id_actividad
+			where (MONTH(ia.fecha_inscripcion) = MONTH(@periodo))
+			and (YEAR(ia.fecha_inscripcion) = YEAR(@periodo))
 			end
             
 			print CONCAT('La factura para el socio ', @id_socio, ' se genero corectamente!')

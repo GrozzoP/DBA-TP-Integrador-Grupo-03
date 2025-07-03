@@ -1015,3 +1015,145 @@ values(42838702,'2025-01-01',5000,'PAGADO','Juan','Roman','Pileta')
 -- Se espera que realice el reembolso de una factura pagada, en esa fecha, si llovio y si el dni es de socio
 exec facturacion.descuento_pileta_lluvia '2025-01-01'
 */
+
+/*
+==========================================================================================================================
+												TEST GENERAL
+========================================================================================================================== 
+*/
+/*
+use COM5600G03
+go
+*/
+--       Inserción de datos requeridos para relaciones   --
+
+--Se insertan las distintas categorias con las que se va a contar
+exec socios.insertar_categoria 'Menor', 1, 18, 1300, '2025-12-31'
+exec socios.insertar_categoria 'Cadete', 19, 27, 1600, '2026-01-15'  
+exec socios.insertar_categoria 'Mayor', 28, 101, 3600, '2025-08-30'
+
+	select*from socios.categoria
+--Se inserta un rol general para socios
+exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
+
+	select*from socios.rol
+
+--Se inserta un medio de pago con el que vamos a contar para esta prueba
+exec facturacion.insertar_medio_de_pago 'Tarjeta de crédito', 1
+
+--Se inserta una obra social con la que vamos a contar para esta prueba
+exec socios.insertar_obra_social 'OSDE', '1134225566'
+
+--       Generacion de socios y grupo familiar           --
+--Una vez terminado la insercion de datos necesarios, se insertan nuevas actividades
+exec actividades.insertar_actividad 'Handball', 2300, '2029-02-15'
+exec actividades.insertar_actividad 'Polo', 11200, '2026-08-25'
+exec actividades.insertar_actividad 'Arte', 3200, '2026-08-25'
+
+	select*from actividades.actividad
+
+--Se agregan horarios para esas actividades
+exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 2
+exec actividades.insertar_horario_actividad 'Martes', '18:00:00', '19:30:00', 2, 2
+--En este caso se genera una actividad para menores de edad
+exec actividades.insertar_horario_actividad  'Jueves', '18:00:00', '19:30:00', 1, 1
+--En este caso se inserta la actividad Arte los viernes
+exec actividades.insertar_horario_actividad 'Viernes', '13:00:00', '16:30:00', 3, 2
+
+
+	select*from actividades.horario_actividades
+--//////GENERAR INSERCION DE PROFESORES
+-- Se espera inserción exitosa del socio Roman
+exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', '1133445566', '1133445577', 1, 10, 1, 1, 1
+
+--En este caso se genera el socio Lionel Messi, pero Lionel es padre de Mateo Messi,
+--por lo tanto en la inscripcion se genera directamente el grupo familiar
+exec socios.insertar_socio  41288888, 'Lionel', 'Messi', 'messi@gmail.com', '1990-06-01', '1123445566', '113222577', 1, 10, 1, 1, 1
+exec socios.insertar_socio  51283188,'Mateo', 'Messi', 'mate@gmail.com', '2015-06-01', '1177445567', '1123445566', 1, 112, 1, 1, 2,'PADRE'
+--Se inserta al socio Marcos Rojo
+exec socios.insertar_socio  33783478,'Marcos', 'Rojo', 'mrquitos@gmail.com', '1994-06-01', '1183485568', '116245877', 1, 3412, 1, 1
+
+	select*from socios.socio
+	select*from socios.grupo_familiar
+	select*from socios.usuario
+
+--Inscribimos a Lionel y Mateo en actividades, hay que tener en cuenta que son familiares
+--En este caso se inscribe a Lionel en (HandBall), en el horario ('Lunes', '18:00:00', '19:30:00')
+exec actividades.inscripcion_actividad 2, 1, '1'
+--En este caso se inscribe a Mateo en (Handball), en el horario ('Jueves', '18:00:00', '19:30:00') para Menores
+exec actividades.inscripcion_actividad 3, 1, '3'
+
+    select*from actividades.inscripcion_actividades
+   
+--Se puede visualizar que Lionel y Mateo son familiares por lo tanto no deberia de poder generarse una factura para Mateo
+exec facturacion.crear_factura 3,'2025-07-01'
+--Por lo tanto se debe de generar la factura para Messi, agregando los gastos que tuvo Mateo,
+--generando los descuentos correspondientes y membresia
+exec facturacion.crear_factura 2,'2025-07-01'
+
+    select*from facturacion.factura
+    select*from facturacion.detalle_factura
+
+--Ahora se inscribe a Roman en alguna actividad
+exec actividades.inscripcion_actividad 1, 1, '1'
+
+	select*from actividades.inscripcion_actividades
+
+--Se le crea la factura correspondiente
+exec facturacion.crear_factura 1,'2025-07-01'
+
+	select*from facturacion.factura
+    select*from facturacion.detalle_factura
+
+--Ahora se va a realizar el pago de la factura de Lionel(Socio 2)
+--Se espera que en la factura el estado pase a (PAGADO), y se confirme el pago en la tabla facturacion.pago
+exec facturacion.pago_factura  1,'PAGO', 1
+
+	select*from facturacion.factura
+	select*from facturacion.pago
+
+--Una vez pagada la factura se necesita realizar el reembolso de una factura
+--En este caso se va a reembolsar la factura 1
+--Cuando se reembolsa la factura, en la tabla facturacion.pago, puede visualizar como figura (REEMBOLSO) 
+--y en la cuenta del socio puede visualizarse un saldo a favor del total de la factura
+exec facturacion.reembolsar_pago 1
+
+	select*from facturacion.factura
+	select*from facturacion.pago
+	select*from socios.usuario
+	
+--Ahora que el socio tiene saldo a favor quiere inscribirse a la Actividad Arte, los viernes por la tarde
+--En este caso se genera manualmente la inscripcion, para testear el procedimiento de pago con saldo a favor
+--Ya que no se puede generar una factura del mes, dos veces el mismo mes
+--Entonces creamos una factura de una fecha pasada
+INSERT INTO actividades.inscripcion_actividades(id_socio,id_actividad,fecha_inscripcion)
+values(2,3,'2025-11-03')
+
+     select*from actividades.inscripcion_actividades
+
+exec facturacion.crear_factura 2,'2025-11-03'
+
+	select*from facturacion.factura
+	select*from facturacion.detalle_factura
+	select*from facturacion.pago
+	select*from socios.usuario
+--Se cuenta con una factura no paga del socio 2, por lo tanto vamos a pagarla con saldo a favor del socio
+exec facturacion.pago_factura_debito 3,'PAGO',1
+
+
+--Se espera que no te deje crear la factura del socio menor
+exec facturacion.crear_factura 3,'2025-07-02'
+--Se espera que te deje crear la factura del socio mayor, y agregue los gastos del menor 
+--Tambien a la factura
+exec facturacion.crear_factura 4,'2025-07-02'
+select*from facturacion.factura
+--Si se ejecuta nuevamente, no te dejara crear mas facturas porque ya se ejecuto la factura del mes
+exec facturacion.crear_factura 2,'2025-07-02'
+--Tambien en detalle factura, aparece la factura a la cual pertenecen las actividades
+select*from facturacion.detalle_factura
+--Luego se abona la factura creada
+exec facturacion.pago_factura 1,'PAGO', 1
+
+exec facturacion.crear_factura 1,'2025-07-02'
+
+

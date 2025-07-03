@@ -1049,7 +1049,7 @@ exec socios.insertar_obra_social 'OSDE', '1134225566'
 exec actividades.insertar_actividad 'Handball', 2300, '2029-02-15'
 exec actividades.insertar_actividad 'Polo', 11200, '2026-08-25'
 exec actividades.insertar_actividad 'Arte', 3200, '2026-08-25'
-
+exec actividades.insertar_actividad_extra 'SUM',6000
 	select*from actividades.actividad
 
 --Se insertan los profesores para esas actividades
@@ -1163,3 +1163,13 @@ exec facturacion.pago_factura_debito 3,'PAGO',1
 	select*from socios.usuario
 
 
+--Ahora se quiere realizar una reserva del SUM perteneciente al club
+--Se va a utilizar al socio numero 1
+exec actividades.inscripcion_actividad_extra 1,1,'2025-08-08','13:00:00', '16:30:00',100
+
+    select*from facturacion.factura
+	select*from actividades.Sum_Reservas
+	select*from actividades.inscripcion_act_extra
+
+--Si se vuelve a ejecutar, no se va a poder realizar la reserva, porque ya esta reservado para ese dia
+exec actividades.inscripcion_actividad_extra 1,1,'2025-08-08','13:00:00', '16:30:00',100

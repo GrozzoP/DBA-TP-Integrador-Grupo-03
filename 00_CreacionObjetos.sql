@@ -477,6 +477,7 @@ begin
 		punto_venta varchar(40) default 'Club SQL Norte Janson 1145',
 		condicion_frente_iva varchar(30) default 'Consumidor Final',
 		email varchar(30) default 'sqlnorte10@gmail.com',
+		tipo varchar(100) default 'ACTIVIDAD'
 		Constraint Facturacion_factura_PK_id_factura Primary key(id_factura),
 		Constraint Facturacion_factura_FK_id_socio Foreign key (id_socio) references socios.socio(id_socio)
 	)
@@ -693,6 +694,7 @@ BEGIN
 		id_reserva int identity(1,1),
 		monto decimal(10, 2),
 		fecha_reserva date,
+		cant_invitados int,
 		estado varchar(100) default 'RESERVADO'
     )
 END

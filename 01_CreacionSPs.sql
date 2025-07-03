@@ -2310,7 +2310,6 @@ end
 go
 
 -- ================================== INSCRIPCION ACTIVIDAD EXTRA ==================================
-/* Hay que hacer modificaciones...
 ---Procedimiento para inscripcion a actividad extra
 create or alter procedure actividades.inscripcion_actividad_extra
 (@id_socio int, @id_actividad_extra int, @fecha date, @hora_inicio time, @hora_fin time, @cant_invitados int)
@@ -2342,13 +2341,21 @@ begin
 						set @monto = (select costo from actividades.actividad_extra
 										 where id_actividad = @id_actividad_extra)
 
-						declare @dni int = (
-							   select DNI from socios.socio
-							   where id_socio = @id_socio
+						declare @nombre varchar(200)
+						set @nombre = (
+								       select nombre + ' ' + apellido from socios.socio
+									   where id_socio = @id_socio
+						)
+						declare @dni int
+						set @dni = (
+								        select DNI from socios.socio 
+										where id_socio = @id_socio
 						)
 
 						if(@actividadInsertar = 'Sum')
 						begin
+						  if (GETDATE()<=@fecha)
+						  begin
 						   if exists(
 						      select * from actividades.Sum_Reservas
 							  where fecha_reserva = @fecha
@@ -2357,30 +2364,32 @@ begin
 						    end
 							else
 							begin
-								insert into actividades.Sum_Reservas(monto,fecha_reserva)
-								values(@monto,@fecha)
+								insert into actividades.Sum_Reservas(monto,fecha_reserva,cant_invitados)
+								values(@monto,@fecha,@cant_invitados)
 
 								--inscribir
 								insert into actividades.inscripcion_act_extra
 								(id_socio,fecha,hora_inicio,hora_fin,cant_invitados,id_actividad_extra)
 								values(@id_socio,@fecha,@hora_inicio,@hora_fin,@cant_invitados,@id_actividad_extra)
-
-								exec facturacion.crear_factura @monto, @dni, @actividadInsertar --se llama al sp crear factura para crear la factura
-				       
-
-
-							end
+															
+								insert into facturacion.factura(id_socio,fecha_emision,primer_vto,segundo_vto,total,total_con_recargo,estado,razon_social,dni,tipo)
+								values(@id_socio,GETDATE(),DATEADD(DAY,5,GETDATE()),DATEADD(DAY,10,GETDATE()),@monto,(@monto*1.1),'NO PAGADO',@nombre,@dni,'SUM')
+				            end
+						  end
+						  else
+						  begin
+						     print 'No se puede reservar fechas anteriores a la actual'
+						  end
 						end
 						else
-						begin
-												
+						begin							
 							--inscribir
 							insert into actividades.inscripcion_act_extra
 							(id_socio,fecha,hora_inicio,hora_fin,cant_invitados,id_actividad_extra)
 							values(@id_socio,@fecha,@hora_inicio,@hora_fin,@cant_invitados,@id_actividad_extra)
 
-							exec facturacion.crear_factura @monto, @dni, @actividadInsertar --se llama al sp crear factura para crear la factura
-				       
+							insert into facturacion.factura(id_socio,fecha_emision,primer_vto,segundo_vto,total,total_con_recargo,estado,razon_social,dni,tipo)
+							values(@id_socio,GETDATE(),DATEADD(DAY,5,GETDATE()),DATEADD(DAY,10,GETDATE()),@monto,(@monto*1.1),'NO PAGADO',@nombre,@dni,'ACTIVIDAD EXTRA')			       
 					   end
 				 end
 			end
@@ -2394,7 +2403,7 @@ begin
 	  print 'No se encontro el id del socio a inscribir a la actividad'
 	end
 end
-go*/
+go
 
 -- ================================== PILETA ==================================
 -- Procedimiento para anotarse al uso de la pileta, ya sea un socio o un invitado del mismo

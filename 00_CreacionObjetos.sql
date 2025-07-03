@@ -486,20 +486,23 @@ begin
 	print 'La tabla facturacion.factura ya existe'
 end
 go
-
 -- Creacion de la tabla facturacion.detalle_factura
 if OBJECT_ID('facturacion.detalle_factura', 'U') IS NULL
 begin
 	Create table facturacion.detalle_factura(
 		id_detalle_factura int identity(1, 1),
 		id_factura int,
+		id_socio int,
+		fecha_inscripcion date,
 		servicio varchar(60),
 		precio_unitario decimal(10, 2),
 		subtotal decimal(10, 2),
 		cantidad tinyint DEFAULT 1
 		Constraint Facturacion_detalle_factura_PK_id_factura Primary key(id_detalle_factura),
 		Constraint Facturacion_detalle_factura_FK_id_factura
-				Foreign Key(id_factura) References facturacion.factura(id_factura)
+				Foreign Key(id_factura) References facturacion.factura(id_factura),
+		Constraint Facturacion_detalle_factura_FK_id_socio
+				Foreign Key(id_socio) References socios.socio(id_socio)
 	)
 end
 else

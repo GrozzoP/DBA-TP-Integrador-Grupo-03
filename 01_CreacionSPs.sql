@@ -278,7 +278,7 @@ begin
 	begin
         SET @edad = @edad - 1
 	end
-
+	
 	if exists (select 1 from socios.socio 
 			   where dni = @dni)
 	begin
@@ -332,11 +332,11 @@ begin
 
 		 -- Insertar el socio teniendo en cuenta la creacion del usuario
 		 select @id_usuario = id_usuario from socios.usuario where usuario = @usuario
-
+		
 		 -- Elegimos la categoria segun la edad del socio
-		 select @id_categoria = @id_categoria from socios.categoria
+		 select @id_categoria = id_categoria from socios.categoria
 		 where @edad BETWEEN edad_minima AND edad_maxima
-
+		 
 		 insert into socios.socio
 		 (dni, nombre, apellido, email, fecha_nacimiento, telefono_contacto, telefono_emergencia, habilitado,
 		 id_obra_social, nro_socio_obra_social, id_categoria, id_usuario, id_medio_de_pago)
@@ -620,7 +620,7 @@ begin
 		values (@nombre_categoria, @edad_minima, @edad_maxima, @costo_membresia)
 			
 		set @id_categoria_nueva = SCOPE_IDENTITY()
-			
+		
 		-- Insertar el monto en los precios de las categorias
 		insert into socios.categoria_precios(id_categoria, fecha_vigencia_desde, fecha_vigencia_hasta, costo_membresia)
 		values (@id_categoria_nueva, GETDATE(),  @vigencia_hasta, @costo_membresia)
@@ -1445,18 +1445,51 @@ end
 go
 
 -- ================================== FACTURA ==================================
-create or alter procedure facturacion.generar_detalle_factura(@servicio varchar(300),@monto decimal(10,2),@id_socio int)
+
+create or alter procedure facturacion.generar_detalle_factura
+(@id_socio int,@servicio varchar(300),@precio_unitario decimal(10,2), @fecha_inscripcion date)
 as
 begin
-   if(@monto <= 0)
+   if(@precio_unitario <= 0)
    begin
      print 'Error de monto'
    end
    else
    begin
-      insert into facturacion.detalle_factura(servicio,monto,id_socio)
-	  values(@servicio,@monto,@id_socio)
+      insert into facturacion.detalle_factura(servicio,precio_unitario,id_socio,fecha_inscripcion)
+	  values(@servicio,@precio_unitario,@id_socio,@fecha_inscripcion)
    end
+end
+go
+
+create or alter procedure facturacion.descuento_pileta_lluvia
+(@id_socio int, @fecha_emision date, @monto decimal(10,2) OUTPUT)
+as
+begin
+    set nocount on
+    declare @contador int
+	set @contador = (
+	                  select COUNT(*) from facturacion.detalle_factura f
+					  join facturacion.dias_lluviosos d
+					  on MONTH(d.fecha) = MONTH(@fecha_emision)
+					  where f.servicio = 'Pileta' and f.id_socio = @id_socio 
+					  and d.lluvia = 1 and (MONTH(d.fecha) = MONTH(@fecha_emision))
+					  and (YEAR(d.fecha) = YEAR(@fecha_emision))
+	)
+	declare @monto_pileta decimal(10,2)
+	set @monto_pileta = (
+	            select top 1 precio_socio from actividades.tarifa_pileta
+	)
+
+	if (@contador = 0)
+	begin
+	  return @monto
+	end
+	else
+	begin
+	  set @monto = @monto - ((@monto_pileta*@contador)*0.6)
+	  return @monto
+	end
 end
 go
 
@@ -1515,7 +1548,17 @@ begin
 		print 'No se le puede hacer la factura a un menor de edad!'
 		return
 	end
-			
+	
+	if exists(
+	     select 1 from facturacion.detalle_factura
+		 where (MONTH(fecha_inscripcion) = MONTH(@periodo)) and id_socio = @id_socio
+		 and (id_factura IS NOT NULL) and (YEAR(fecha_inscripcion) = YEAR(@periodo))
+	)
+	begin
+	   print 'Ya se genero una factura para ese mes, anio y socio'
+	   return 
+	end
+
 	-- Obtengo el valor de la cuota correspondiente a la categoria
 	select @cuota_categoria = costo_membresia
 	from socios.categoria
@@ -1554,7 +1597,7 @@ begin
 			from socios.socio
 			where id_socio = @id_socio
 
-			-- Ahora, el periodo de facturacion
+			-- Ahora, el periodo de facturacion//ELIMINAR(?)
 			set @periodo_desde = DATEFROMPARTS(YEAR(@periodo), MONTH(@periodo), 1)
 			set @periodo_hasta = EOMONTH(@periodo)
 
@@ -1567,7 +1610,7 @@ begin
 				-- Busco cuanto vale la categoria del socio menor
 				select @cuota_categoria_menor = costo_membresia 
 				from socios.categoria 
-				where nombre_categoria = 'Menor'
+				where nombre_categoria = 'Menor'--'Menor'
 
 				-- Valido que exista
 				if(@cuota_categoria_menor IS NULL)
@@ -1586,38 +1629,63 @@ begin
 			end
 
 			-- Ahora, verifico por el lado de las actividades
-			select @total_actividades =	ISNULL(SUM(a.precio_mensual), 0),
-				   @cantidad_actividades = COUNT(*)
-			from actividades.inscripcion_actividades ia
-			join actividades.actividad a on a.id_actividad = ia.id_actividad
-			where ia.id_socio = @id_socio
+		
+			select @total_actividades = ISNULL(SUM(precio_unitario), 0) from facturacion.detalle_factura
+			where id_socio = @id_socio and (MONTH(fecha_inscripcion) = MONTH(@periodo))
+			and (YEAR(fecha_inscripcion) = YEAR(@periodo))
+			and (id_factura IS NULL)
 
 			-- Pero si tengo un grupo familiar, seguramente ellos tambien realicen actividades...
 			if exists (select 1 from socios.grupo_familiar where id_responsable = @id_socio)
 			begin
-				select @total_actividades_menores = ISNULL(SUM(a.precio_mensual), 0),
-					   @cantidad_actividades = @cantidad_actividades + COUNT(*)
-				from socios.grupo_familiar gf
-				join actividades.inscripcion_actividades ia on gf.id_socio_menor = ia.id_socio
-				join actividades.actividad a on a.id_actividad = ia.id_actividad
-				where gf.id_responsable = @id_socio
+			
+			 --Tengo que sumar al total, a todos los menores que hicieron actividades, que tengan por responsables
+			 --al id socio
+			    select @total_actividades_menores = ISNULL(SUM(precio_unitario), 0) from facturacion.detalle_factura d
+				join socios.grupo_familiar g
+				on g.id_responsable = @id_socio
+				where g.id_responsable = @id_socio and (MONTH(fecha_inscripcion) = MONTH(@periodo))
+				and (id_factura IS NULL) and (YEAR(fecha_inscripcion) = YEAR(@periodo))
 
 				-- Sumo las actividades de los menores y del socio mayor
 				set @total_actividades = @total_actividades + @total_actividades_menores
 			end
-
-			-- Si se verifica esto, aplico el descuento
-			if(@cantidad_actividades > 1)
-			begin
-				set @total_actividades = @total_actividades * 0.9
-			end
-
 			-- Ahora, puedo insertar en la factura
-			insert into facturacion.factura(id_socio, fecha_emision, primer_vto, segundo_vto, estado, total, total_con_recargo,
-			periodo_desde, periodo_hasta, razon_social)
-			values (@id_socio, @fecha_emision, @vencimiento_1, @vencimiento_2, 'NO PAGADO', @total_actividades + @total_cuotas,
-			@periodo_desde, @periodo_hasta, @razon_social)
+			declare @dni int
+			set @dni = (
+			            select DNI from socios.socio
+						where id_socio = @id_socio
+			)
 
+			exec facturacion.descuento_pileta_lluvia @id_socio,@periodo,@total_actividades OUTPUT
+
+			insert into facturacion.factura(id_socio, fecha_emision, primer_vto, segundo_vto, estado, total, total_con_recargo,
+			periodo_desde, periodo_hasta, razon_social,dni)
+			values (@id_socio, @fecha_emision, @vencimiento_1, @vencimiento_2, 'NO PAGADO', (@total_actividades + @total_cuotas),
+			(@total_actividades + @total_cuotas)*1.1,@periodo_desde, @periodo_hasta, @razon_social,@dni)
+
+			declare @id_factura int
+			set @id_factura = (
+			   select top 1 id_factura from facturacion.factura
+			   where id_socio = @id_socio and fecha_emision = @fecha_emision
+			)
+
+			update facturacion.detalle_factura
+			set id_factura = @id_factura
+			where id_socio = @id_socio and (MONTH(fecha_inscripcion) = MONTH(@periodo))
+			and (id_factura IS NULL) and (YEAR(fecha_inscripcion) = YEAR(@periodo))
+			
+			if exists (select 1 from socios.grupo_familiar where id_responsable = @id_socio)
+			begin
+				update facturacion.detalle_factura 
+				set id_factura = @id_factura
+				from facturacion.detalle_factura
+				join socios.grupo_familiar g 
+					on g.id_responsable = @id_socio
+				where g.id_responsable = @id_socio and (MONTH(fecha_inscripcion) = MONTH(@periodo))
+				and (id_factura IS NULL) and (YEAR(fecha_inscripcion) = YEAR(@periodo))
+            end
+			
 			commit transaction
 		end try
 	begin catch
@@ -1662,7 +1730,6 @@ begin
 	end
 end
 go
-
 
 -- Procedimiento para pagar una factura
 create or alter procedure facturacion.pago_factura(
@@ -1976,6 +2043,7 @@ begin
 		insert into actividades.inscripcion_actividades(id_socio, id_actividad)
 		values (@id_socio, @id_actividad)
 
+
 		set @id_inscripcion = SCOPE_IDENTITY()
 
 		-- Insertar los horarios a los que se inscribio un socio
@@ -1983,16 +2051,21 @@ begin
 		select @id_inscripcion, h.id_horario
 		from #TEMP_ID_HORARIOS h
 
-		/*
-         Ya no se crea la factura directamente
-		 Se debe insertar cada actividad, y su monto, a la tabla detalle factura
-		 De esta forma, se va sumando todos los registros que necesitan pagarse
-		 Y a fin de mes, se ejectura el sp crear_factura, que crea la factura de ese mes para ese socio
-		 Y se crea una sola factura que suma todos los montos, les hace el descuento y puede ser abonado a fin de mes
-		*/
+
+			declare @nombre_actividad varchar(300)
+			set @nombre_actividad = (
+					 select nombre_actividad from actividades.actividad
+					 where id_actividad = @id_actividad
+			)
+
+			declare @fecha_generacion date
+			set @fecha_generacion = getdate()
+
+			exec facturacion.descuento_actividad  @id_socio, @monto OUTPUT
+			exec facturacion.generar_detalle_factura @id_socio,@nombre_actividad,@monto, @fecha_generacion
 
         commit transaction
-        print 'Inscripción y factura generadas correctamente!'
+        print 'Inscripción correctamente!'
 		drop table #TEMP_ID_HORARIOS
     end try
     begin catch
@@ -2130,25 +2203,6 @@ begin
 	end
 end
 go
-
--- Procedimiento para eliminar la inscripcion a una actividad extra
-create or alter procedure actividades.eliminar_inscripcion_act_extra(@id_inscripcion int)
-as
-begin
-	if exists(
-		select id_inscripcion_extra from actividades.inscripcion_act_extra
-		where id_inscripcion_extra = @id_inscripcion
-	)begin
-	   delete actividades.inscripcion_act_extra
-	   where id_inscripcion_extra = @id_inscripcion
-    end
-	else
-	begin
-		print 'La inscripcion extra a eliminar no existe'
-	end
-end
-go	
-
 -- ================================== PILETA ==================================
 -- Procedimiento para anotarse al uso de la pileta, ya sea un socio o un invitado del mismo
 create or alter procedure actividades.inscribir_a_pileta
@@ -2265,22 +2319,3 @@ begin
 end
 go
 */
-create or alter procedure facturacion.descuento_pileta_lluvia(@fecha date)
-as
-begin
-    update socios.usuario 
-	set saldo = saldo + (f.total*0.6)
-	from socios.usuario u
-	join socios.socio s
-	on u.id_usuario = s.id_usuario
-	join facturacion.factura f
-	on f.dni = s.DNI
-	where s.DNI in (
-	   select dni from facturacion.factura f
-	   join facturacion.dias_lluviosos d
-	   on d.fecha = f.fecha_emision
-	   where d.lluvia = 1 and f.estado = 'PAGADO' and f.fecha_emision = @fecha
-    ) and f.fecha_emision = @fecha
-
-end
-go

@@ -789,59 +789,59 @@ exec actividades.eliminar_inscripcion_act_extra 7
 		@actividad varchar(250)  *****/
 
 -- Inserción de datos requeridos para relaciones
-exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
+exec socios.insertar_categoria 'Mayor', 18, 99, 200, '2025-08-30'
+exec socios.insertar_categoria 'Menor', 1, 17, 50, '2025-08-30'
 exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
 exec facturacion.insertar_medio_de_pago 'Tarjeta de crédito', 1
 exec socios.insertar_obra_social 'OSDE', '1134225566'
 
--- Se espera inserción exitosa del socio
+exec actividades.insertar_actividad 'Ajedrez', 15003, '2029-02-15'
+exec actividades.insertar_actividad 'Arte', 900000, '2026-08-25'
+
+exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 1
+exec actividades.insertar_horario_actividad 'Martes', '18:00:00', '19:30:00', 1, 1
+exec actividades.insertar_horario_actividad  'Jueves', '18:00:00', '19:30:00', 2, 2
+
+-- Se espera inserción exitosa del socio Roman, Messi es padre de Liomeñ
 exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', '1133445566', '1133445577', 1, 12, 1, 1, 1
-
--- Se espera que se inserten las actividades correctamente para cobrarlas a fin de mes
-exec facturacion.generar_detalle_factura 'Futbol Tenis',440.50,1
-exec facturacion.generar_detalle_factura 'Rugby Tenis',1440.50,1
-exec facturacion.generar_detalle_factura 'Voley',140.50,1
-exec facturacion.generar_detalle_factura 'Baile Artistico',12440.50,1
-
+exec socios.insertar_socio  41288888, 'Messi', 'Messi', 'messi@gmail.com', '1990-06-01', '1121555566', '1333445577', 1, 12, 1, 1, 1
+exec socios.insertar_socio  51283188,'Liomeñ', 'Messi', 'lion@gmail.com', '2015-06-01', '1123445566', '1333445577', 1, 12, 1, 1, 2,'PADRE'
+--Inscribimos a Lionel y al Hijo de lionel a actividades
+exec actividades.inscripcion_actividad  2,1,'1'
+exec actividades.inscripcion_actividad  3,2,'3'
+--Se espera que se encuentre en detalles de factura, ambas inscripciones
 select*from facturacion.detalle_factura
+--Una vez inscriptos, se cargaran mas actividades de esos socios en el club
+--Y a fin de mes, se realiza la creacion de la factura del socio mayor
+--En caso de que sea menor, no te deja crear la factura
 
---Se espera que se genere la factura del mes actual, 01-07-2025
-exec facturacion.crear_factura 1,'2025-07-01'
-
---Luego de generar la factura, los detalles de la facturan pasan a estar generados
---denegando la posibilidad de generar nuevamente una factura con esos cobros
-
+--Se espera que no te deje crear la factura del socio menor
+exec facturacion.crear_factura 3,'2025-07-02'
+--Se espera que te deje crear la factura del socio mayor, y agregue los gastos del menor 
+--Tambien a la factura
+exec facturacion.crear_factura 2,'2025-07-02'
 select*from facturacion.factura
+--Si se ejecuta nuevamente, no te dejara crear mas facturas porque ya se ejecuto la factura del mes
+exec facturacion.crear_factura 2,'2025-07-02'
+--Tambien en detalle factura, aparece la factura a la cual pertenecen las actividades
+select*from facturacion.detalle_factura
+--Luego se abona la factura creada
+exec facturacion.pago_factura 1,'PAGO', 1
+
+--Roman, no se inscribio a ninguna actividad durante el mes, sin embargo continua siendo socio
+--Por lo tanto solo se generara la factura que contiene la membresia incluida.
+exec facturacion.crear_factura 1,'2025-07-02'
+
+select*from actividades.horario_actividades
+select*from actividades.actividad
+select*from facturacion.detalle_factura
+select*from socios.socio
+select*from facturacion.factura
+select*from facturacion.pago
+select*from actividades.inscripcion_actividades
+select*from socios.grupo_familiar
+
 --Se agregan nuevamente actividades
-
-exec facturacion.generar_detalle_factura 'Futbol Tenis',440.50,1
-exec facturacion.generar_detalle_factura 'Rugby Tenis',1440.50,1
-exec facturacion.generar_detalle_factura 'Voley',140.50,1
-
---Te genera mas facturas en ese mes, por si en algun caso, se genero y nuevamente se requeria generar
-exec facturacion.crear_factura 1,'2025-07-01'
---Se paga la factura, el estado de factura se cambia a pagado, y se registra como pago en la tabla de pagos
-exec facturacion.pago_factura 1,'PAGO',1
--- Se realiza un reembolso del pago, pago a cuenta del usuario
-exec facturacion.reembolsar_pago 2
-/*
-select*from facturacion.factura
-select*from facturacion.pago
-select*from socios.usuario
-select*from facturacion.detalle_factura
-**/
---Se ingresa nuevamente actividades para poder realizar pagos con saldo a favor
-exec facturacion.generar_detalle_factura 'Rugby Tenis',1440.50,1
---Se paga la factura con saldo a favor
-exec facturacion.pago_factura_debito 3,'PAGO',1
---Se espera que debite del saldo del usuario, pague la factura y se registre el pago
-/*
-select*from facturacion.factura
-select*from facturacion.pago
-select*from socios.usuario
-select*from facturacion.detalle_factura
-*/
-
 --================================================
 /*
 /*****  facturacion.pago_factura 

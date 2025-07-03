@@ -39,6 +39,27 @@ Numero de grupo: 03
 use COM5600G03
 go
 
+-- Creacion de una funcion para pasar los nombres de los meses a español en los reportes
+CREATE OR ALTER FUNCTION facturacion.nombre_mes_a_espaniol(@mes VARCHAR(20)) RETURNS VARCHAR(20) AS
+BEGIN
+	RETURN CASE 
+		WHEN @mes = 'January' THEN 'Enero'
+		WHEN @mes = 'February' THEN 'Febrero'
+		WHEN @mes = 'March' THEN 'Marzo'
+		WHEN @mes = 'April' THEN 'Abril'
+		WHEN @mes = 'May' THEN 'Mayo'
+		WHEN @mes = 'June' THEN 'Junio'
+		WHEN @mes = 'July' THEN 'Julio'
+		WHEN @mes = 'August' THEN 'Agosto'
+		WHEN @mes = 'September' THEN 'Septiembre'
+		WHEN @mes = 'October' THEN 'Octubre'
+		WHEN @mes = 'November' THEN 'Noviembre'
+		WHEN @mes = 'December' THEN 'Diciembre'
+			ELSE 'Error, mes no valido'
+		END
+END
+go
+	
 --Reporte 1
 create or alter procedure facturacion.morosos_recurrentes(@inicio date, @fin date, @cant_faltas_minimas int)
 as
@@ -160,23 +181,3 @@ begin
 end
 
 -- exec socios.socios_sin_presentismo_por_actividad
-
--- Creacion de una funcion para pasar los nombres de los meses a español en los reportes
-CREATE OR ALTER FUNCTION facturacion.nombre_mes_a_espaniol(@mes VARCHAR(20)) RETURNS VARCHAR(20) AS
-BEGIN
-	RETURN CASE 
-		WHEN @mes = 'January' THEN 'Enero'
-		WHEN @mes = 'February' THEN 'Febrero'
-		WHEN @mes = 'March' THEN 'Marzo'
-		WHEN @mes = 'April' THEN 'Abril'
-		WHEN @mes = 'May' THEN 'Mayo'
-		WHEN @mes = 'June' THEN 'Junio'
-		WHEN @mes = 'July' THEN 'Julio'
-		WHEN @mes = 'August' THEN 'Agosto'
-		WHEN @mes = 'September' THEN 'Septiembre'
-		WHEN @mes = 'October' THEN 'Octubre'
-		WHEN @mes = 'November' THEN 'Noviembre'
-		WHEN @mes = 'December' THEN 'Diciembre'
-			ELSE 'Error, mes no valido'
-		END
-END

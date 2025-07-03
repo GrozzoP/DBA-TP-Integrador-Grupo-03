@@ -806,9 +806,13 @@ exec actividades.insertar_horario_actividad  'Jueves', '18:00:00', '19:30:00', 2
 exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', '1133445566', '1133445577', 1, 12, 1, 1, 1
 exec socios.insertar_socio  41288888, 'Messi', 'Messi', 'messi@gmail.com', '1990-06-01', '1121555566', '1333445577', 1, 12, 1, 1, 1
 exec socios.insertar_socio  51283188,'Liomeñ', 'Messi', 'lion@gmail.com', '2015-06-01', '1123445566', '1333445577', 1, 12, 1, 1, 2,'PADRE'
+exec socios.insertar_socio  337834783,'Marcos', 'Roto', 'mrquitos@gmail.com', '1990-06-01', '1123445566', '1333445577', 1, 12, 1, 1
+
 --Inscribimos a Lionel y al Hijo de lionel a actividades
-exec actividades.inscripcion_actividad 2, 1, '1'
+exec actividades.inscripcion_actividad 1, 1, '1'
 exec actividades.inscripcion_actividad 3, 2, '3'
+exec actividades.inscripcion_actividad 4, 1, '1'
+
 --Se espera que se encuentre en detalles de factura, ambas inscripciones
 select*from facturacion.detalle_factura
 --Una vez inscriptos, se cargaran mas actividades de esos socios en el club
@@ -819,7 +823,7 @@ select*from facturacion.detalle_factura
 exec facturacion.crear_factura 3,'2025-07-02'
 --Se espera que te deje crear la factura del socio mayor, y agregue los gastos del menor 
 --Tambien a la factura
-exec facturacion.crear_factura 2,'2025-07-02'
+exec facturacion.crear_factura 4,'2025-07-02'
 select*from facturacion.factura
 --Si se ejecuta nuevamente, no te dejara crear mas facturas porque ya se ejecuto la factura del mes
 exec facturacion.crear_factura 2,'2025-07-02'

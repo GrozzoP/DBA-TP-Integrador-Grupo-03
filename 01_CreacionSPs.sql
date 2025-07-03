@@ -1689,10 +1689,16 @@ begin
 				set @total_actividades = @total_actividades * 0.9
 			end
 
+			declare @dni int
+			set @dni = (
+			           select DNI from socios.socio
+					   where id_socio = @id_socio
+			)
+
 			-- Ahora, puedo insertar en la factura
-			insert into facturacion.factura(id_socio, fecha_emision, primer_vto, segundo_vto, estado, total, total_con_recargo,
+			insert into facturacion.factura(id_socio,dni ,fecha_emision, primer_vto, segundo_vto, estado, total, total_con_recargo,
 			periodo_desde, periodo_hasta, razon_social)
-			values (@id_socio, @fecha_emision, @vencimiento_1, @vencimiento_2, 'NO PAGADO', @total_actividades + @total_cuotas,
+			values (@id_socio,@dni,@fecha_emision, @vencimiento_1, @vencimiento_2, 'NO PAGADO', @total_actividades + @total_cuotas,
 			(@total_actividades + @total_cuotas) * 1.1, @periodo_desde, @periodo_hasta, @razon_social)
 
 			set @id_factura = SCOPE_IDENTITY()
@@ -1718,9 +1724,10 @@ begin
 			end
 			
 			-- Ahora, inserto las actividades del socio titular
-			insert into facturacion.detalle_factura(id_factura, id_socio, servicio, precio_unitario, subtotal, cantidad)
+			insert into facturacion.detalle_factura(id_factura, id_socio,fecha_inscripcion, servicio, precio_unitario, subtotal, cantidad)
 			select @id_factura, 
 				   ia.id_socio, 
+				   ia.fecha_inscripcion,
 				   a.nombre_actividad, 
 				   a.precio_mensual, 
 				   a.precio_mensual, 

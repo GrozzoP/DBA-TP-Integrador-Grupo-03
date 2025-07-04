@@ -691,6 +691,15 @@ exec actividades.eliminar_inscripcion_actividad 1
 --Se debería generar un mensaje de 'La inscripcion a eliminar no existe'
 exec actividades.eliminar_inscripcion_actividad 7
 
+--Se espera que se ingresen mas inscripciones a actividades
+exec actividades.inscripcion_actividad 2, 1, '1, 2'
+exec actividades.inscripcion_actividad 3, 1, '1, 2'
+exec actividades.inscripcion_actividad 2, 2, '4'
+exec actividades.inscripcion_actividad 3, 2, '4'
+exec actividades.inscripcion_actividad 3, 3, '5'
+exec actividades.inscripcion_actividad 2, 3, '5'
+exec actividades.inscripcion_actividad 1, 3, '5'
+
 /*
 ==========================================================================================================================
 												FACTURA

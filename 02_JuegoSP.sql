@@ -710,119 +710,12 @@ exec facturacion.crear_factura 5, '2025-07-02'
 -- Se espera que te deje crear la factura del socio mayor, y agregue los gastos del menor 
 exec facturacion.crear_factura 1,'2025-07-02'
 
-select * from facturacion.factura
-select * from facturacion.detalle_factura
-
 --Si se ejecuta nuevamente, no te dejara crear mas facturas porque ya se ejecuto la factura del mes
 exec facturacion.crear_factura 1, '2025-07-02'
 
 --Luego se abona la factura creada
 exec facturacion.pago_factura 1, 'PAGO', 1
 
-exec facturacion.crear_factura 1,'2025-07-02'
-
-select * from actividades.horario_actividades
-select * from actividades.actividad
-select * from facturacion.detalle_factura
-select * from socios.socio
-select * from socios.obra_social
-select * from facturacion.factura
-select * from facturacion.pago
-select * from actividades.inscripcion_actividades
-select * from socios.grupo_familiar
-
---Se agregan nuevamente actividades
---================================================
-/*
-/*****  facturacion.pago_factura 
-		@id_factura int,
-		@tipo_movimiento varchar(20),
-		@id_medio_pago int  *****/
-
--- Inserción de datos requeridos para relaciones
-exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
-exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
-exec facturacion.insertar_medio_de_pago 'Transferencia', 1
-exec socios.insertar_obra_social 'OSDE', '1134225566'
-
--- Se espera inserción exitosa del socio
-exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', '1133445566', '1133445577', 1, 22, 1, 1, 1
-
--- Se espera creación exitosa de una factura NO PAGADA
-exec facturacion.crear_factura 10000.000, 42838702, 1
-exec facturacion.crear_factura 250000.000, 42838702, 1
-
--- Se espera que el pago se realice exitosamente y se actualice el estado de la factura
-exec facturacion.pago_factura 1, 'PAGO', 1
-
--- Se espera mensaje: 'No se encontro factura con ese id o la factura ya fue abonada'
-exec facturacion.pago_factura 1, 'PAGO', 1
-
--- Se espera mensaje: 'No se encontro el id de ese medio de pago'
-exec facturacion.pago_factura 2, 'PAGO', 999
-
-/*****  facturacion.reembolsar_pago
-		@id_factura int  *****/
-
--- Inserción de datos requeridos para relaciones
-exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
-exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
-exec facturacion.insertar_medio_de_pago 'Transferencia', 1
-exec socios.insertar_obra_social 'OSDE', 1134225566
-exec actividades.insertar_actividad 'Futbol', 200.5, '2025-09-20'
-exec actividades.insertar_horario_actividad 'Lunes','20:00:00','21:00:00', 1, 1
-go
-
--- Se espera insercion exitosa del socio
-exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', 1133445566, 1133445577, 1, 1, 1, 1
-
--- Se espera la inscripcion exitosa del socio a futbol y generacion de factura
-exec actividades.inscripcion_actividad 1, 1, 1
-
--- Se espera que la factura no haga un reembolso porque ese id factura no fue pagada
-exec facturacion.reembolsar_pago 1
-
--- Se espera que el pago se realice exitosamente y se actualice el estado de la factura
-exec facturacion.pago_factura 1, 'PAGO', 1
-
--- Se espera que la factura no haga un reembolso porque ese id factura no existe
-exec facturacion.reembolsar_pago 2
-
--- Se espera que la factura haga un reembolso exitosamente,
--- Se cambie el tipo de movimiento en la tabla facturacion.pago
--- El saldo en usuario aumente porque es un reembolso, en este caso el 100%
-exec facturacion.reembolsar_pago 1
-
--- Se espera que se debite de la cuenta del usuario al realizar el pago con saldo
--- Ademas se espera un descuento en el precio del 10% porque el socio ya esta inscripto en una actividad deportiva
-exec actividades.inscripcion_actividad 1, 1, 1
-
---Prueba de Inscripcion y Reserva de Sum
-
-exec actividades.insertar_actividad_extra 'Sum', 9000
-exec actividades.inscripcion_actividad_extra 1, 2, '2025-06-28', '19:00:00', '20:00:00', 0
-
--- Inserción de datos requeridos para relaciones
-exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
-exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
-exec facturacion.insertar_medio_de_pago 'Transferencia', 1
-exec socios.insertar_obra_social 'OSDE', 1134225566
-exec actividades.insertar_actividad 'Futbol', 200.5, '2025-09-20'
-exec actividades.insertar_horario_actividad 'Lunes','20:00:00','21:00:00',1,1
-go
-
--- Se espera inserción exitosa del socio
-exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', 1133445566, 1133445577, 1, 1, 1, 1
-
--- Se espera que inserte la actividad extra Sum
-exec actividades.insertar_actividad_extra 'Sum',9000
-
--- Se espera que inscriba al socio en la actividad y reserve el Sum, se genere la factura 
-exec actividades.inscripcion_actividad_extra 1, 1, '2025-06-28','19:00:00','20:00:00', 0
-
--- Se espera que no pueda inscribirse y reservar la actividad Sum porque ya esta reservada para ese dia
-exec actividades.inscripcion_actividad_extra 1, 1, '2025-06-28','19:00:00','20:00:00', 0
-*/
 /*
 ==========================================================================================================================
 												PILETA
@@ -838,200 +731,65 @@ exec actividades.inscripcion_actividad_extra 1, 1, '2025-06-28','19:00:00','20:0
 
 -- Se espera el mensaje de 'No existe una categoria creada para la edad de la persona que quiere ir a la pileta!'
 exec actividades.inscribir_a_pileta 
-     @id_socio = 1, 
-     @es_invitado = 0, 
-     @dni_invitado = null, 
-     @edad_invitado = 10, 
-     @id_concepto = 1
+	@id_socio = 1, 
+	@es_invitado = 0, 
+	@dni_invitado = NULL, 
+	@edad_invitado = 10, 
+	@id_concepto = 1
 
 -- Inserto categorias y tambien el concepto
-insert into actividades.categoria_pileta(nombre) values('Menores de 12 años'), ('Adultos')
-insert into actividades.concepto_pileta(nombre) values('Temporada')
+exec actividades.insertar_categoria_pileta @nombre = 'Menores de 12 años';
+exec actividades.insertar_categoria_pileta @nombre = 'Adultos';
+exec actividades.insertar_concepto_pileta @nombre = 'Temporada'
 
--- Se espera el mensaje 'No se encontro una tarifa vigente para esta categoria y concepto'
+-- Se espera el mensaje 'No hay tarifa vigente para esta categoria y concepto'
 exec actividades.inscribir_a_pileta 
-     @id_socio = 1, 
-     @es_invitado = 0, 
-     @dni_invitado = NULL, 
-     @edad_invitado = 8, 
-     @id_concepto = 1
+	@id_socio = 1, 
+	@es_invitado = 0, 
+	@dni_invitado = NULL, 
+	@edad_invitado = 8, 
+	@id_concepto = 1
 
 -- Insertar una tarifa valida para la pileta
-insert into actividades.tarifa_pileta(id_concepto, id_categoria_pileta, precio_socio, precio_invitado, vigencia_hasta)
-values(1, 2, 1000, 1500, dateadd(month, 1, getdate()));
+declare @fecha date
+set @fecha = DATEADD(MONTH, 1, GETDATE())
+
+exec actividades.insertar_tarifa_pileta
+	@id_concepto = 1,
+	@id_categoria_pileta = 2,
+	@precio_socio = 1000,
+	@precio_invitado = 1500,
+	@vigencia_hasta = @fecha
 
 -- Se inscribe de manera exitosa
 exec actividades.inscribir_a_pileta 
-     @id_socio = 1,
-     @es_invitado = 0,
-     @edad_invitado = 8,
-     @id_concepto = 1
+	@id_socio = 1,
+	@es_invitado = 0,
+	@id_concepto = 1
 
--- Inserto tarifa de adultos
-insert into actividades.tarifa_pileta(id_concepto, id_categoria_pileta, precio_socio, precio_invitado, vigencia_hasta)
-values(1, 2, 2000, 2500, DATEADD(MONTH, 1, GETDATE()));
+-- Inserto tarifa de menores
+exec actividades.insertar_tarifa_pileta
+	@id_concepto = 1,
+	@id_categoria_pileta = 1, 
+	@precio_socio = 2000,
+	@precio_invitado = 2500,
+	@vigencia_hasta = @fecha
 
--- Insercion exitosa para un invitado
+-- Insercion exitosa para socio menor de edad
 exec actividades.inscribir_a_pileta 
-     @id_socio = 1,
-     @es_invitado = 1,
-     @nombre_invitado = 'María',
-     @apellido_invitado ='Gómez',
-     @dni_invitado = 87654321,
-     @edad_invitado = 30,
-     @id_concepto = 1;
+	@id_socio = 5,
+	@es_invitado = 0,
+	@id_concepto = 1
 
-
-/*
-==========================================================================================================================
-												TEST GENERAL
-========================================================================================================================== 
-*/
-/*
-use COM5600G03
-go
-*/
---       Inserción de datos requeridos para relaciones   --
-
---Se insertan las distintas categorias con las que se va a contar
-exec socios.insertar_categoria 'Menor', 1, 18, 1300, '2025-12-31'
-exec socios.insertar_categoria 'Cadete', 19, 27, 1600, '2026-01-15'  
-exec socios.insertar_categoria 'Mayor', 28, 101, 3600, '2025-08-30'
-
-	select*from socios.categoria
---Se inserta un rol general para socios
-exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
-
---Se inserta un medio de pago con el que vamos a contar para esta prueba
-exec facturacion.insertar_medio_de_pago 'Tarjeta de crédito', 1
-
---Se inserta una obra social con la que vamos a contar para esta prueba
-exec socios.insertar_obra_social 'OSDE', '1134225566'
-
---       Generacion de socios y grupo familiar           --
---Una vez terminado la insercion de datos necesarios, se insertan nuevas actividades
-exec actividades.insertar_actividad 'Handball', 2300, '2029-02-15'
-exec actividades.insertar_actividad 'Polo', 11200, '2026-08-25'
-exec actividades.insertar_actividad 'Arte', 3200, '2026-08-25'
-exec actividades.insertar_actividad_extra 'SUM',6000
-
---Se insertan los profesores para esas actividades
-exec actividades.insertar_profesor 'Jose Manuel','josema@email.com'
-exec actividades.insertar_profesor 'Mario Luis','ma@email.com'
-exec actividades.insertar_profesor 'Albert Rolser','a@email.com'
-exec actividades.insertar_profesor 'Federico F','ff@email.com'
-
-	select*from actividades.profesor
-
---Se agregan horarios para esas actividades
-exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 2
-exec actividades.insertar_horario_actividad 'Martes', '18:00:00', '19:30:00', 2, 2
---En este caso se genera una actividad para menores de edad
-exec actividades.insertar_horario_actividad  'Jueves', '18:00:00', '19:30:00', 1, 1
---En este caso se inserta la actividad Arte los viernes
-exec actividades.insertar_horario_actividad 'Viernes', '13:00:00', '16:30:00', 3, 2
-
---Tambien se insertan los id de profesores que dan esa clase a esa hora
-
-exec actividades.insertar_profesor_actividad 1,1,1
-exec actividades.insertar_profesor_actividad 1,1,3
-exec actividades.insertar_profesor_actividad 2,2,2
-exec actividades.insertar_profesor_actividad 3,3,4
-
---Se muestra como quedaron los horarios definidos
-	select*from actividades.horario_actividades
-
--- Se espera inserción exitosa del socio Roman
-exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', '1133445566', '1133445577', 1, 10, 1, 1, 1
-
---En este caso se genera el socio Lionel Messi, pero Lionel es padre de Mateo Messi,
---por lo tanto en la inscripcion se genera directamente el grupo familiar
-exec socios.insertar_socio  41288888, 'Lionel', 'Messi', 'messi@gmail.com', '1990-06-01', '1123445566', '113222577', 1, 10, 1, 1, 1
-exec socios.insertar_socio  51283188,'Mateo', 'Messi', 'mate@gmail.com', '2015-06-01', '1177445567', '1123445566', 1, 112, 1, 1, 2,'PADRE'
---Se inserta al socio Marcos Rojo
-exec socios.insertar_socio  33783478,'Marcos', 'Rojo', 'mrquitos@gmail.com', '1994-06-01', '1183485568', '116245877', 1, 3412, 1, 1
-exec socios.insertar_socio  45783478,'Marquitos', 'Rojo', 'mrquitos@gmail.com', '2013-06-01', '1133485568', '116258797', 1, 3412, 1,1, 4, 'TIO'
---exec socios.insertar_socio  11283188,'asd', 'asd', 'asdmate@gmail.com', '1995-06-01', '1177445567', '1123445566', 1, 112, 1, 1
-	select*from socios.socio
-	select*from socios.grupo_familiar
-	select*from socios.usuario
-
---Inscribimos a Lionel y Mateo en actividades, hay que tener en cuenta que son familiares
---En este caso se inscribe a Lionel/Marcos/Roman en (HandBall), en el horario ('Lunes', '18:00:00', '19:30:00')
-exec actividades.inscripcion_actividad 2, 1, '1'
-exec actividades.inscripcion_actividad 4, 1, '1'
-exec actividades.inscripcion_actividad 1, 1, '1'
---En este caso se inscribe a Mateo/Marquitos en (Handball), en el horario ('Jueves', '18:00:00', '19:30:00') para Menores
-exec actividades.inscripcion_actividad 3, 1, '3'
-exec actividades.inscripcion_actividad 5, 1, '3'
-
-    select*from actividades.inscripcion_actividades
-   
---Se puede visualizar que Lionel y Mateo son familiares por lo tanto no deberia de poder generarse una factura para Mateo
-exec facturacion.crear_factura 3,'2025-07-01'
---Por lo tanto se debe de generar la factura para Messi, agregando los gastos que tuvo Mateo,
---generando los descuentos correspondientes y membresia
-exec facturacion.crear_factura 2,'2025-07-01'
-
-    select*from facturacion.factura
-    select*from facturacion.detalle_factura
-
-	exec facturacion.ver_factura 1
-
---Ahora se va a realizar el pago de la factura de Lionel(Socio 2)
---Se espera que en la factura el estado pase a (PAGADO), y se confirme el pago en la tabla facturacion.pago
-exec facturacion.pago_factura  1,'PAGO', 1
-
-	select*from facturacion.factura
-	select*from facturacion.pago
-	exec facturacion.ver_factura 1
---Una vez pagada la factura se necesita realizar el reembolso de una factura
---En este caso se va a reembolsar la factura 1
---Cuando se reembolsa la factura, en la tabla facturacion.pago, puede visualizar como figura (REEMBOLSO) 
---y en la cuenta del socio puede visualizarse un saldo a favor del total de la factura
-exec facturacion.reembolsar_pago 1
-
-	select*from facturacion.factura
-	select*from facturacion.pago
-	select*from socios.usuario
-	
---Ahora que el socio tiene saldo a favor quiere inscribirse a la Actividad Arte, los viernes por la tarde
---En este caso se genera manualmente la inscripcion, para testear el procedimiento de pago con saldo a favor
---Ya que no se puede generar una factura del mes, dos veces el mismo mes
---Entonces creamos una factura de una fecha pasada
-
-INSERT INTO actividades.inscripcion_actividades(id_socio,id_actividad,fecha_inscripcion)
-values(2,3,'2025-03-11')
-
-     select*from actividades.inscripcion_actividades
-
-exec facturacion.crear_factura 2,'2025-11-03'
-
-	select*from facturacion.factura
-	select*from facturacion.detalle_factura
-	select*from facturacion.pago
-	select*from socios.usuario
-
-	exec facturacion.ver_factura 2
-
---Se cuenta con una factura no paga del socio 2, por lo tanto vamos a pagarla con saldo a favor del socio
---se visualiza como se descuenta del saldo a favor del socio
-exec facturacion.pago_factura_debito 2,'PAGO',1
-
-	select*from facturacion.factura
-	select*from facturacion.pago
-	select*from socios.usuario
-
---Ahora se quiere realizar una reserva del SUM perteneciente al club
---Se va a utilizar al socio numero 1
-exec actividades.inscripcion_actividad_extra 1,1,'2025-08-08','13:00:00', '16:30:00',100
-
-    select*from facturacion.factura
-	select*from actividades.Sum_Reservas
-	select*from actividades.inscripcion_act_extra
-
---Si se vuelve a ejecutar, no se va a poder realizar la reserva, porque ya esta reservado para ese dia
-exec actividades.inscripcion_actividad_extra 1,1,'2025-08-08','13:00:00', '16:30:00',100
+-- Inscripcion para un invitado
+exec actividades.inscribir_a_pileta 
+	@id_socio = 1,
+	@es_invitado = 1,
+	@id_concepto = 1,
+	@nombre_invitado = 'Carlos',
+	@apellido_invitado = 'Perez',
+	@dni_invitado = 30456789,
+	@edad_invitado = 35
 
 /*
 ==========================================================================================================================

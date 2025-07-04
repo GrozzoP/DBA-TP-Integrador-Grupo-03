@@ -39,7 +39,7 @@ Numero de grupo: 03
 */
 
 /*
-Cree la base de datos, entidades y relaciones. Incluya restricciones y claves. Deberá entregar 
+Cree la base de datos, entid ades y relaciones. Incluya restricciones y claves. Deberá entregar 
 un archivo .sql con el script completo de creación (debe funcionar si se lo ejecuta “tal cual” es 
 entregado en una sola ejecución). Incluya comentarios para indicar qué hace cada módulo 
 de código.  
@@ -549,7 +549,7 @@ begin
 end
 go
 
--- Crear la tabla de la categoira de la pileta
+-- Crear la tabla de la categoria de la pileta
 if OBJECT_ID('actividades.categoria_pileta') IS NULL
 begin
 	create table actividades.categoria_pileta(
@@ -622,7 +622,7 @@ begin
 		Constraint Actividades_id_socio_acceso_pileta_FK_id_socio
 				Foreign Key(id_socio) References socios.socio(id_socio),
 		Constraint Actividades_id_tarifa_acceso_pileta_FK_id_tarifa
-				Foreign Key(id_socio) References actividades.tarifa_pileta(id_tarifa),
+				Foreign Key(id_tarifa) References actividades.tarifa_pileta(id_tarifa),
 		Constraint Actividades_id_factura_acceso_pileta_FK_id_factura
 				Foreign Key(id_factura) References facturacion.factura(id_factura)
 	)

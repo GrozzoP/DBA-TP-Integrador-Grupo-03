@@ -306,7 +306,7 @@ begin
 			insert into socios.grupo_familiar (id_responsable, id_socio_menor, parentesco)
 			values (@id_responsable_menor, 
 					@nuevo_id_socio, 
-					@parentesco)
+					ISNULL(@parentesco, 'Familiar'))
 		 end
 
 		 print 'Se ha creado de manera automatica una cuenta para que disfrutes de los servicios de los socios!'
@@ -2336,6 +2336,499 @@ end
 go
 
 -- ================================== PILETA ==================================
+-- CONCEPTO PILETA
+-- Procedimiento para insertar el concepto de una pileta
+create or alter procedure actividades.insertar_concepto_pileta
+    @nombre varchar(30)
+as
+begin
+    set nocount on
+
+    if @nombre is null or LTRIM(RTRIM(@nombre)) = ''
+    begin
+        print 'El nombre del concepto no puede estar vacio!'
+        return
+    end
+
+    if exists (
+        select 1 
+        from actividades.concepto_pileta 
+        where nombre = @nombre
+    )
+    begin
+        print 'Ya existe un concepto de pileta con ese nombre!'
+        return
+    end
+
+    insert into actividades.concepto_pileta(nombre)
+    values (@nombre)
+
+    print 'Se ha insertado el concepto de pileta correctamente!'
+end
+go
+
+-- Procedimiento para eliminar el concepto de una pileta
+create or alter procedure actividades.eliminar_concepto_pileta
+    @id_concepto int
+as
+begin
+    set nocount on
+
+    if exists (
+        select 1 
+        from actividades.concepto_pileta 
+        where id_concepto = @id_concepto
+    )
+    begin
+        delete actividades.concepto_pileta 
+        where id_concepto = @id_concepto
+
+        print 'Se ha eliminado el concepto de pileta correctamente!'
+    end
+    else
+    begin
+        print 'No se encontro el concepto de pileta con ese id'
+    end
+end
+go
+
+-- Procedimiento para modificar el concepto de una pileta
+create or alter procedure actividades.modificar_concepto_pileta
+    @id_concepto int,
+    @nombre varchar(30) = NULL
+as
+begin
+    set nocount on
+
+    if not exists (
+        select 1 
+        from actividades.concepto_pileta 
+        where id_concepto = @id_concepto
+    )
+    begin
+        print 'No se encontro el concepto de pileta con ese id'
+        return
+    end
+
+    if @nombre is not null and exists (
+        select 1 
+        from actividades.concepto_pileta 
+        where nombre = @nombre
+          and id_concepto <> @id_concepto
+    )
+    begin
+        print 'Ya existe otro concepto de pileta con ese nombre'
+        return
+    end
+
+    update actividades.concepto_pileta
+    set nombre = ISNULL(@nombre, nombre)
+    where id_concepto = @id_concepto
+
+    print 'Se ha modificado el concepto de pileta correctamente!'
+end
+go
+
+-- CATEGORIA PILETA
+-- Procedimiento para insertar la categoria para la pileta
+create or alter procedure actividades.insertar_categoria_pileta
+    @nombre varchar(30)
+as
+begin
+    set nocount on
+
+    if @nombre is null or len(@nombre) = 0
+    begin
+        print 'El nombre de la categoría no puede estar vacío'
+        return
+    end
+
+    if exists (
+        select 1
+        from actividades.categoria_pileta
+        where nombre = @nombre
+    )
+    begin
+        print 'Ya existe una categoría de pileta con ese nombre'
+        return
+    end
+
+    insert into actividades.categoria_pileta(nombre)
+    values (@nombre)
+
+    print 'Se ha insertado la categoria de pileta correctamente!'
+end
+go
+
+-- Procedimiento para eliminar la categoria de la pileta
+create or alter procedure actividades.eliminar_categoria_pileta
+    @id_categoria_pileta int
+as
+begin
+    set nocount on;
+
+    if exists (
+        select 1
+        from actividades.categoria_pileta
+        where id_categoria_pileta = @id_categoria_pileta
+    )
+    begin
+        delete actividades.categoria_pileta
+        where id_categoria_pileta = @id_categoria_pileta
+
+        print 'Se ha eliminado la categoria de pileta correctamente!'
+    end
+    else
+    begin
+        print 'No se encontro la categoria de pileta con ese id'
+    end
+end
+go
+
+-- Procedimiento para modificar la categoria de pileta
+create or alter procedure actividades.modificar_categoria_pileta
+    @id_categoria_pileta int,
+    @nombre varchar(30) = NULL
+as
+begin
+    set nocount on;
+
+    if not exists (
+        select 1
+        from actividades.categoria_pileta
+        where id_categoria_pileta = @id_categoria_pileta
+    )
+    begin
+        print 'No se encontro la categoría de pileta con ese id'
+        return
+    end
+
+    if @nombre is not null and @nombre <> ''
+    begin
+        if exists (
+            select 1
+            from actividades.categoria_pileta
+            where nombre = @nombre
+              and id_categoria_pileta <> @id_categoria_pileta
+        )
+        begin
+            print 'Ya existe otra categoria de pileta con ese nombre'
+            return
+        end
+    end
+
+    update actividades.categoria_pileta
+    set nombre = ISNULL(@nombre, nombre)
+    where id_categoria_pileta = @id_categoria_pileta
+
+    print 'Se ha modificado la categoria de pileta correctamente!'
+end
+go
+
+-- TARIFA PILETA
+-- Procedimiento para insertar tarifa de pileta
+create or alter procedure actividades.insertar_tarifa_pileta
+    @id_concepto int,
+    @id_categoria_pileta int,
+    @precio_socio decimal(10, 2),
+    @precio_invitado decimal(10, 2),
+    @vigencia_hasta date
+as
+begin
+    set nocount on;
+
+    if not exists (select 1 from actividades.concepto_pileta where id_concepto = @id_concepto)
+    begin
+        print 'No se encontro el concepto de pileta con ese id'
+        return
+    end
+
+    if not exists (select 1 from actividades.categoria_pileta where id_categoria_pileta = @id_categoria_pileta)
+    begin
+        print 'No se encontro la categoria de pileta con ese id'
+        return
+    end
+
+    insert into actividades.tarifa_pileta (id_concepto, id_categoria_pileta, precio_socio, precio_invitado, vigencia_hasta)
+    values (@id_concepto, @id_categoria_pileta, @precio_socio, @precio_invitado, @vigencia_hasta)
+
+    print 'Se ha insertado la tarifa de pileta correctamente!'
+end
+go
+
+-- Procedimiento para eliminar la tarifa de la pileta
+create or alter procedure actividades.eliminar_tarifa_pileta
+    @id_tarifa int
+as
+begin
+    set nocount on
+
+    if exists (
+        select 1
+        from actividades.tarifa_pileta
+        where id_tarifa = @id_tarifa
+    )
+    begin
+        delete actividades.tarifa_pileta
+        where id_tarifa = @id_tarifa
+
+        print 'Se ha eliminado la tarifa de pileta correctamente!'
+    end
+    else
+    begin
+        print 'No se encontro la tarifa de pileta con ese id'
+    end
+end
+go
+
+-- Procedimiento para modificar la tarifa de la pileta
+create or alter procedure actividades.modificar_tarifa_pileta
+    @id_tarifa int,
+    @id_concepto int = NULL,
+    @id_categoria_pileta int = NULL,
+    @precio_socio decimal(10, 2) = NULL,
+    @precio_invitado decimal(10, 2) = NULL,
+    @vigencia_hasta date = NULL
+as
+begin
+    set nocount on
+
+    if not exists (select 1 from actividades.tarifa_pileta where id_tarifa = @id_tarifa)
+    begin
+        print 'No se encontro la tarifa de pileta con ese id'
+        return
+    end
+
+    if @id_concepto is not null and not exists (select 1 from actividades.concepto_pileta where id_concepto = @id_concepto)
+    begin
+        print 'No se encontro el concepto de pileta con ese id'
+        return
+    end
+
+    if @id_categoria_pileta is not null and not exists (select 1 from actividades.categoria_pileta where id_categoria_pileta = @id_categoria_pileta)
+    begin
+        print 'No se encontro la categoría de pileta con ese id'
+        return
+    end
+
+    update actividades.tarifa_pileta
+    set id_concepto = ISNULL(@id_concepto, id_concepto),
+        id_categoria_pileta = ISNULL(@id_categoria_pileta, id_categoria_pileta),
+        precio_socio = ISNULL(@precio_socio, precio_socio),
+        precio_invitado = ISNULL(@precio_invitado, precio_invitado),
+        vigencia_hasta = ISNULL(@vigencia_hasta, vigencia_hasta)
+    where id_tarifa = @id_tarifa
+
+    print 'Se ha modificado la tarifa de pileta correctamente!'
+end
+go
+
+-- INVITADO PILETA
+-- Procedimiento para insertar un invitado para la pileta
+create or alter procedure actividades.insertar_invitado_pileta
+    @id_socio int,
+    @nombre varchar(40),
+    @apellido varchar(40),
+    @dni int,
+    @edad int
+as
+begin
+    set nocount on;
+
+    if not exists (select 1 from socios.socio where id_socio = @id_socio)
+    begin
+        print 'No se encontro el socio con ese id'
+        return
+    end
+
+    if(@dni <= 0)
+    begin
+        print 'El DNI es invalido.'
+        return
+    end
+
+	if(@edad <= 0)
+    begin
+        print 'La edad no puede ser negativa o 0.'
+        return
+    end
+
+    insert into actividades.invitado_pileta (id_socio, nombre, apellido, dni, edad)
+    values (@id_socio, @nombre, @apellido, @dni, @edad)
+
+    print 'Se ha insertado el invitado a la pileta correctamente!'
+end
+go
+
+-- eliminar invitado de pileta
+create or alter procedure actividades.eliminar_invitado_pileta
+    @id_invitado int
+as
+begin
+    set nocount on
+
+    if exists (
+        select 1
+        from actividades.invitado_pileta
+        where id_invitado = @id_invitado
+    )
+    begin
+        delete actividades.invitado_pileta
+        where id_invitado = @id_invitado
+
+        print 'Se ha eliminado el invitado de la pileta correctamente!'
+    end
+    else
+    begin
+        print 'No se encontro el invitado con ese id'
+    end
+end
+go
+
+-- modificar invitado de pileta
+create or alter procedure actividades.modificar_invitado_pileta
+    @id_invitado int,
+    @nombre varchar(40) = NULL,
+    @apellido varchar(40) = NULL,
+    @dni int = NULL,
+    @edad int = NULL
+as
+begin
+    set nocount on
+
+    if not exists (select 1 from actividades.invitado_pileta where id_invitado = @id_invitado)
+    begin
+        print 'No se encontro el invitado con ese id.'
+        return
+    end
+
+    update actividades.invitado_pileta
+    set nombre = ISNULL(@nombre, nombre),
+        apellido = ISNULL(@apellido, apellido),
+        dni = ISNULL(@dni, dni),
+        edad = ISNULL(@edad, edad)
+    where id_invitado = @id_invitado
+
+    print 'Se ha modificado el invitado de la pileta correctamente!'
+end
+go
+
+
+-- ACCESO PILETA
+-- Procedimiento para insertar un acceso a la pileta
+create or alter procedure actividades.insertar_acceso_pileta
+    @id_socio int,
+    @id_invitado int = NULL,
+    @id_tarifa int,
+    @id_factura int
+as
+begin
+    set nocount on;
+
+    if not exists (select 1 from socios.socio where id_socio = @id_socio)
+    begin
+        print 'No se encontro el socio con ese id.'
+        return
+    end
+
+    if @id_invitado is not null and not exists (select 1 from actividades.invitado_pileta where id_invitado = @id_invitado)
+    begin
+        print 'No se encontro el invitado con ese id.'
+        return
+    end
+
+    if not exists (select 1 from actividades.tarifa_pileta where id_tarifa = @id_tarifa)
+    begin
+        print 'No se encontro la tarifa de pileta con ese id'
+        return
+    end
+
+    if not exists (select 1 from facturacion.factura where id_factura = @id_factura)
+    begin
+        print 'No se encontro la factura con ese id'
+        return
+    end
+
+    insert into actividades.acceso_pileta(fecha_inscripcion, id_socio, id_invitado, id_tarifa, id_factura)
+    values(CAST(GETDATE() as date), @id_socio, @id_invitado, @id_tarifa, @id_factura)
+
+    print 'Se ha insertado el acceso a la pileta correctamente!'
+end
+go
+
+-- Procedimiento para eliminar acceso a la pileta
+create or alter procedure actividades.eliminar_acceso_pileta
+    @id_acceso int
+as
+begin
+    set nocount on
+
+    if exists (select 1 from actividades.acceso_pileta where id_acceso = @id_acceso)
+    begin
+        delete actividades.acceso_pileta
+        where id_acceso = @id_acceso
+
+        print 'Se ha eliminado el acceso a la pileta correctamente!'
+    end
+    else
+    begin
+        print 'No se encontro el acceso con ese id'
+    end
+end
+go
+
+-- Procedimento para modificar acceso a la pileta
+create or alter procedure actividades.modificar_acceso_pileta
+    @id_acceso int,
+    @id_socio int = NULL,
+    @id_invitado int = NULL,
+    @id_tarifa int = NULL,
+    @id_factura int = NULL
+as
+begin
+    set nocount on
+
+    if not exists (select 1 from actividades.acceso_pileta where id_acceso = @id_acceso)
+    begin
+        print 'No se encontro el acceso con ese id'
+        return
+    end
+
+    if @id_socio is not null and not exists (select 1 from socios.socio where id_socio = @id_socio)
+    begin
+        print 'No se encontro el socio con ese id'
+        return
+    end
+
+    if @id_invitado is not null and not exists (select 1 from actividades.invitado_pileta where id_invitado = @id_invitado)
+    begin
+        print 'No se encontro el invitado con ese id'
+        return
+    end
+
+    if @id_tarifa is not null and not exists (select 1 from actividades.tarifa_pileta where id_tarifa = @id_tarifa)
+    begin
+        print 'No se encontro la tarifa de pileta con ese id'
+        return
+    end
+
+    if @id_factura is not null and not exists (select 1 from facturacion.factura where id_factura = @id_factura)
+    begin
+        print 'No se encontro la factura con ese id'
+        return
+    end
+
+    update actividades.acceso_pileta
+    set id_socio = ISNULL(@id_socio, id_socio),
+        id_invitado = ISNULL(@id_invitado, id_invitado),
+        id_tarifa = ISNULL(@id_tarifa, id_tarifa),
+        id_factura = ISNULL(@id_factura, id_factura)
+    where id_acceso = @id_acceso
+
+    print 'Se ha modificado el acceso a la pileta correctamente!'
+end
+go
+
 -- Procedimiento para anotarse al uso de la pileta, ya sea un socio o un invitado del mismo
 create or alter procedure actividades.inscribir_a_pileta
     @id_socio int,
@@ -2351,7 +2844,7 @@ begin
 
 	if not exists(select 1 from socios.socio where id_socio = @id_socio)
 	begin
-		raiserror('No existe un socio con id %d.', 16, 1, @id_socio)
+		raiserror('No existe un socio con id %d.', 10, 1, @id_socio)
 		rollback transaction
 		return
 	end
@@ -2396,7 +2889,7 @@ begin
 
 		if @id_categoria_pileta is null
 		begin
-			raiserror('Categoria de pileta no definida para edad %d.', 16, 1, @edad)
+			raiserror('Categoria de pileta no definida para edad de %d años.', 10, 1, @edad)
 			rollback transaction
 			return
 		end
@@ -2404,10 +2897,17 @@ begin
 		begin
 			if @es_invitado = 1
 			begin
-				insert into actividades.invitado_pileta(id_socio, nombre, apellido, dni, edad)
-				values(@id_socio, @nombre_invitado, @apellido_invitado, @dni_invitado, @edad_invitado)
+				select @id_invitado = id_invitado
+				from actividades.invitado_pileta
+				where id_socio = @id_socio and DNI = @dni_invitado
 
-				set @id_invitado = scope_identity()
+				if(@id_invitado is null)
+				begin
+					insert into actividades.invitado_pileta(id_socio, nombre, apellido, dni, edad)
+					values(@id_socio, @nombre_invitado, @apellido_invitado, @dni_invitado, @edad_invitado)
+				
+					set @id_invitado = scope_identity()
+				end
 				set @dni = @dni_invitado
 			end
 			else
@@ -2417,16 +2917,18 @@ begin
 				where id_socio = @id_socio
 			end
 
-			select top 1 @tarifa = (case when @es_invitado = 1 then precio_invitado else precio_socio end)
+			select top 1
+				@tarifa = case when @es_invitado = 1 then precio_invitado else precio_socio end,
+				@id_tarifa = id_tarifa
 			from actividades.tarifa_pileta
 			where id_categoria_pileta = @id_categoria_pileta
-				and id_concepto = @id_concepto
-				and (vigencia_hasta is NULL or vigencia_hasta >= GETDATE())
+			  and id_concepto = @id_concepto
+			  and (vigencia_hasta is NULL or vigencia_hasta >= GETDATE())
 			order by vigencia_hasta
 
 			if @tarifa is null
 			begin
-				raiserror('No hay tarifa vigente para categoria %s y concepto %d.', 16, 1, @nombre_categoria, @id_concepto)
+				raiserror('No hay tarifa vigente para categoria %s y concepto %d.', 10, 1, @nombre_categoria, @id_concepto)
 				rollback transaction
 				return
 			end
@@ -2508,17 +3010,16 @@ begin
 
 			insert into actividades.acceso_pileta(fecha_inscripcion, id_socio, id_invitado, id_tarifa, id_factura)
 			values(GETDATE(), @id_socio, @id_invitado, @id_tarifa, @id_factura)
-
-			print 'Se ha generado la inscripcion a la pileta correctamente!'
 		end
 
 		commit transaction
-		raiserror('InscripciOn a pileta realizada con éxito.', 0, 1)
+		raiserror('Inscripcion a pileta realizada con éxito.', 0, 1)
     end try
     begin catch
         if @@trancount > 0
             rollback transaction
         print 'No se pudo realizar la inscripcion a la pileta!'
+		print ERROR_MESSAGE()
     end catch
 end
 go

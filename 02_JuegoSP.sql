@@ -716,6 +716,16 @@ exec facturacion.crear_factura 1, '2025-07-02'
 --Luego se abona la factura creada
 exec facturacion.pago_factura 1, 'PAGO', 1
 
+--Se desea reembolsar la factura numero 1, que fue pagada anteriormente, 
+--estos cambios se pueden visualizar en el saldo del usuario al que le pertenece la factura
+exec facturacion.reembolsar_pago 1
+--Si se ejecuta nuevamente no te deja realizar el reembolso
+exec facturacion.reembolsar_pago 1
+--Si la factura no se encuentra pagada no se puede realizar el reembolso
+exec facturacion.reembolsar_pago 2
+--Ahora se desea pagar la factura pero con saldo a favor del usuario
+exec facturacion.pago_factura_debito 2,'PAGO',1
+
 /*
 ==========================================================================================================================
 												PILETA

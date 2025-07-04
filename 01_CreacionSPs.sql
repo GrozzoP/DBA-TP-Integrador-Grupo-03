@@ -739,7 +739,7 @@ go
 -- Obtener el precio actual de la cuota de un socio dada una id
 create or alter procedure socios.obtener_precio_actual
     @id_categoria int,
-    @precio_actual decimal(9,3) output,
+    @precio_actual decimal(10, 2) output,
     @fecha_vigencia_desde date output,
     @fecha_vigencia_hasta date output
 as

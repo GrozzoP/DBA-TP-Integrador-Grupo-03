@@ -197,7 +197,7 @@ print '========================================CATEGORIA========================
 --Se espera la insercion exitosa de los siguientes registros
 exec socios.insertar_categoria 'Menor', 1, 12, 20000, '2025-12-31'
 exec socios.insertar_categoria 'Cadete', 13, 17, 30000, '2026-01-15'  
-exec socios.insertar_categoria 'Mayor', 18, 35, 40000, '2025-08-30'
+exec socios.insertar_categoria 'Mayor', 18, 99, 40000, '2025-08-30'
 exec socios.insertar_categoria 'MayorAlCuadrado', 35, 45, 0, '2025-08-30'
 
 --Se espera mensaje 'Ya existe una categoría con ese nombre.'

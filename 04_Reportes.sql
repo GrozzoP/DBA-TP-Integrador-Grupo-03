@@ -112,8 +112,10 @@ begin
 	for XML PATH('Socio'), ROOT('Morosos_Recurrentes')
 end
 go
-exec facturacion.morosos_recurrentes '2024-01-01', '2025-12-1', 2
+
+-- exec facturacion.morosos_recurrentes '2024-01-01', '2025-12-1', 2
 go
+
 --Reporte 2
 create or alter procedure facturacion.reporte_ingresos_por_actividad
 as
@@ -136,30 +138,36 @@ begin
 		select 12, 'Diciembre'
 	),
 	actividad_por_mes(Actividad, Mes, facturado) as
-	(
-		select aa.nombre_actividad, m.nombre_mes, ISNULL(fdf.precio_unitario,0) from actividades.actividad aa
-		cross join Meses m
-		left join facturacion.detalle_factura fdf on fdf.servicio = aa.nombre_actividad
-		and YEAR(fdf.fecha_inscripcion) = YEAR(@fecha_actual) 
-		and MONTH(fdf.fecha_inscripcion) = m.nro_mes
-	)
+    (
+        select
+            aa.nombre_actividad as actividad,
+            m.nombre_mes        as mes,
+            ISNULL(SUM(df.subtotal), 0) as facturado
+        from actividades.actividad aa
+        cross join meses m
+        left join facturacion.detalle_factura df
+            on df.servicio = aa.nombre_actividad
+        left join facturacion.factura f
+            on f.id_factura = df.id_factura
+           and YEAR(f.fecha_emision) = YEAR(@fecha_actual)
+           and MONTH(f.fecha_emision) = m.nro_mes
+        group by aa.nombre_actividad, m.nro_mes, m.nombre_mes
+    )
 	select * from actividad_por_mes
-	pivot( sum(facturado) for Mes in ([Enero], [Febrero], [Marzo], [Abril], [Mayo], [Junio], [Julio], [Agosto], [Septiembre], [Octubre], [Noviembre], [Diciembre])) as t1
+	pivot(sum(facturado) for Mes in ([Enero], [Febrero], [Marzo], [Abril], [Mayo], [Junio], [Julio], [Agosto], [Septiembre], [Octubre], [Noviembre], [Diciembre])) as t1
 	for XML PATH('Reporte'), ROOT('Reporte_acumulado_mensual_de_ingresos_por_deporte')
 end
 go
-exec facturacion.reporte_ingresos_por_actividad
+
+-- exec facturacion.reporte_ingresos_por_actividad
 go
 --Reporte 3
 create or alter procedure socios.cant_inasitencia_por_cat_act as
 begin
 	declare @fecha_actual date
-	--set @fecha_actual = '2025-03-10';
-	set @fecha_actual = GETDATE();
-	--set @fecha_actual = poner una fecha aca porque en presentismo no hay datos para el mes actual ej 2025-03-10;
-	--asegurarse que los socios tiene una categoria asociada sino el informe no cumplira con lo pedido
+	set @fecha_actual = GETDATE()
 
-	with presentismo_por_cat_y_act (id_socio, Categoria, Actividad, cant_asistencias, cant_inasistencia) as
+	;with presentismo_por_cat_y_act (id_socio, Categoria, Actividad, cant_asistencias, cant_inasistencia) as
 	(
 		select distinct ss.id_socio, sc.nombre_categoria, aa.nombre_actividad, COUNT(case when ap.asistencia = 'P' then 1 end) over (partition by ss.id_socio,aa.nombre_actividad), COUNT(case when ap.asistencia = 'A' then 1 end) over (partition by ss.id_socio,aa.nombre_actividad)
 		from actividades.presentismo ap
@@ -175,8 +183,9 @@ begin
 	for XML PATH('Socio'), ROOT('Reporte_de_inasistencia_por_Categoria_y_Actividad')
 end
 go
-exec socios.cant_inasitencia_por_cat_act
+-- exec socios.cant_inasitencia_por_cat_act
 go
+
 --Reporte 4
 create or alter procedure socios.socios_sin_presentismo_por_actividad
 as
@@ -199,4 +208,5 @@ begin
 	for XML PATH('Socio'), ROOT('Socios_sin_asistencias_por_actividad')
 end
 go
-exec socios.socios_sin_presentismo_por_actividad
+
+-- exec socios.socios_sin_presentismo_por_actividad

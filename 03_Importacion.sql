@@ -295,22 +295,6 @@ select * from actividades.concepto_pileta
 select * from actividades.tarifa_pileta
 */
 
--- Arreglar vigencia hasta tarifa de pileta
-create or alter procedure importacion.corregir_fecha_hasta_pileta_tarifa (@cant_meses int)
-as
-begin
-	if(@cant_meses <= 0 or @cant_meses is null)
-	begin
-		print ('Error la cantidad de meses no puede ser negativo, cero o null')
-		return
-	end
-	update actividades.tarifa_pileta
-	set vigencia_hasta = DATEADD(MONTH, @cant_meses, vigencia_hasta)
-end
--- Fin Arreglar vigencia hasta tarifa de pileta
--- exec importacion.corregir_fecha_hasta_pileta_tarifa 4;
-go
-
 -- TABLA 'RESPONSABLES PAGO'
 create or alter procedure importacion.cargar_responsables_de_pago
     @file varchar(MAX)
@@ -353,7 +337,14 @@ begin
 			''SELECT * FROM [Responsables de Pago$]''
 		) as x;'
 
-        exec sp_executesql @sql;
+        exec sp_executesql @sql
+
+		-- Creo esta tabla para luego generar las cuentas de los usuarios
+		declare @nuevos table (
+			id_socio int,
+			dni int,
+			fecha_nacimiento date
+		)
 
 		insert into socios.obra_social (nombre_obra_social, telefono_obra_social)
 		select distinct
@@ -390,6 +381,8 @@ begin
 			nro_socio_obra_social,
 			habilitado
 		)
+		output inserted.id_socio, inserted.dni, inserted.fecha_nacimiento
+		into @nuevos(id_socio, dni, fecha_nacimiento)
 		select
 			CAST(PARSENAME(REPLACE(s.[Nro de Socio], '-', '.'), 1) as int),
 			TRY_CAST(s.[DNI] as int),
@@ -401,23 +394,52 @@ begin
 			s.[Telefono de contacto emerge],
 			os.id_obra_social,
 			s.[Nro de socio obra social],
-			'HABILITADO'             
+			'HABILITADO'
 		from #TEMP_SOCIOS s
 		inner join socios.obra_social os
 		on os.nombre_obra_social = s.[Nombre obra social]
-		where TRY_CAST(s.[DNI] as int) is not null
-		and not exists (
-		  select 1 from socios.socio ss where ss.dni = TRY_CAST(s.[DNI] as int)
-		)
+		where TRY_CAST(s.[dni] as int) is not null
+			and TRY_CONVERT(date, s.[fecha de nacimiento], 103) is not null
+			and not exists (
+				select 1
+				from socios.socio ss
+				where ss.dni = TRY_CAST(s.[dni] as int)
+				or ss.id_socio = CAST(PARSENAME(REPLACE(s.[nro de socio], '-', '.'), 1) as int)
+			)
 
 		SET IDENTITY_INSERT socios.socio OFF
+
+		-- Voy a generarles una cuenta a los socios
+		insert into socios.usuario (usuario, contraseña, fecha_vigencia_contraseña)
+		select	s.nombre + '_' + s.apellido + right(cast(s.dni as varchar(12)), 2),
+				socios.generar_contraseña_aleatoria(16),
+				DATEADD(DAY, 7, GETDATE())
+		from socios.socio s
+		inner join @nuevos n on s.id_socio = n.id_socio
+
+		update s
+		set s.id_usuario = u.id_usuario
+		from socios.socio s
+		inner join socios.usuario u
+			on u.usuario = s.nombre + '_' + s.apellido + right(CAST(s.dni as varchar(12)), 2)
+		where s.id_usuario is null
+		and exists(select 1 from @nuevos n where n.id_socio = s.id_socio)
+
+		-- Les asigno una categoria
+		update s
+		set s.id_categoria = c.id_categoria
+		from socios.socio s
+		inner join socios.categoria c
+		  on DATEDIFF(YEAR, s.fecha_nacimiento, GETDATE())
+			 between c.edad_minima and c.edad_maxima
+		where s.id_categoria is null
 
         drop table #TEMP_SOCIOS;
 
         print 'Se ha importado correctamente el dataset de responsables de pago!';
     end try
     begin catch
-        print 'Error en importacion.cargar_responsables_de_pago: ' + error_message();
+        print 'Error en importacion.cargar_responsables_de_pago: ' + ERROR_MESSAGE()
     end catch
 end
 go
@@ -425,6 +447,7 @@ go
 -- exec importacion.cargar_responsables_de_pago @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
 
 /*
+select * from socios.categoria
 select * from socios.obra_social
 select * from socios.socio
 */
@@ -452,19 +475,38 @@ begin
         [Nombre obra social] varchar(200),
         [Nro obra social] varchar(50),
         [Telefono contacto de emergencia obra social] varchar(100)
-      );
+      )
     end
 
     declare @sql nvarchar(max) = N'
-      insert into #TEMP_GRUPO_FAMILIAR
-      select *
-      from openrowset(
-        ''Microsoft.ACE.OLEDB.12.0'',
-        ''Excel 12.0;HDR=YES;IMEX=1;Database=' + replace(@file,'''','''''') + ''',
-        ''select * from [Grupo Familiar$]''
-      ) as x;'
+        insert into #TEMP_GRUPO_FAMILIAR
+        select
+            cast([Nro de Socio] as varchar(50)),
+            cast([Nro de socio RP] as varchar(50)),
+            [Nombre],
+            [ apellido],
+            cast([ DNI] as int),
+            [ email personal],
+            cast([ fecha de nacimiento] as varchar(50)),
+            cast([ teléfono de contacto] as varchar(200)),
+            cast([ teléfono de contacto emergencia] as varchar(200)),
+            [ Nombre de la obra social o prepaga],
+            cast([nro# de socio obra social/prepaga ] as varchar(200)),
+            cast([teléfono de contacto de emergencia ] as varchar(200))
+        from openrowset(
+            ''Microsoft.ACE.OLEDB.12.0'',
+            ''Excel 12.0;HDR=YES;ImportMixedTypes=Text;IMEX=1;TypeGuessRows=0;Database=' + replace(@file, '''', '''''') + ''',
+            ''select * from [Grupo Familiar$]''
+        ) as x;';
 
-    exec sp_executesql @sql;
+	-- Creo esta tabla para luego generar las cuentas de los usuarios
+	declare @nuevos table (
+		id_socio int,
+		dni int,
+		fecha_nacimiento date
+	)
+
+    exec sp_executesql @sql
 
 	-- Parsear numero socio
 	update #TEMP_GRUPO_FAMILIAR
@@ -473,6 +515,15 @@ begin
     update #TEMP_GRUPO_FAMILIAR
     set [Nro de socio responsable] = CAST(PARSENAME(REPLACE([Nro de socio responsable], '-', '.'), 1) as int)
 
+	update #TEMP_GRUPO_FAMILIAR
+	set [Telefono de contacto emergencia] = case 
+		when [Telefono de contacto emergencia] like '%E+%' or [Telefono de contacto emergencia] like '%e+%' then
+			cast(cast([Telefono de contacto emergencia] as float) as bigint)
+		when isnumeric([Telefono de contacto emergencia]) = 1 then
+			[Telefono de contacto emergencia]
+		else
+			replace(replace(replace([Telefono de contacto emergencia], '-', ''), ' ', ''), '(', '')
+	end
 
 	-- INSERTO LAS OBRAS SOCIALES (QUE NO ESTEN YA EN LA TABLA)
 
@@ -503,6 +554,8 @@ begin
 		nro_socio_obra_social,
 		habilitado
 	)
+	output inserted.id_socio, inserted.dni, inserted.fecha_nacimiento
+    into @nuevos(id_socio, dni, fecha_nacimiento)
 	select
 		TRY_CAST([Nro de Socio] as int),
 		[DNI],
@@ -524,6 +577,31 @@ begin
 		)
 	SET IDENTITY_INSERT socios.socio OFF
 
+    -- Voy a generarles una cuenta a los socios
+	insert into socios.usuario (usuario, contraseña, fecha_vigencia_contraseña)
+	select	s.nombre + '_' + s.apellido + right(cast(s.dni as varchar(12)), 2) as usuario,
+			socios.generar_contraseña_aleatoria(16)  as contraseña,
+			DATEADD(DAY, 7, GETDATE()) as fecha_vigencia_contraseña
+	from socios.socio s
+	inner join @nuevos n
+	on s.id_socio = n.id_socio
+
+	update s
+	set s.id_usuario = u.id_usuario
+	from socios.socio s
+	inner join socios.usuario u
+		on u.usuario = s.nombre + '_' + s.apellido + right(CAST(s.dni as varchar(12)), 2)
+	where s.id_usuario is null
+	and exists(select 1 from @nuevos n where n.id_socio = s.id_socio)
+
+	-- Les asigno una categoria
+	update s
+	set s.id_categoria = c.id_categoria
+	from socios.socio s
+	inner join socios.categoria c
+		on DATEDIFF(YEAR, s.fecha_nacimiento, GETDATE())
+			between c.edad_minima and c.edad_maxima
+	where s.id_categoria is null
 
 	insert into socios.grupo_familiar (id_socio_menor, id_responsable, parentesco)
 	select
@@ -559,30 +637,11 @@ select * from socios.socio
 select * from socios.grupo_familiar
 */
 
--- Arreglar insertar categoria correspondiente a todos los socios
--- Es necesario tener la fecha de nacimiento del socio en caso contrario quedara null
-create or alter procedure importacion.asignar_categoria_socio
-as
-begin
-	update ss
-	set ss.id_categoria = sc.id_categoria
-	from socios.socio ss
-	left join socios.categoria sc on 
-	(case when MONTH(fecha_nacimiento) >= MONTH(GETDATE())
-		and DAY(fecha_nacimiento) >= DAY(GETDATE())
-        then DATEDIFF(YEAR, fecha_nacimiento, GETDATE())
-		else (DATEDIFF(YEAR, fecha_nacimiento, GETDATE()) - 1) 
-	end)between sc.edad_minima and sc.edad_maxima
-	where ss.id_categoria is null
-end
-go
--- exec importacion.asignar_categoria_socio;
--- Fin de arreglar insertar categoria correspondiente a todos los socios
-go
-
 create or alter procedure socios.cargar_pago_cuotas_historico(@ruta nvarchar(MAX))
 as
 begin
+	set nocount on
+
 	declare @bulkInsertar nvarchar(max)
 
 	if object_id('COM5600G03.facturacion.#TEMP_PAGO_CUOTAS') is null
@@ -615,6 +674,7 @@ begin
 		from #TEMP_PAGO_CUOTAS
 
 		drop table #TEMP_PAGO_CUOTAS
+		print 'Se ha cargado el pago de cuotas historico con exito!'
 	end try
 	begin catch
 		print 'Error en cargar_pago_cuotas_historico: ' + ERROR_MESSAGE()

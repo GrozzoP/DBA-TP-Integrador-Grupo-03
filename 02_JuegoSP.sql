@@ -53,7 +53,6 @@ exec socios.modificar_rol 'Administrador', 'Persona designada para revisar las o
 exec socios.modificar_rol 'Controlador', 'modificado'
 exec socios.modificar_rol 'Deportista', 'modificado'
 
-
 /*****	socios.eliminar_rol(@nombre_rol varchar(20))	*****/
 
 -- Se espera la eliminacion exitosa de los registro anteriores
@@ -92,9 +91,11 @@ exec socios.insertar_usuario @id_rol = 1, @usuario = 'equi-fernandez@hotmail.com
 exec socios.insertar_usuario @id_rol = 1, @usuario = '', @contraseña = 'contraseñaDeUsuario6', @fecha_vigencia_contraseña = @fechaDePrueba
 exec socios.insertar_usuario @id_rol = 1 , @usuario =  NULL, @contraseña = 'contraseñaDeUsuario6', @fecha_vigencia_contraseña = @fechaDePrueba
 
-/*****	socios.modificar_contraseña_usuario 
+/*****	create or alter procedure socios.modificar_usuario
 		@id_usuario int,
-		@contraseña varchar(40) *****/
+		@usuario varchar(40) = NULL,
+		@contraseña varchar(40) = NULL,
+		@fecha_vigencia_contraseña date = NULL *****/
 
 --Se espera la modificacion exitosa de la contraseña
 exec socios.modificar_usuario @id_usuario = 1, @contraseña = 'naruto456!'
@@ -104,7 +105,7 @@ exec socios.modificar_usuario @id_usuario = 3, @contraseña = 'auricularTeclado4
 -- Se espera mensaje 'La contraseña no puede estar vacia'
 exec socios.modificar_usuario @id_usuario = 1, @contraseña = ''
 
--- Se espera mensaje 'La contraseña no puede ser nula'
+-- Se espera mensaje 'Debe proporcionar al menos un campo para actualizar.'
 exec socios.modificar_usuario @id_usuario = 4, @contraseña = NULL
 
 -- Se espera mensaje 'No existe un usuario con ese id'
@@ -116,7 +117,7 @@ declare @fechaDePruebaModificada date;
 exec socios.modificar_usuario @id_usuario = 1, @fecha_vigencia_contraseña = @fechaDePrueba
 
 --Se espera la modificacion exitosa de la fecha_vigencia_contraseña
-set @fechaDePruebaModificada = DATEADD(DAY, 1, @fechaDePrueba)
+set @fechaDePruebaModificada = DATEADD(DAY, 5, @fechaDePrueba)
 exec socios.modificar_usuario @id_usuario = 1, @fecha_vigencia_contraseña = @fechaDePruebaModificada
 exec socios.modificar_usuario @id_usuario = 2, @fecha_vigencia_contraseña = @fechaDePruebaModificada
 exec socios.modificar_usuario @id_usuario = 3, @fecha_vigencia_contraseña = @fechaDePruebaModificada
@@ -176,7 +177,7 @@ exec socios.modificar_obra_social 'OBRA-SOCIAL', '1120639622'
 /*****	socios.eliminar_obra_social @nombre_obra_social varchar(60)	*****/
 
 --Se espera la eliminacion de la siguiente obra social
-exec socios.eliminar_obra_social 'Swiss Medical'
+exec socios.eliminar_obra_social 'Plan de Salud Hospital Italiano'
 
 --Se espera mensaje 'No existe una obra social con ese nombre.'
 exec socios.eliminar_obra_social 'OBRA-SOCIAL'
@@ -194,9 +195,9 @@ print '========================================CATEGORIA========================
 		@vigencia_hasta date	*****/
 
 --Se espera la insercion exitosa de los siguientes registros
-exec socios.insertar_categoria 'Menor', 1, 12, 9.69, '2025-12-31'
-exec socios.insertar_categoria 'Cadete', 13, 17, 1.01, '2026-01-15'  
-exec socios.insertar_categoria 'Mayor', 18, 35, 0, '2025-08-30'
+exec socios.insertar_categoria 'Menor', 1, 12, 20000, '2025-12-31'
+exec socios.insertar_categoria 'Cadete', 13, 17, 30000, '2026-01-15'  
+exec socios.insertar_categoria 'Mayor', 18, 35, 40000, '2025-08-30'
 exec socios.insertar_categoria 'MayorAlCuadrado', 35, 45, 0, '2025-08-30'
 
 --Se espera mensaje 'Ya existe una categoría con ese nombre.'
@@ -210,8 +211,8 @@ exec socios.insertar_categoria 'Veterano', 36, 45, -1.99, '2025-12-31'
 
 /*****	socios.modificar_costo_categoria @id_categoria int, @costo_membresia decimal(9,3) *****/
 
-exec socios.modificar_costo_categoria 1, 10.99  -- ID de 'Menor'
-exec socios.modificar_costo_categoria 2, 20.99  -- ID de 'Cadete'
+exec socios.modificar_costo_categoria 1, 10000.99
+exec socios.modificar_costo_categoria 2, 20000.99
 
 -- Se espera mensaje 'El nuevo costo de la membresia no puede ser negativo.'
 exec socios.modificar_costo_categoria 1, -5.66
@@ -254,7 +255,7 @@ declare @precio decimal(9,3),
 		@fecha_desde date, 
 		@fecha_hasta date;
 
--- Esto se hacep ara obtener el precio mas vigente dentro del historico
+-- Esto se hace para obtener el precio mas vigente dentro del historico
 exec socios.obtener_precio_actual
 	@id_categoria = 5,
 	@precio_actual = @precio output,
@@ -312,7 +313,7 @@ exec facturacion.modificar_medio_de_pago 2, 'Tarjeta Visa', 1
 exec facturacion.eliminar_medio_de_pago 999
 
 -- Se elimina el siguiente registro
-exec facturacion.eliminar_medio_de_pago 1
+exec facturacion.eliminar_medio_de_pago 4
 
 print '========================================SOCIO========================================'
 /*
@@ -338,8 +339,8 @@ print '========================================SOCIO============================
 -- Insercion exitosa de un socio adulto, 'Se ha creado de manera automatica una cuenta para que disfrutes de los servicios de los socios!'
 exec socios.insertar_socio
     @dni = 16054254,
-    @nombre = 'ana',
-    @apellido = 'perez',
+    @nombre = 'Ana',
+    @apellido = 'Perez',
     @email = 'ana.perez@mail.com',
     @fecha_nacimiento = '1990-05-10',
     @telefono_contacto = '0000000001',
@@ -347,12 +348,12 @@ exec socios.insertar_socio
     @id_obra_social = 1,
     @nro_socio_obra_social = 'a100',
     @id_medio_de_pago = 1,
-    @id_rol = 1;
+    @id_rol = 1
 
 exec socios.insertar_socio
     @dni = 52745821,
-    @nombre = 'martin',
-    @apellido = 'gutierrez',
+    @nombre = 'Martin',
+    @apellido = 'Gutierrez',
     @email = 'martin.gutierrez@mail.com',
     @fecha_nacimiento = '1989-04-12',
     @telefono_contacto = '01112345678',
@@ -360,7 +361,33 @@ exec socios.insertar_socio
     @id_obra_social = 2,
     @nro_socio_obra_social = 'm350',
     @id_medio_de_pago = 2,
-    @id_rol = 1;
+    @id_rol = 1
+
+exec socios.insertar_socio
+    @dni = 45896321,
+    @nombre = 'Sofia',
+    @apellido = 'Perez',
+    @email = 'sofia.perez@mail.com',
+    @fecha_nacimiento = '1995-08-20',
+    @telefono_contacto = '01133445566',
+    @telefono_emergencia = '01166554433',
+    @id_obra_social = 2,
+    @nro_socio_obra_social = 'sp220',
+    @id_medio_de_pago = 2,
+    @id_rol = 1
+
+exec socios.insertar_socio
+    @dni = 37894512,
+    @nombre = 'María',
+    @apellido = 'Gómez',
+    @email = 'maria.gomez@mail.com',
+    @fecha_nacimiento = '1985-02-14',  -- 40 años
+    @telefono_contacto = '01166778899',
+    @telefono_emergencia = '01199887766',
+    @id_obra_social = 1,
+    @nro_socio_obra_social = 'MG254',
+    @id_medio_de_pago = 1,
+    @id_rol = 1
 
 -- Insercion fallida, 'Ya existe un socio con ese dni.'
 exec socios.insertar_socio
@@ -374,7 +401,7 @@ exec socios.insertar_socio
     @id_obra_social = 1,
     @nro_socio_obra_social = 'a101',
     @id_medio_de_pago = 2,
-    @id_rol = 1;
+    @id_rol = 1
 
 -- Insercion invalida, 'No existe una obra social con ese id.'
 exec socios.insertar_socio
@@ -388,7 +415,7 @@ exec socios.insertar_socio
     @id_obra_social = 99,
     @nro_socio_obra_social = 'b200',
     @id_medio_de_pago = 1,
-    @id_rol = 1;
+    @id_rol = 1
 
 -- No se pudo insertar un socio menor de edad, 'El socio al ser menor de edad, debe estar vinculado con un responsable ya registrado.'
 exec socios.insertar_socio
@@ -402,7 +429,7 @@ exec socios.insertar_socio
     @id_obra_social = 1,
     @nro_socio_obra_social = 'c300',
     @id_medio_de_pago = 1,
-    @id_rol = 1;
+    @id_rol = 1
 
 -- El menor se inserta con un responsable adulto, 'Se ha creado de manera automatica una cuenta para que disfrutes de los servicios de los socios!' 
 exec socios.insertar_socio
@@ -417,7 +444,7 @@ exec socios.insertar_socio
     @nro_socio_obra_social = 'd400',
 	@id_responsable_menor = 1,
     @id_medio_de_pago = 2,
-    @id_rol = 1;
+    @id_rol = 1
 go
 
 /***** create or alter procedure socios.modificar_habilitar_socio
@@ -436,13 +463,12 @@ go
 /***** create or alter procedure socios.eliminar_socio
 			@DNI int *****/
 
--- Se elimina un socio mediante el DNI
-exec socios.eliminar_socio @dni = 52745821;
+-- Se elimina un socio mediante el ID
+exec socios.eliminar_socio @id_socio = 3
 
--- Indica que 'No existe un socio con ese dni.'
-exec socios.eliminar_socio @dni = 88888;
+-- Indica que 'No existe un socio con ese ID.'
+exec socios.eliminar_socio @id_socio = 65
 go
-
 
 print '========================================GRUPO FAMILIAR========================================'
 /*
@@ -455,7 +481,7 @@ print '========================================GRUPO FAMILIAR===================
 		@id_responsable int,
 		@parentesco varchar(15) ******/
 
--- Responsable menor de edad
+-- Se espera mensaje 'El socio responsable no puede ser menor de edad.'
 exec socios.insertar_grupo_familiar @id_socio_menor = 2, @id_responsable = 3;
 
 -- No existe el menor, 'No existe un socio menor con ese id.'
@@ -487,48 +513,49 @@ print '========================================ACTIVIDAD========================
 --Se espera la insercion exitosa de los siguientes registros
 exec actividades.insertar_actividad 'Voley', 3.9, '2025-07-27'
 exec actividades.insertar_actividad 'Baile', 9999.5, '2025-08-29'
+exec actividades.insertar_actividad 'Futbol', 1999.5, '2025-08-27'
+exec actividades.insertar_actividad 'Basket', 2500, '2025-09-25'
+exec actividades.insertar_actividad 'Handball', 4500, '2025-10-15'
+exec actividades.insertar_actividad 'Futbol sala', 8200, '2025-12-1'
 
 --Se espera mensaje 'El costo de actividad no debe ser negativo'
-exec actividades.insertar_actividad 'Futbol', -1.5, '2026-06-19'
+exec actividades.insertar_actividad 'Hockey', -1.5, '2026-06-19'
 
 --Se espera mensaje 'El nombre de la actividad extra ya existe'
 exec actividades.insertar_actividad 'Baile', 1000, '2025-07-27'
-exec actividades.insertar_actividad 'Voley', 2.9, '2025-08-29'
 
 /*****	actividades.eliminar_actividad(@id_actividad int)	*****/
 
---Insertanto registros para la prueba
-exec actividades.insertar_actividad 'Voley', 2.9, '2025-08-29'
-exec actividades.insertar_actividad 'Baile', 9999.5, '2026-06-19'
-
---Se espera la eliminacion de los siguiente registros
-exec actividades.eliminar_actividad 1
-exec actividades.eliminar_actividad 2
+--Se espera la eliminacion del siguiente registro
+exec actividades.eliminar_actividad 6
 
 --Se espera mensaje 'La actividad a eliminar no existe'
-exec actividades.eliminar_actividad 1
-exec actividades.eliminar_actividad 3
+exec actividades.eliminar_actividad 999
 
 /*****	actividades.modificar_precio_actividad(@id_actividad int, @nuevoPrecio decimal(9,3))	*****/
 
---Insertanto registros para la prueba
-exec actividades.insertar_actividad 'Voley', 2.9, '2026-06-19'
-exec actividades.insertar_actividad 'Baile', 9999.5, '2027-05-14'
-
 --Se espera la modificacion del costo de actividad de los siguientes registros
-exec actividades.modificar_precio_actividad 1, 5.3, '2027-05-14'
-exec actividades.modificar_precio_actividad 2, 3.3, '2026-06-19'
+exec actividades.modificar_precio_actividad 3, 5.3, '2027-05-14'
+exec actividades.modificar_precio_actividad 4, 3.3, '2026-06-19'
+
 --Se espera mensaje 'El nuevo costo de actividad no puede ser negativa'
-exec actividades.modificar_precio_actividad 1, -5.3, '2025-08-29'
+exec actividades.modificar_precio_actividad 3, -5.3, '2025-08-29'
 
 --Se espera mensaje 'La actividad a modificar no existe'
-exec actividades.modificar_precio_actividad 3, 99.5, '2026-06-19'
+exec actividades.modificar_precio_actividad 99, 99.5, '2026-06-19'
+
+/*
+==========================================================================================================================
+												ACTIVIDAD EXTRA
+========================================================================================================================== */
 
 /*****	actividades.insertar_actividad_extra(@nombreActividad varchar(36),@costo decimal(9,3))   *****/
 
 --Se espera la insercion exitosa de los siguiente registros
 exec actividades.insertar_actividad_extra 'Pileta verano', 5.9 
 exec actividades.insertar_actividad_extra 'Colonia de verano', 99.5
+exec actividades.insertar_actividad_extra 'Competencia', 20
+exec actividades.insertar_actividad_extra 'Atletismo', 25
 
 --Se espera mensaje 'El nombre de la actividad extra ya existe'
 exec actividades.insertar_actividad_extra 'Colonia de verano', 10.9
@@ -538,33 +565,47 @@ exec actividades.insertar_actividad_extra 'Alquiler del SUM', -10.9
 
 /*****	actividades.eliminar_actividad_extra(@id_actividad_extra int)	*****/
 
---Insertanto registros para la prueba
-exec actividades.insertar_actividad_extra 'Pileta verano', 5.9 
-exec actividades.insertar_actividad_extra 'Colonia de verano', 99.5
-
 --Se espera la eliminacion de los siguientes registros
 exec actividades.eliminar_actividad_extra 1
-exec actividades.eliminar_actividad_extra 2
 
 --Se espera mensaje 'La actividad extra a eliminar no existe'
-exec actividades.eliminar_actividad_extra 1
-exec actividades.eliminar_actividad_extra 3
+exec actividades.eliminar_actividad_extra 50
 
 /*****	actividades.modificar_precio_actividad_extra(@id_actividad_extra int, @nuevoPrecio decimal(9,3))	*****/
 
---Insertanto registros para la prueba
-exec actividades.insertar_actividad_extra 'Pileta vserano', 5.9 
-exec actividades.insertar_actividad_extra 'Colonia de verano', 99.5
+-- Se espera la modificacion del costo de actividad_extra
+exec actividades.modificar_precio_actividad_extra 2, 5.5
 
---Se espera la modificacion del costo de actividad_extra
-exec actividades.modificar_precio_actividad_extra 1, 5.5
-exec actividades.modificar_precio_actividad_extra 2, 6.5
+-- Se espera mensaje 'El nuevo costo de actividad extra debe ser mayor a cero.'
+exec actividades.modificar_precio_actividad_extra 2, -5.5
 
---Se espera mensaje 'El nuevo costo de actividad extra no puede ser negativo'
-exec actividades.modificar_precio_actividad_extra 1, -5.5
+-- Se espera mensaje 'La actividad extra a modificar no existe'
+exec actividades.modificar_precio_actividad_extra 60, 5
 
---Se espera mensaje 'La actividad extra a modificar no existe'
-exec actividades.modificar_precio_actividad_extra 3, 5
+-- Se deberian insertar con exito los siguientes registros
+exec actividades.inscripcion_actividad_extra 2, 2, '2025-07-13', '16:00:00', '17:30:00', 10
+exec actividades.inscripcion_actividad_extra 2, 3, '2025-08-14', '20:00:00', '21:00:00', 6
+
+-- Se deberia mostrar el mensaje 'La cantidad de invitados no puede ser negativa.'
+exec actividades.inscripcion_actividad_extra 1, 2, '2025-06-12', '14:00:00', '16:00:00', -2
+
+-- Se deberia mostrar el mensaje 'La fecha de reserva no puede ser anterior a hoy.
+exec actividades.inscripcion_actividad_extra 1, 2, '2025-06-12', '14:00:00', '16:00:00', 3
+
+-- Se deberia mostrar el mensaje 'No se encontro una actividad con ese id'
+exec actividades.inscripcion_actividad_extra 1, 7, '2025-06-12', '14:00:00', '16:00:00', 3
+
+-- Se deberia mostrar el mensaje 'No se encontro el id del socio a inscribir a la actividad'
+exec actividades.inscripcion_actividad_extra 25, 2, '2025-06-18', '14:00:00', '16:00:00', 3
+
+/****  actividades.eliminar_inscripcion_act_extra
+		@id_inscripcion int ****/
+
+--Deberia eliminar con éxito los siguientes registros
+exec actividades.eliminar_inscripcion_act_extra 1
+
+--Se debería mostrar el mensaje 'La inscripcion extra a eliminar no existe'
+exec actividades.eliminar_inscripcion_act_extra 15
 
 print '========================================HORARIO ACTIVIDADES========================================'
 /*
@@ -573,73 +614,36 @@ print '========================================HORARIO ACTIVIDADES==============
 ========================================================================================================================== */
 /****actividades.insertar_horario_actividad****/
 
---insertando registros para la prueba
-exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
-exec socios.insertar_categoria 'Cadete', 19, 27, 1.01, '2026-01-15'  
-exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
-exec actividades.insertar_actividad 'futbol', 10000, '2026-06-19'
-exec actividades.insertar_actividad 'voley', 10000, '2025-08-25'
-exec actividades.insertar_actividad 'tenis', 13000, '2026-06-19'
-
---se espera la insercion exitosa de los siguientes registros
+-- Se espera la insercion exitosa de los siguientes registros
 exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 1
+exec actividades.insertar_horario_actividad 'Viernes', '18:00:00', '19:30:00', 1, 1
 exec actividades.insertar_horario_actividad 'Martes', '19:00:00', '20:00:00', 2, 2
+exec actividades.insertar_horario_actividad 'Miercoles', '19:00:00', '20:00:00', 2, 2
 exec actividades.insertar_horario_actividad 'Jueves', '18:00:00', '19:30:00', 3, 2
 
 --Se espera un mensaje de 'El dia no es correcto'
 exec actividades.insertar_horario_actividad 'Noviembre', '18:00:00', '19:30:00', 3, 1
 
---Se espera un mensaje de 'no se encontro la actividad con ese id'
+--Se espera un mensaje de 'No se encontro la actividad con ese id'
 exec actividades.insertar_horario_actividad 'Sabado', '18:00:00', '19:30:00', 8, 2
 
---Se espera un mensaje de 'no se encontro la categoria con ese id'
+--Se espera un mensaje de 'No se encontro la categoria con ese id'
 exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 10
 
 /*****actividades.eliminar_horario_actividad(@id_horario int)****/
 
---insertando registros para la prueba
-exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
-exec socios.insertar_categoria 'Cadete', 19, 27, 1.01, '2026-01-15'  
-exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
-exec actividades.insertar_actividad 'futbol', 10000, '2025-12-31'
-exec actividades.insertar_actividad 'voley', 10000, '2026-12-31'
-exec actividades.insertar_actividad 'tenis', 13000, '2027-12-31'
-
---se espera la insercion exitosa de los siguientes registros
-exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 1
-exec actividades.insertar_horario_actividad 'Martes', '19:00:00', '20:00:00', 2, 2
-exec actividades.insertar_horario_actividad 'Jueves', '18:00:00', '19:30:00', 3, 2
-
 --Se espera la eliminacion exitosa de los siguientes registros
-exec actividades.eliminar_horario_actividad 1
-exec actividades.eliminar_horario_actividad 2
 exec actividades.eliminar_horario_actividad 3
 
 --Se espera un mensaje de 'No existe una actividad con ese id'
-exec actividades.eliminar_horario_actividad 1
-exec actividades.eliminar_horario_actividad 7
+exec actividades.eliminar_horario_actividad 25
 
 /*****actividades.modificar_horario_actividad*****/
 
---insertando registros para la prueba
-exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
-exec socios.insertar_categoria 'Cadete', 19, 27, 1.01, '2026-01-15'  
-exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
-exec actividades.insertar_actividad 'futbol', 10000, '2026-08-25'
-exec actividades.insertar_actividad 'voley', 10000, '2026-08-25'
-exec actividades.insertar_actividad 'tenis', 13000, '2026-08-25'
-
---se espera la insercion exitosa de los siguientes registros
-exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 1
-exec actividades.insertar_horario_actividad 'Martes', '19:00:00', '20:00:00', 2, 2
-exec actividades.insertar_horario_actividad 'Jueves', '18:00:00', '19:30:00', 3, 2
-
---Se espera la modificacion exitosa de los siguientes registros
+--Se espera la modificacion exitosa del siguiente registro
 exec actividades.modificar_horario_actividad 1, 'Miercoles', '18:00:00', '19:30:00', 1, 1
-exec actividades.modificar_horario_actividad 2, 'Martes', '18:30:00', '20:00:00', 2, 2
-exec actividades.modificar_horario_actividad 3, 'Jueves', '18:00:00', '19:15:00', 3, 2
 
---Se espera un mensaje de 'El dia no es correcto'
+--Se espera un mensaje de 'El dia ingresado no es correcto.'
 exec actividades.modificar_horario_actividad 3, 'Enero', '18:00:00', '19:15:00', 3, 2
 
 --Se espera un mensaje de 'No se encontro la categoria con ese id'
@@ -662,49 +666,20 @@ print '========================================INSCRIPCION ACTIVIDAD============
 			@lista_id_horarios varchar(200)  ******/
 
 --Insertanto registros para la prueba
-declare @fechaDePrueba date = GETDATE();
-exec socios.insertar_rol 'Cliente', @fechaDePrueba
-exec socios.insertar_usuario @id_rol = 1, @usuario = 'grosso@gmail.com', @contraseña = 'passwordDeUsuario1', @fecha_vigencia_contraseña = @fechaDePrueba
-exec socios.insertar_usuario @id_rol = 1, @usuario = 'lautaro@gmail.com', @contraseña = 'passwordDeUsuario2', @fecha_vigencia_contraseña = @fechaDePrueba
-exec socios.insertar_usuario @id_rol = 1, @usuario = 'federico@gmail.com', @contraseña = 'passwordDeUsuario3', @fecha_vigencia_contraseña = @fechaDePrueba
-exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
-exec socios.insertar_categoria 'Cadete', 19, 27, 1.01, '2026-01-15'  
-exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
-exec socios.insertar_obra_social 'Luis Pasteur', '1111111111'
-exec socios.insertar_obra_social'OSECAC', '22222222'
-exec facturacion.insertar_medio_de_pago'Visa', 1
-
---insercion de socios
-exec socios.insertar_socio 41247252, 'Pepe', 'Grillo' , 'pGrillo@gmail.com', '1999-01-19', '11223344', '55667788', 1, 41, 1, 1, 1
-exec socios.insertar_socio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', '55667788', '11223344', 2, 45, 1, 1, 1
-
---Insercion de actividades
-exec actividades.insertar_actividad 'futbol', 10000, '2029-02-15'
-exec actividades.insertar_actividad 'voley', 10000, '2026-08-25'
-exec actividades.insertar_actividad 'tenis', 13000, '2025-09-20'
-
---Insercion de horarios
-exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 1
-exec actividades.insertar_horario_actividad 'Martes', '18:00:00', '19:30:00', 1, 1
-exec actividades.insertar_horario_actividad 'Jueves', '18:00:00', '19:30:00', 3, 2
-exec actividades.insertar_horario_actividad 'Martes', '19:00:00', '20:00:00', 2, 2
+declare @fechaDePrueba date = GETDATE()
 
 select * from  actividades.horario_actividades
 
 --Se deberían insertar con éxito los siguientes registros
-exec actividades.inscripcion_actividad 1, 1, '1,4'
-exec actividades.inscripcion_actividad 1, 3, '2'
+exec actividades.inscripcion_actividad 1, 1, '1, 2'
 
 --Se deberia generar un mensaje de 'No se encontro un horario para esa actividad'
-exec actividades.inscripcion_actividad 1, 3, 1
+exec actividades.inscripcion_actividad 1, 5, '1'
 
 --Se deberia generar un mensaje de 'No se encontro una actividad con ese id'
-exec actividades.inscripcion_actividad 1, 1, 9
+exec actividades.inscripcion_actividad 1, 15, 9
 
---Se deberia generar un mensaje de 'No se encontro un horario con ese id'
-exec actividades.inscripcion_actividad 1, 5, 1
-
---Se deberia generar un mensaje de 'No se encontro el id del socio a inscribir a la actividad'
+--Se deberia generar un mensaje de 'No se encontro un socio con ese id'
 exec actividades.inscripcion_actividad 15, 1, 1
 
 /********  actividades.eliminar_inscripcion_actividad
@@ -712,74 +687,11 @@ exec actividades.inscripcion_actividad 15, 1, 1
 
 --Deberían eliminarse correctamente los siguientes registros
 exec actividades.eliminar_inscripcion_actividad 1
-exec actividades.eliminar_inscripcion_actividad 2
 
 --Se debería generar un mensaje de 'La inscripcion a eliminar no existe'
-exec actividades.eliminar_inscripcion_actividad 1
 exec actividades.eliminar_inscripcion_actividad 7
 
-print '========================================ACTIVIDAD EXTRA========================================'
 /*
-==========================================================================================================================
-												ACTIVIDAD EXTRA
-========================================================================================================================== */
-/****	actividades.inscripcion_actividad_extra
-		@id_socio int,
-		@id_actividad_extra int,
-		@fecha date,
-		@hora_inicio time,
-		@hora_fin time,
-		@cant_invitados int)  *****/
-
---Insertanto registros para la prueba
-exec socios.insertar_rol 'Cliente', @fechaDePrueba
-exec socios.insertar_usuario @id_rol = 1, @usuario = 'damian@gmail.com', @contraseña = 'passwordDeUsuario1', @fecha_vigencia_contraseña = @fechaDePrueba
-exec socios.insertar_usuario @id_rol = 1, @usuario = 'nicolas@gmail.com', @contraseña = 'passwordDeUsuario2', @fecha_vigencia_contraseña = @fechaDePrueba
-exec socios.insertar_usuario @id_rol = 1, @usuario = 'rivero@gmail.com', @contraseña = 'passwordDeUsuario3', @fecha_vigencia_contraseña = @fechaDePrueba
-exec socios.insertar_categoria 'Menor', 1, 18, 9.69, '2025-12-31'
-exec socios.insertar_categoria 'Cadete', 19, 27, 1.01, '2026-01-15'  
-exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
-exec socios.insertar_obra_social 'Luis Pasteur', '1111111111'
-exec socios.insertar_obra_social 'OSECAC', '22222222'
-exec facturacion.insertar_medio_de_pago 'Visa', 1
-
---insercion de socios
-exec socios.insertar_socio 41247252, 'Pepe', 'Grillo' , 'pGrillo@gmail.com', '1999-01-19', '11223344', '55667788', 1, 21, 1, 1, 1
-exec socios.insertar_socio 41247253, 'Armando', 'Paredes' , 'albañilParedes@gmail.com', '1990-01-19', '55667788', '11223344', 2, 35, 1, 1, 1
-
---Insercion de actividades extra
-exec actividades.insertar_actividad_extra 'pileta', 10000
-exec actividades.insertar_actividad_extra 'SUM', 25000
-exec actividades.insertar_actividad_extra 'Colonia', 40000
-
-/* Lo dejo comentado para hacer las modificaciones...
---Se deberIan insertar con Exito los siguientes registros
-exec actividades.inscripcion_actividad_extra 1, 1, '2025-06-12', '14:00:00', '16:00:00', 3
-exec actividades.inscripcion_actividad_extra 2, 2, '2025-06-13', '16:00:00', '17:30:00', 10
-exec actividades.inscripcion_actividad_extra 2, 3, '2025-06-14', '20:00:00', '21:00:00', 6
-
---Se deberia mostrar el mensaje 'Error en la cantidad de invitados'
-exec actividades.inscripcion_actividad_extra 1, 2, '2025-06-12', '14:00:00', '16:00:00', -2
-
---Se deberia mostrar el mensaje 'No se encontro una actividad con ese id'
-exec actividades.inscripcion_actividad_extra 1, 7, '2025-06-12', '14:00:00', '16:00:00', 3
-
---Se deberia mostrar el mensaje 'No se encontro el id del socio a inscribir a la actividad'
-exec actividades.inscripcion_actividad_extra 4, 1, '2025-06-18', '14:00:00', '16:00:00', 3
-
-/****  actividades.eliminar_inscripcion_act_extra
-		@id_inscripcion int ****/
-
---Deberia eliminar con éxito los siguientes registros
-exec actividades.eliminar_inscripcion_act_extra 1
-exec actividades.eliminar_inscripcion_act_extra 2
-
---Se debería mostrar el mensaje 'La inscripcion extra a eliminar no existe'
-exec actividades.eliminar_inscripcion_act_extra 1
-exec actividades.eliminar_inscripcion_act_extra 7
-
-
-
 ==========================================================================================================================
 												FACTURA
 ========================================================================================================================== */
@@ -788,49 +700,24 @@ exec actividades.eliminar_inscripcion_act_extra 7
 		@dni int,
 		@actividad varchar(250)  *****/
 
--- Inserción de datos requeridos para relaciones
-exec socios.insertar_categoria 'Mayor', 18, 99, 200, '2025-08-30'
-exec socios.insertar_categoria 'Menor', 1, 17, 50, '2025-08-30'
-exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
-exec facturacion.insertar_medio_de_pago 'Tarjeta de crédito', 1
-exec socios.insertar_obra_social 'OSDE', '1134225566'
-
-exec actividades.insertar_actividad 'Ajedrez', 15003, '2029-02-15'
-exec actividades.insertar_actividad 'Arte', 900000, '2026-08-25'
-
-exec actividades.insertar_horario_actividad 'Lunes', '18:00:00', '19:30:00', 1, 1
-exec actividades.insertar_horario_actividad 'Martes', '18:00:00', '19:30:00', 1, 1
-exec actividades.insertar_horario_actividad  'Jueves', '18:00:00', '19:30:00', 2, 2
-
--- Se espera inserción exitosa del socio Roman, Messi es padre de Liomeñ
-exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', '1133445566', '1133445577', 1, 12, 1, 1, 1
-exec socios.insertar_socio  41288888, 'Messi', 'Messi', 'messi@gmail.com', '1990-06-01', '1121555566', '1333445577', 1, 12, 1, 1, 1
-exec socios.insertar_socio  51283188,'Liomeñ', 'Messi', 'lion@gmail.com', '2015-06-01', '1123445566', '1333445577', 1, 12, 1, 1, 2,'PADRE'
-exec socios.insertar_socio  337834783,'Marcos', 'Roto', 'mrquitos@gmail.com', '1990-06-01', '1123445566', '1333445577', 1, 12, 1, 1
-
---Inscribimos a Lionel y al Hijo de lionel a actividades
+-- Se realizan inscripciones a las actividades
 exec actividades.inscripcion_actividad 1, 1, '1'
-exec actividades.inscripcion_actividad 3, 2, '3'
 exec actividades.inscripcion_actividad 4, 1, '1'
 
---Se espera que se encuentre en detalles de factura, ambas inscripciones
-select*from facturacion.detalle_factura
---Una vez inscriptos, se cargaran mas actividades de esos socios en el club
---Y a fin de mes, se realiza la creacion de la factura del socio mayor
---En caso de que sea menor, no te deja crear la factura
+-- Se espera que no te deje crear la factura del socio menor 'No se le puede hacer la factura a un menor de edad!'
+exec facturacion.crear_factura 5, '2025-07-02'
 
---Se espera que no te deje crear la factura del socio menor
-exec facturacion.crear_factura 3,'2025-07-02'
---Se espera que te deje crear la factura del socio mayor, y agregue los gastos del menor 
---Tambien a la factura
-exec facturacion.crear_factura 4,'2025-07-02'
-select*from facturacion.factura
+-- Se espera que te deje crear la factura del socio mayor, y agregue los gastos del menor 
+exec facturacion.crear_factura 1,'2025-07-02'
+
+select * from facturacion.factura
+select * from facturacion.detalle_factura
+
 --Si se ejecuta nuevamente, no te dejara crear mas facturas porque ya se ejecuto la factura del mes
-exec facturacion.crear_factura 2,'2025-07-02'
---Tambien en detalle factura, aparece la factura a la cual pertenecen las actividades
-select*from facturacion.detalle_factura
+exec facturacion.crear_factura 1, '2025-07-02'
+
 --Luego se abona la factura creada
-exec facturacion.pago_factura 1,'PAGO', 1
+exec facturacion.pago_factura 1, 'PAGO', 1
 
 exec facturacion.crear_factura 1,'2025-07-02'
 
@@ -949,18 +836,6 @@ exec actividades.inscripcion_actividad_extra 1, 1, '2025-06-28','19:00:00','20:0
 		@edad_invitado int = null,
 		@id_concepto int *****/
 
--- Inserción de datos requeridos para relaciones
-exec socios.insertar_categoria 'Mayor', 28, 35, 0, '2025-08-30'
-exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
-exec facturacion.insertar_medio_de_pago 'Transferencia', 1
-exec socios.insertar_obra_social 'OSDE', 1134225566
-exec actividades.insertar_actividad 'Futbol', 200.5, '2025-09-20'
-exec actividades.insertar_horario_actividad 'Lunes','20:00:00','21:00:00', 1, 1
-go
-
--- Se espera insercion exitosa del socio
-exec socios.insertar_socio 42838702, 'Juan', 'Roman', 'riquelme@mail.com', '2000-06-01', 1133445566, 1133445577, 1, 1, 1, 1
-
 -- Se espera el mensaje de 'No existe una categoria creada para la edad de la persona que quiere ir a la pileta!'
 exec actividades.inscribir_a_pileta 
      @id_socio = 1, 
@@ -970,14 +845,14 @@ exec actividades.inscribir_a_pileta
      @id_concepto = 1
 
 -- Inserto categorias y tambien el concepto
-insert into actividades.categoria_pileta(nombre) values('Menores de 12 años'), ('Adultos');
-insert into actividades.concepto_pileta(nombre) values('Temporada');
+insert into actividades.categoria_pileta(nombre) values('Menores de 12 años'), ('Adultos')
+insert into actividades.concepto_pileta(nombre) values('Temporada')
 
 -- Se espera el mensaje 'No se encontro una tarifa vigente para esta categoria y concepto'
 exec actividades.inscribir_a_pileta 
      @id_socio = 1, 
      @es_invitado = 0, 
-     @dni_invitado = null, 
+     @dni_invitado = NULL, 
      @edad_invitado = 8, 
      @id_concepto = 1
 
@@ -990,11 +865,11 @@ exec actividades.inscribir_a_pileta
      @id_socio = 1,
      @es_invitado = 0,
      @edad_invitado = 8,
-     @id_concepto = 1;
+     @id_concepto = 1
 
 -- Inserto tarifa de adultos
 insert into actividades.tarifa_pileta(id_concepto, id_categoria_pileta, precio_socio, precio_invitado, vigencia_hasta)
-values(1, 2, 2000, 2500, dateadd(month, 1, getdate()));
+values(1, 2, 2000, 2500, DATEADD(MONTH, 1, GETDATE()));
 
 -- Insercion exitosa para un invitado
 exec actividades.inscribir_a_pileta 
@@ -1006,15 +881,6 @@ exec actividades.inscribir_a_pileta
      @edad_invitado = 30,
      @id_concepto = 1;
 
-/*Prueba descuento por dia de lluvia*/
-
--- Se inserta una facturacion en un dia en el que llovio manualmente '2025-01-01',previamente se inserto el archivo de meteorologia 2025
-insert into facturacion.factura (dni,fecha_emision,total,estado,nombre,apellido,servicio)
-values(42838702,'2025-01-01',5000,'PAGADO','Juan','Roman','Pileta')
-
--- Se espera que realice el reembolso de una factura pagada, en esa fecha, si llovio y si el dni es de socio
-exec facturacion.descuento_pileta_lluvia '2025-01-01'
-*/
 
 /*
 ==========================================================================================================================
@@ -1166,3 +1032,74 @@ exec actividades.inscripcion_actividad_extra 1,1,'2025-08-08','13:00:00', '16:30
 
 --Si se vuelve a ejecutar, no se va a poder realizar la reserva, porque ya esta reservado para ese dia
 exec actividades.inscripcion_actividad_extra 1,1,'2025-08-08','13:00:00', '16:30:00',100
+
+/*
+==========================================================================================================================
+												ELIMINAR REGISTROS
+========================================================================================================================== 
+*/
+/*
+EXEC sp_MSForEachTable 'ALTER TABLE ? NOCHECK CONSTRAINT ALL'
+GO
+
+DELETE FROM actividades.presentismo
+DELETE FROM actividades.Sum_Reservas
+DELETE FROM actividades.acceso_pileta
+DELETE FROM actividades.invitado_pileta
+DELETE FROM actividades.inscripcion_act_extra
+DELETE FROM actividades.inscripcion_actividades_horarios
+DELETE FROM actividades.inscripcion_actividades
+DELETE FROM actividades.horario_actividades
+DELETE FROM actividades.profesor
+DELETE FROM actividades.actividad_extra
+DELETE FROM actividades.actividad_precios
+DELETE FROM actividades.actividad
+DELETE FROM actividades.tarifa_pileta
+DELETE FROM actividades.categoria_pileta
+DELETE FROM actividades.concepto_pileta
+
+DELETE FROM facturacion.pago
+DELETE FROM facturacion.detalle_factura
+DELETE FROM facturacion.factura
+DELETE FROM facturacion.dias_lluviosos
+DELETE FROM facturacion.medio_de_pago
+
+DELETE FROM socios.pago_cuotas_historico
+DELETE FROM socios.grupo_familiar
+DELETE FROM socios.socio
+DELETE FROM socios.categoria_precios
+DELETE FROM socios.categoria
+DELETE FROM socios.obra_social
+DELETE FROM socios.usuario
+DELETE FROM socios.rol
+GO
+
+DBCC CHECKIDENT ('actividades.presentismo', RESEED, 0);
+DBCC CHECKIDENT ('actividades.Sum_Reservas', RESEED, 0);
+DBCC CHECKIDENT ('actividades.acceso_pileta', RESEED, 0);
+DBCC CHECKIDENT ('actividades.invitado_pileta', RESEED, 0);
+DBCC CHECKIDENT ('actividades.inscripcion_act_extra', RESEED, 0);
+DBCC CHECKIDENT ('actividades.inscripcion_actividades', RESEED, 0);
+DBCC CHECKIDENT ('actividades.horario_actividades', RESEED, 0);
+DBCC CHECKIDENT ('actividades.profesor', RESEED, 0);
+DBCC CHECKIDENT ('actividades.actividad_extra', RESEED, 0);
+DBCC CHECKIDENT ('actividades.actividad_precios', RESEED, 0)
+DBCC CHECKIDENT ('actividades.actividad', RESEED, 0)
+DBCC CHECKIDENT ('actividades.tarifa_pileta', RESEED, 0)
+DBCC CHECKIDENT ('actividades.categoria_pileta', RESEED, 0)
+DBCC CHECKIDENT ('actividades.concepto_pileta', RESEED, 0)
+DBCC CHECKIDENT ('facturacion.pago', RESEED, 0)
+DBCC CHECKIDENT ('facturacion.detalle_factura', RESEED, 0)
+DBCC CHECKIDENT ('facturacion.factura', RESEED, 0)
+DBCC CHECKIDENT ('facturacion.medio_de_pago', RESEED, 0)
+DBCC CHECKIDENT ('socios.socio', RESEED, 0)
+DBCC CHECKIDENT ('socios.categoria_precios', RESEED, 0)
+DBCC CHECKIDENT ('socios.categoria', RESEED, 0)
+DBCC CHECKIDENT ('socios.obra_social', RESEED, 0)
+DBCC CHECKIDENT ('socios.usuario', RESEED, 0)
+DBCC CHECKIDENT ('socios.rol', RESEED, 0)
+GO
+
+EXEC sp_MSForEachTable 'ALTER TABLE ? WITH CHECK CHECK CONSTRAINT ALL'
+GO
+*/

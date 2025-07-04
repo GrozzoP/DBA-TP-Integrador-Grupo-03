@@ -476,8 +476,7 @@ begin
 		tipo_comprobante char(1) default 'B',
 		punto_venta varchar(40) default 'Club SQL Norte Janson 1145',
 		condicion_frente_iva varchar(30) default 'Consumidor Final',
-		email varchar(30) default 'sqlnorte10@gmail.com',
-		tipo varchar(100) default 'ACTIVIDAD'
+		email varchar(30) default 'sqlnorte10@gmail.com'
 		Constraint Facturacion_factura_PK_id_factura Primary key(id_factura),
 		Constraint Facturacion_factura_FK_id_socio Foreign key (id_socio) references socios.socio(id_socio)
 	)
@@ -493,17 +492,13 @@ begin
 	Create table facturacion.detalle_factura(
 		id_detalle_factura int identity(1, 1),
 		id_factura int,
-		id_socio int,
-		fecha_inscripcion date,
 		servicio varchar(60),
 		precio_unitario decimal(10, 2),
 		subtotal decimal(10, 2),
 		cantidad tinyint DEFAULT 1
 		Constraint Facturacion_detalle_factura_PK_id_factura Primary key(id_detalle_factura),
 		Constraint Facturacion_detalle_factura_FK_id_factura
-				Foreign Key(id_factura) References facturacion.factura(id_factura),
-		Constraint Facturacion_detalle_factura_FK_id_socio
-				Foreign Key(id_socio) References socios.socio(id_socio)
+				Foreign Key(id_factura) References facturacion.factura(id_factura)
 	)
 end
 else

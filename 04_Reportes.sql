@@ -141,16 +141,16 @@ begin
     (
         select
             aa.nombre_actividad as actividad,
-            m.nombre_mes        as mes,
+            m.nombre_mes as mes,
             ISNULL(SUM(df.subtotal), 0) as facturado
         from actividades.actividad aa
         cross join meses m
-        left join facturacion.detalle_factura df
-            on df.servicio = aa.nombre_actividad
         left join facturacion.factura f
-            on f.id_factura = df.id_factura
-           and YEAR(f.fecha_emision) = YEAR(@fecha_actual)
-           and MONTH(f.fecha_emision) = m.nro_mes
+            on YEAR(f.fecha_emision) = YEAR(@fecha_actual)
+            and MONTH(f.fecha_emision) = m.nro_mes
+        left join facturacion.detalle_factura df
+            on df.id_factura = f.id_factura
+            and df.servicio = aa.nombre_actividad
         group by aa.nombre_actividad, m.nro_mes, m.nombre_mes
     )
 	select * from actividad_por_mes

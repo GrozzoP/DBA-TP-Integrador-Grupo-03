@@ -141,7 +141,7 @@ Go
 
 --Asignacion de permisos para el rol administrativo_morosos
 GRANT EXEC ON	socios.eliminar_grupo_familiar TO tesoreria_administrativo_morosos
-GRANT EXEC ON	socios.eliminar_grupo_familiar TO tesoreria_administrativo_morosos
+GRANT EXEC ON	socios.eliminar_socio TO tesoreria_administrativo_morosos
 GRANT EXEC ON	facturacion.morosos_recurrentes TO tesoreria_administrativo_morosos
 GO
 
@@ -149,6 +149,7 @@ GO
 GRANT EXEC ON	facturacion.insertar_medio_de_pago TO tesoreria_administrativo_cobranza
 GRANT EXEC ON	facturacion.modificar_medio_de_pago TO tesoreria_administrativo_cobranza
 GRANT EXEC ON	facturacion.eliminar_medio_de_pago TO tesoreria_administrativo_cobranza
+GRANT EXEC ON	facturacion.pago_factura TO tesoreria_administrativo_cobranza
 GRANT EXEC ON	facturacion.pago_a_cuenta TO tesoreria_administrativo_cobranza
 GRANT EXEC ON	facturacion.reembolsar_pago TO tesoreria_administrativo_cobranza
 GRANT SELECT ON	facturacion.pago TO tesoreria_administrativo_facturacion
@@ -157,6 +158,7 @@ GO
 -- Asignacion de permisos para el rol administrativo_facturacion
 GRANT EXEC ON	facturacion.crear_factura TO tesoreria_administrativo_facturacion
 GRANT SELECT ON	facturacion.factura TO tesoreria_administrativo_facturacion
+GRANT SELECT ON	facturacion.detalle_factura TO tesoreria_administrativo_facturacion
 GO
 
 -- Asignacion de permisos para el rol jefe_de_tesoreria
@@ -172,6 +174,7 @@ GRANT EXEC ON	facturacion.reembolsar_pago TO tesoreria_jefe_tesoreria
 GRANT EXEC ON	facturacion.crear_factura TO tesoreria_jefe_tesoreria
 GRANT SELECT ON	facturacion.pago TO tesoreria_administrativo_facturacion
 GRANT SELECT ON	facturacion.factura TO tesoreria_administrativo_facturacion
+GRANT SELECT ON	facturacion.detalle_factura TO tesoreria_administrativo_facturacion
 GO
 
 -- Asignacion de permisos para el rol de administrativo_socio
@@ -180,8 +183,8 @@ GRANT EXEC ON	socios.eliminar_grupo_familiar TO socios_administrativo_socio
 GRANT EXEC ON	socios.insertar_socio TO socios_administrativo_socio
 GRANT EXEC ON	socios.modificar_habilitar_socio TO socios_administrativo_socio
 GRANT EXEC ON	socios.eliminar_socio TO socios_administrativo_socio
-GRANT EXEC ON	socios.socios_con_ausentes TO socios_administrativo_socio
 GRANT EXEC ON	socios.socios_sin_presentismo_por_actividad TO socios_administrativo_socio
+GRANT EXEC ON	socios.cant_inasitencia_por_cat_act TO socios_administrativo_socio
 GRANT SELECT ON socios.socio TO socios_administrativo_socio
 GO
 
@@ -192,9 +195,7 @@ GRANT EXEC ON 	socios.obtener_precio_actual TO socios_socio
 GRANT EXEC ON 	actividades.inscripcion_actividad_extra TO socios_socio
 GRANT EXEC ON 	actividades.inscripcion_actividad TO socios_socio
 GRANT EXEC ON 	actividades.eliminar_inscripcion_actividad TO socios_socio
-GRANT EXEC ON 	actividades.eliminar_inscripcion_act_extra TO socios_socio
 GRANT EXEC ON 	facturacion.pago_factura TO socios_socio
-GRANT SELECT ON socios.socio TO socios_socio
 GRANT SELECT ON socios.socio TO socios_socio
 GO
 
@@ -288,3 +289,38 @@ GRANT EXEC ON actividades.modificar_horario_actividad TO autoridades_vocal
 GRANT EXEC ON facturacion.reporte_ingresos_por_actividad TO autoridades_vocal
 GRANT EXEC ON facturacion.morosos_recurrentes TO autoridades_vocal
 Go
+
+-------------------------------Prueba de roles con creacion de usuarios y Login------------------------------------
+/*
+--	Ejemplo con Rol de presidente
+USE COM5600G03
+CREATE LOGIN Lionel_messi WITH PASSWORD = 'contraseña'
+Go
+CREATE USER Lionel_messi FOR LOGIN lionel_messi
+Go
+ALTER ROLE autoridades_presidente ADD MEMBER lionel_messi
+Go
+
+--	Las siguientes sentencias deberían ejecutarse con normalidad
+exec facturacion.reporte_ingresos_por_actividad
+exec actividades.insertar_actividad 'Hockey sobre Césped', 20000
+
+--	No se debería permitir la ejecucion de las siguientes sentencias debido a que el permiso de ejecucion está negado
+exec socios.socios_sin_presentismo_por_actividad
+exec facturacion.morosos_recurrentes '2025-01-01', '2025-07-01', 2
+
+--	Ejemplo con Rol de socio
+
+CREATE LOGIN Juan_Perez WITH PASSWORD = 'otraContra'
+Go
+CREATE USER Juan_Perez FOR LOGIN Juan_Perez
+Go
+ALTER ROLE socios_socio ADD MEMBER Juan_Perez
+Go
+
+--	Las siguientes sentencias deberían ejecutarse sin problemas
+SELECT 1 FROM socios.socio
+
+--	No se debería permitir la ejecucion de las siguientes sentencias debido a que el permiso de ejecucion está negado
+exec facturacion.crear_factura 2, '2025-06-01'
+exec facturacion.reporte_ingresos_por_actividad*/

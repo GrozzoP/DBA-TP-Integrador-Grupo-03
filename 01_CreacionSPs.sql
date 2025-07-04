@@ -1829,7 +1829,6 @@ go
 -- Procedimiento para pagar una factura
 create or alter procedure facturacion.pago_factura(
 		@id_factura int,
-		@tipo_movimiento varchar(20),
 		@id_medio_pago int
 )
 as
@@ -1895,7 +1894,7 @@ begin
 
         -- Una vez validado todo, puedo asegurarme insertar el pago
         insert into facturacion.pago(id_factura, id_socio, fecha_pago, monto_total, tipo_movimiento, id_medio_pago)
-        values(@id_factura, @id_socio, GETDATE(), @monto, @tipo_movimiento, @id_medio_pago)
+        values(@id_factura, @id_socio, GETDATE(), @monto, 'PAGO', @id_medio_pago)
 
 		-- Ya puedo actualizar la factura, asegurando que se pago
         update facturacion.factura
@@ -1903,6 +1902,7 @@ begin
         where id_factura = @id_factura
 
         commit transaction
+		print 'Se ha ejecutado el pago de forma correcta!'
     end try
     begin catch
         rollback transaction
@@ -1921,90 +1921,88 @@ create or alter procedure facturacion.pago_factura_debito(
 )
 as
 begin
-	set nocount on
-	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-	BEGIN TRANSACTION
+    set nocount on
 
-	declare @monto decimal(9,3)
+    begin try
+        set transaction isolation level read committed
+        begin transaction
 
-	if exists(
-		select id_factura from facturacion.factura
-		where id_factura = @id_factura and estado like 'NO PAGADO'
-	)
-	begin
-		if exists(
-			select id_medio_de_pago from facturacion.medio_de_pago
-			where id_medio_de_pago = @id_medio_pago
-		)
-		begin
-				if exists(
-				select primer_vto from facturacion.factura
-				where primer_vto >= GETDATE()
-				) 
-				begin
-					set @monto = (
-									select total from facturacion.factura
-									where id_factura = @id_factura
-								)
-				end
-				else
-				begin
-				if exists(
-					select segundo_vto from facturacion.factura
-					where segundo_vto >= GETDATE()
-				)
-					begin
-					set @monto = (
-									select total_con_recargo from facturacion.factura
-									where id_factura = @id_factura
-								)
-					end
-					else
-					begin
-						set @monto = -1
-					end
-				end
+        declare @monto decimal(10,2),
+				@id_socio int,
+				@hoy date = CAST(GETDATE() as date),
+				@estado_factura varchar(20)
 
-				if(@monto = -1)
-				begin
-					print 'La factura ya excedio la fecha de pago'
-				end
-				else
-				begin
-			    			
-					declare @id_socio int
-					set @id_socio = (
-					select id_socio from facturacion.factura 			  
-					where id_factura = @id_factura				   
-					)
+        select	@estado_factura = estado,
+				@id_socio = id_socio
+        from facturacion.factura
+        where id_factura = @id_factura
 
-					exec facturacion.descuento_saldo_usuario @id_socio , @monto
-					--inserto los datos en la tabla de pago
-					insert into facturacion.pago(id_factura,id_socio,fecha_pago,monto_total,tipo_movimiento,id_medio_pago)
-					values(@id_factura, @id_socio,getdate(),@monto,'PAGO DEBITO',@id_medio_pago)
-					--modifico el estado de la factura
+        if @estado_factura is null
+        begin
+            raiserror('La factura con id %d no encontrada.', 16, 1, @id_factura)
+            rollback transaction
+            return
+        end
 
-					update facturacion.factura
-					set estado = 'PAGADO'
-					where id_factura = @id_factura
-				end		 
-		end
-		else
-		begin
-			print 'No se encontro el id de ese medio de pago'
-		end
-	end
-	else
-	begin
-		print 'No se encontro factura con ese id o la factura ya fue abonada'
-	end
+        if(@estado_factura <> 'NO PAGADO')
+        begin
+            raiserror('La factura con id %d ya está en estado %s.', 16, 1, @id_factura, @estado_factura)
+            rollback transaction; 
+            return;
+        end
 
-	COMMIT TRANSACTION
+        if not exists(select 1 from facturacion.medio_de_pago where id_medio_de_pago = @id_medio_pago)
+        begin
+            raiserror('Medio de pago con id %d invalido.', 16, 1, @id_medio_pago)
+            rollback transaction;
+            return
+        end
+
+        if exists(select 1 from facturacion.factura 
+                  where id_factura = @id_factura and primer_vto >= @hoy)
+        begin
+            select @monto = total
+            from facturacion.factura
+            where id_factura = @id_factura
+        end
+        else if exists(select 1 from facturacion.factura 
+                       where id_factura = @id_factura and segundo_vto >= @hoy)
+        begin
+            select @monto = total_con_recargo
+            from facturacion.factura
+            where id_factura = @id_factura
+        end
+        else
+        begin
+            raiserror('La factura con id %d ha superado segundo vencimiento, no se puede debitar.', 16, 1, @id_factura)
+            rollback transaction; 
+            return
+        end
+
+        exec facturacion.descuento_saldo_usuario @id_socio, @monto
+
+        insert into facturacion.pago(id_factura, id_socio, fecha_pago, monto_total, tipo_movimiento, id_medio_pago)
+        values(@id_factura, @id_socio, GETDATE(), @monto, @tipo_movimiento, @id_medio_pago)
+
+        update facturacion.factura
+        set estado = 'PAGADO'
+        where id_factura = @id_factura
+
+        commit transaction;
+        raiserror('La factura %d abonada por debito exitosamente!', 0, 1, @id_factura)
+
+    end try
+    begin catch
+        if @@trancount > 0 
+			rollback transaction
+        declare @err nvarchar(4000) = error_message();
+        raiserror('Error en pago_factura_debito: %s', 16, 1, @err)
+    end catch
 end
 go
 
 -- Procedimiento encargado de sumar el saldo en caso de algun reembolso o pago a cuenta
-create or alter procedure facturacion.pago_a_cuenta(@id_socio int,@monto_reembolo decimal(9,3), @porcentaje float)
+create or alter procedure facturacion.pago_a_cuenta(@id_socio int, @monto_reembolso decimal(9,3), @porcentaje float)
 as
 begin
 	set nocount on
@@ -2019,7 +2017,7 @@ begin
 			return
 		end
 
-		set @monto_final = (@monto_reembolo*@porcentaje)
+		set @monto_final = (@monto_reembolso * @porcentaje)
 
 		set @id_user = (
 			 select id_usuario from socios.socio
@@ -2041,45 +2039,116 @@ go
 create or alter procedure facturacion.reembolsar_pago(@id_factura int)
 as
 begin
-	set nocount on
+    set nocount on
 
-	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-	BEGIN TRANSACTION
-		if exists(
-		select id_factura from facturacion.pago 
-		where id_factura = @id_factura and tipo_movimiento like 'PAGO'
-		)
-		begin
-				declare @monto_a_reembolsar decimal(10,2)
+    begin try
+        set transaction isolation level read committed
+        begin transaction
 
-				set @monto_a_reembolsar = (
+        declare @monto_a_reembolsar decimal(10,2),
+				@id_socio int
 
-						select monto_total from facturacion.pago
-						where id_factura = @id_factura     
+        -- 1) validar que exista un pago tipo 'PAGO'
+        if not exists (
+            select 1 
+            from facturacion.pago 
+            where id_factura = @id_factura
+              and tipo_movimiento = 'PAGO'
+        )
+        begin
+            raiserror('No es posible reembolsar la factura %d: no existe pago pendiente.', 16, 1, @id_factura)
+            rollback transaction
+            return
+        end
 
-				)
-			
-			declare @id_socio int
-			set @id_socio = (
-				select id_socio from facturacion.factura 
-				where id_factura = @id_factura
-			)
+        select @monto_a_reembolsar = monto_total
+        from facturacion.pago
+        where id_factura = @id_factura
 
-		
-			update facturacion.pago
-			set tipo_movimiento = 'REEMBOLSO'
-			where id_factura = @id_factura
+        select @id_socio = id_socio
+        from facturacion.factura
+        where id_factura = @id_factura
 
-			-------Pago a cuenta en la tabla usuarios
-			exec facturacion.pago_a_cuenta @id_socio, @monto_a_reembolsar,1
-		end
-		else
-		begin
-		print 'No es posible reembolsar esa factura'
-		end
-  
-	COMMIT TRANSACTION
+        update facturacion.pago
+        set tipo_movimiento = 'REEMBOLSO'
+        where id_factura = @id_factura
+
+        exec facturacion.pago_a_cuenta @id_socio, @monto_a_reembolsar, 1
+
+        commit transaction;
+        raiserror('Reembolso de factura %d realizado con exito!', 0, 1, @id_factura)
+    end try
+    begin catch
+        if @@trancount > 0
+			rollback transaction
+
+        declare @err_msg nvarchar(4000) = error_message()
+        raiserror('Error en reembolsar_pago: %s', 16, 1, @err_msg)
+    end catch
 end
+go
+
+-- Si se paso la segunda fecha de vencimiento de la factura, inhabilito al socio
+create or alter procedure facturacion.verificar_vencimiento
+    @id_factura int
+as
+begin
+    set nocount on
+
+    begin try
+        declare 
+            @primer_vto date,
+            @segundo_vto date,
+            @estado varchar(30),
+            @total decimal(10,2),
+            @id_socio int,
+            @porc_recargo decimal(5,2) = 10,
+            @monto_recargo decimal(10,2);
+
+        if not exists(
+            select 1 
+            from facturacion.factura 
+            where id_factura = @id_factura
+        )
+        begin
+			print 'La factura no fue encontrada'
+			return
+        end
+
+        select	@primer_vto = primer_vto,
+				@segundo_vto = segundo_vto,
+				@estado = estado,
+				@total = total,
+				@id_socio = id_socio
+        from facturacion.factura
+        where id_factura = @id_factura;
+
+        if(@estado = 'PAGADO')
+		begin
+			print 'La factura esta pagada!'
+		end
+
+        if(GETDATE() < @primer_vto)
+        begin
+			print 'Todavia no se cumplio el primer vencimiento...'
+			return
+		end
+        
+        if(getdate() > @segundo_vto)
+        begin
+			print CONCAT('Se deshabilitara al socio ', @id_socio, ' por no haber en termino su factura con identificador ', @id_factura)
+
+            update socios.socio
+            set habilitado = 'NO HABILITADO'
+            where id_socio = @id_socio;
+            return
+        end
+    end try
+    begin catch
+        declare @msg nvarchar(4000) = ERROR_MESSAGE()
+        print @msg
+    end catch
+end;
 go
 
 -- ================================== INSCRIPCION ACTIVIDAD ==================================
@@ -2162,10 +2231,8 @@ begin
     end try
     begin catch
         rollback transaction
-
         declare @msg nvarchar(4000) = ERROR_MESSAGE()
         print @msg
-
     end catch
 end;
 go

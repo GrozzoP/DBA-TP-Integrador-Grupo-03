@@ -668,9 +668,7 @@ print '========================================INSCRIPCION ACTIVIDAD============
 --Insertanto registros para la prueba
 declare @fechaDePrueba date = GETDATE()
 
-select * from  actividades.horario_actividades
-
---Se deberían insertar con éxito los siguientes registros
+--Se deberían insertar con exito los siguientes registros
 exec actividades.inscripcion_actividad 1, 1, '1, 2'
 
 --Se deberia generar un mensaje de 'No se encontro un horario para esa actividad'
@@ -700,6 +698,7 @@ exec actividades.inscripcion_actividad 3, 3, '5'
 exec actividades.inscripcion_actividad 2, 3, '5'
 exec actividades.inscripcion_actividad 1, 3, '5'
 
+print '========================================FACTURA========================================'
 /*
 ==========================================================================================================================
 												FACTURA
@@ -718,23 +717,30 @@ exec facturacion.crear_factura 5, '2025-07-02'
 
 -- Se espera que te deje crear la factura del socio mayor, y agregue los gastos del menor 
 exec facturacion.crear_factura 1,'2025-07-02'
+exec facturacion.crear_factura 2, '2025-07-02'
+exec facturacion.crear_factura 1, '2025-07-02'
+exec facturacion.crear_factura 3, '2025-07-02'
 
 --Si se ejecuta nuevamente, no te dejara crear mas facturas porque ya se ejecuto la factura del mes
 exec facturacion.crear_factura 1, '2025-07-02'
 
 --Luego se abona la factura creada
-exec facturacion.pago_factura 1, 'PAGO', 1
+exec facturacion.pago_factura 1, 1
 
 --Se desea reembolsar la factura numero 1, que fue pagada anteriormente, 
 --estos cambios se pueden visualizar en el saldo del usuario al que le pertenece la factura
 exec facturacion.reembolsar_pago 1
+
 --Si se ejecuta nuevamente no te deja realizar el reembolso
 exec facturacion.reembolsar_pago 1
+
 --Si la factura no se encuentra pagada no se puede realizar el reembolso
 exec facturacion.reembolsar_pago 2
---Ahora se desea pagar la factura pero con saldo a favor del usuario
-exec facturacion.pago_factura_debito 2,'PAGO',1
 
+--Ahora se desea pagar la factura pero con saldo a favor del usuario
+exec facturacion.pago_factura_debito 2, 'PAGO', 1
+
+print '========================================PILETA========================================'
 /*
 ==========================================================================================================================
 												PILETA

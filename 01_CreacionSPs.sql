@@ -1479,23 +1479,6 @@ end
 go
 
 -- ================================== FACTURA ==================================
-
-create or alter procedure facturacion.generar_detalle_factura
-(@id_socio int,@servicio varchar(300),@precio_unitario decimal(10,2), @fecha_inscripcion date)
-as
-begin
-   if(@precio_unitario <= 0)
-   begin
-     print 'Error de monto'
-   end
-   else
-   begin
-      insert into facturacion.detalle_factura(servicio,precio_unitario,id_socio,fecha_inscripcion)
-	  values(@servicio,@precio_unitario,@id_socio,@fecha_inscripcion)
-   end
-end
-go
-
 create or alter procedure facturacion.descuento_pileta_lluvia
 (@id_socio int, @fecha_emision date, @monto decimal(10,2) OUTPUT)
 as
@@ -1524,31 +1507,6 @@ begin
 	  set @monto = @monto - ((@monto_pileta*@contador)*0.6)
 	  return @monto
 	end
-end
-go
-
---Hay que hacer modificaciones...
--- Procedimiento que realiza el descuento del 10% si el socio ya participa en alguna actividad
-create or alter procedure facturacion.descuento_actividad(@id_socio int, @monto decimal(10,2) OUTPUT)
-as
-begin
-   SET NOCOUNT ON
-
-   declare @cantidad int 
-   set @cantidad = (
-    select COUNT(id_socio) from actividades.inscripcion_actividades
-    group by id_socio
-    having id_socio = @id_socio
-   )
-   if(@cantidad > 1)
-   begin
-       set @monto = @monto - (@monto*0.1)
-	   return @monto
-   end
-   else
-   begin
-       return @monto
-   end
 end
 go
 
@@ -2117,7 +2075,7 @@ begin
   COMMIT TRANSACTION
 end
 go
-
+-- Procedimiento encargado de ver el total de cada factura
 create or alter procedure facturacion.ver_factura(@id_factura int)
 as
 begin

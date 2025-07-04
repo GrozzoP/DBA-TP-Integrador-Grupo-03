@@ -1036,8 +1036,6 @@ exec socios.insertar_categoria 'Mayor', 28, 101, 3600, '2025-08-30'
 --Se inserta un rol general para socios
 exec socios.insertar_rol 'Socio', 'Rol para socios comunes'
 
-	select*from socios.rol
-
 --Se inserta un medio de pago con el que vamos a contar para esta prueba
 exec facturacion.insertar_medio_de_pago 'Tarjeta de crédito', 1
 
@@ -1050,8 +1048,6 @@ exec actividades.insertar_actividad 'Handball', 2300, '2029-02-15'
 exec actividades.insertar_actividad 'Polo', 11200, '2026-08-25'
 exec actividades.insertar_actividad 'Arte', 3200, '2026-08-25'
 exec actividades.insertar_actividad_extra 'SUM',6000
-
-	R
 
 --Se insertan los profesores para esas actividades
 exec actividades.insertar_profesor 'Jose Manuel','josema@email.com'
@@ -1095,43 +1091,26 @@ exec socios.insertar_socio  45783478,'Marquitos', 'Rojo', 'mrquitos@gmail.com', 
 	select*from socios.usuario
 
 --Inscribimos a Lionel y Mateo en actividades, hay que tener en cuenta que son familiares
---En este caso se inscribe a Lionel en (HandBall), en el horario ('Lunes', '18:00:00', '19:30:00')
+--En este caso se inscribe a Lionel/Marcos/Roman en (HandBall), en el horario ('Lunes', '18:00:00', '19:30:00')
 exec actividades.inscripcion_actividad 2, 1, '1'
 exec actividades.inscripcion_actividad 4, 1, '1'
 exec actividades.inscripcion_actividad 1, 1, '1'
---En este caso se inscribe a Mateo en (Handball), en el horario ('Jueves', '18:00:00', '19:30:00') para Menores
+--En este caso se inscribe a Mateo/Marquitos en (Handball), en el horario ('Jueves', '18:00:00', '19:30:00') para Menores
 exec actividades.inscripcion_actividad 3, 1, '3'
 exec actividades.inscripcion_actividad 5, 1, '3'
 
     select*from actividades.inscripcion_actividades
    
 --Se puede visualizar que Lionel y Mateo son familiares por lo tanto no deberia de poder generarse una factura para Mateo
-exec facturacion.crear_factura 4,'2025-07-01'
+exec facturacion.crear_factura 3,'2025-07-01'
 --Por lo tanto se debe de generar la factura para Messi, agregando los gastos que tuvo Mateo,
 --generando los descuentos correspondientes y membresia
 exec facturacion.crear_factura 2,'2025-07-01'
-exec facturacion.crear_factura 1,'2025-07-01'
-
 
     select*from facturacion.factura
     select*from facturacion.detalle_factura
 
-	exec facturacion.ver_factura 2
 	exec facturacion.ver_factura 1
-	exec facturacion.ver_factura 3
-
---Ahora se inscribe a Roman en alguna actividad
-exec actividades.inscripcion_actividad 1, 1, '1'
-
-	select*from actividades.inscripcion_actividades
-
---Se le crea la factura correspondiente
-exec facturacion.crear_factura 1,'2025-07-01'
-
-	select*from facturacion.factura
-    select*from facturacion.detalle_factura
-
-	exec facturacion.ver_factura 2
 
 --Ahora se va a realizar el pago de la factura de Lionel(Socio 2)
 --Se espera que en la factura el estado pase a (PAGADO), y se confirme el pago en la tabla facturacion.pago
@@ -1154,6 +1133,7 @@ exec facturacion.reembolsar_pago 1
 --En este caso se genera manualmente la inscripcion, para testear el procedimiento de pago con saldo a favor
 --Ya que no se puede generar una factura del mes, dos veces el mismo mes
 --Entonces creamos una factura de una fecha pasada
+
 INSERT INTO actividades.inscripcion_actividades(id_socio,id_actividad,fecha_inscripcion)
 values(2,3,'2025-03-11')
 
@@ -1166,14 +1146,13 @@ exec facturacion.crear_factura 2,'2025-11-03'
 	select*from facturacion.pago
 	select*from socios.usuario
 
-	exec facturacion.ver_factura 3
+	exec facturacion.ver_factura 2
 
 --Se cuenta con una factura no paga del socio 2, por lo tanto vamos a pagarla con saldo a favor del socio
 --se visualiza como se descuenta del saldo a favor del socio
-exec facturacion.pago_factura_debito 3,'PAGO',1
+exec facturacion.pago_factura_debito 2,'PAGO',1
 
 	select*from facturacion.factura
-	--select*from facturacion.detalle_factura
 	select*from facturacion.pago
 	select*from socios.usuario
 
@@ -1184,8 +1163,6 @@ exec actividades.inscripcion_actividad_extra 1,1,'2025-08-08','13:00:00', '16:30
     select*from facturacion.factura
 	select*from actividades.Sum_Reservas
 	select*from actividades.inscripcion_act_extra
-
-	exec facturacion.ver_factura 4
 
 --Si se vuelve a ejecutar, no se va a poder realizar la reserva, porque ya esta reservado para ese dia
 exec actividades.inscripcion_actividad_extra 1,1,'2025-08-08','13:00:00', '16:30:00',100

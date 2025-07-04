@@ -1790,7 +1790,7 @@ begin
               on gf.id_socio_menor = ia.id_socio
             join actividades.actividad a
               on ia.id_actividad = a.id_actividad
-			where (MONTH(ia.fecha_inscripcion) = MONTH(@periodo))
+			where gf.id_responsable = @id_socio and (MONTH(ia.fecha_inscripcion) = MONTH(@periodo))
 			and (YEAR(ia.fecha_inscripcion) = YEAR(@periodo))
 			end
             

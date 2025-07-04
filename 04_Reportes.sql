@@ -112,8 +112,8 @@ begin
 	for XML PATH('Socio'), ROOT('Morosos_Recurrentes')
 end
 go
--- exec facturacion.morosos_recurrentes '2024-01-01', '2025-12-1', 2
-
+exec facturacion.morosos_recurrentes '2024-01-01', '2025-12-1', 2
+go
 --Reporte 2
 create or alter procedure facturacion.reporte_ingresos_por_actividad
 as
@@ -148,8 +148,8 @@ begin
 	for XML PATH('Reporte'), ROOT('Reporte_acumulado_mensual_de_ingresos_por_deporte')
 end
 go
--- exec facturacion.reporte_ingresos_por_actividad
-
+exec facturacion.reporte_ingresos_por_actividad
+go
 --Reporte 3
 create or alter procedure socios.cant_inasitencia_por_cat_act as
 begin
@@ -175,8 +175,8 @@ begin
 	for XML PATH('Socio'), ROOT('Reporte_de_inasistencia_por_Categoria_y_Actividad')
 end
 go
--- exec socios.cant_inasitencia_por_cat_act
-
+exec socios.cant_inasitencia_por_cat_act
+go
 --Reporte 4
 create or alter procedure socios.socios_sin_presentismo_por_actividad
 as
@@ -199,4 +199,4 @@ begin
 	for XML PATH('Socio'), ROOT('Socios_sin_asistencias_por_actividad')
 end
 go
--- exec socios.socios_sin_presentismo_por_actividad
+exec socios.socios_sin_presentismo_por_actividad

@@ -341,7 +341,7 @@ begin
 	create table actividades.profesor(
 		id_profesor int identity(1, 1),
 		nombre_apellido varchar(45),
-		email varchar(50) UNIQUE,
+		email varchar(50),
 		constraint Actividades_id_profesor_PK Primary key(id_profesor)
 	)
 end

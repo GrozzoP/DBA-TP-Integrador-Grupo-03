@@ -116,12 +116,47 @@ end
 go
 
 -- exec importacion.cargar_tarifas  @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+-- exec importacion.cargar_tarifas  @file = 'C:\Users\Jordi\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+
 go
 
 /*
 select * from actividades.actividad
 select * from actividades.actividad_precios
 */
+-- Arreglar nombre de actividad importada
+-- Extrema precaucion
+create or alter procedure importacion.arreglar_nombre_actividad( @nombreAcorregir varchar(16), @nombreCorrecto varchar(16))
+as
+begin
+	if(@nombreCorrecto is null)
+	begin
+		print('Nuevo nombre no puede ser null')
+		return
+	end
+	update actividades.actividad 
+	set nombre_actividad = @nombreCorrecto
+	where nombre_actividad = @nombreAcorregir
+end
+--exec importacion.arreglar_nombre_actividad 'Ajederez','Ajedrez';
+go
+-- Fin Arreglar nombre de actividad importada
+
+-- Corregir Fecha hasta porque esta obsoletos las fechas de importacion
+create or alter procedure importacion.arreglar_fecha_vig_hasta (@cant_meses int)
+as
+begin
+	if(@cant_meses <= 0 or @cant_meses is null)
+	begin
+		print ('Error la cantidad de meses no puede ser negativo, cero o null')
+		return
+	end
+	update actividades.actividad_precios
+	set vigencia_hasta = DATEADD(MONTH, @cant_meses, vigencia_hasta)
+end
+-- exec importacion.arreglar_fecha_vig_hasta 4;
+go
+-- Corregir Fecha hasta porque esta obsoletos las fechas de importacion
 
 -- IMPORTAR DE 'Datos socios.xlsx', en 'Tarifas', la segunda tabla
 
@@ -191,12 +226,58 @@ end
 go
 
 -- exec importacion.cargar_cuotas_socios  @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+
+-- exec importacion.cargar_cuotas_socios  @file = 'C:\Users\Jordi\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+
 /*
 select * from socios.categoria
 select * from socios.categoria_precios
 */
 
+-- Arreglar rango de edad de las categorias importadas
+create or alter procedure importacion.arreglar_rango_categoria(@nombreCategoria varchar(15), @edad_minima_nueva int, @edad_maxima_nueva int)
+as
+begin
+	if (@edad_maxima_nueva is null or @edad_minima_nueva is null or @nombreCategoria is null)
+	begin
+		print ('Datos no pueden ser null')
+	end
+	else if(@edad_maxima_nueva <= @edad_minima_nueva)
+	begin
+		print ('La edad maxima no puede ser igual o menor a la edad minima')
+		return
+	end
+	else if (@edad_minima_nueva < 1)
+	begin
+		print ('La edad minima no puede ser negativo o cero')
+		return
+	end
+	update socios.categoria
+	set edad_minima = @edad_minima_nueva,
+		edad_maxima = @edad_maxima_nueva
+	where nombre_categoria = @nombreCategoria
+end
 go
+-- exec importacion.arreglar_rango_categoria 'Mayor', 18, 99
+-- exec importacion.arreglar_rango_categoria 'Cadete', 13, 17
+-- exec importacion.arreglar_rango_categoria 'Menor', 1, 12
+-- Fin de Arreglar rango de edad de las categorias importadas
+
+-- Arreglar fecha vigencia hasta del costo membresia
+create or alter procedure importacion.arreglar_fecha_hasta_categoria (@cant_meses int)
+as
+begin
+	if(@cant_meses <= 0 or @cant_meses is null)
+	begin
+		print ('Error la cantidad de meses no puede ser negativo, cero o null')
+		return
+	end
+	update socios.categoria_precios
+	set fecha_vigencia_hasta = DATEADD(MONTH, @cant_meses, fecha_vigencia_hasta)
+end
+go 
+-- Fin Arreglar fecha vigencia hasta del costo membresia
+-- exec importacion.arreglar_fecha_hasta_categoria 4;
 
 -- IMPORTAR DE 'Datos socios.xlsx', en 'Tarifas', la tercer tabla
 
@@ -288,11 +369,28 @@ end
 go
 
 -- exec importacion.cargar_tarifas_pileta @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+-- exec importacion.cargar_tarifas_pileta @file = 'C:\Users\Jordi\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+
 /*
 select * from actividades.categoria_pileta
 select * from actividades.concepto_pileta
 select * from actividades.tarifa_pileta
 */
+
+-- Arreglar vigencia hasta tarifa de pileta
+create or alter procedure importacion.corregir_fecha_hasta_pileta_tarifa (@cant_meses int)
+as
+begin
+	if(@cant_meses <= 0 or @cant_meses is null)
+	begin
+		print ('Error la cantidad de meses no puede ser negativo, cero o null')
+		return
+	end
+	update actividades.tarifa_pileta
+	set vigencia_hasta = DATEADD(MONTH, @cant_meses, vigencia_hasta)
+end
+-- Fin Arreglar vigencia hasta tarifa de pileta
+-- exec importacion.corregir_fecha_hasta_pileta_tarifa 4;
 go
 
 -- TABLA 'RESPONSABLES PAGO'
@@ -407,6 +505,8 @@ end
 go
 
 -- exec importacion.cargar_responsables_de_pago @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+-- exec importacion.cargar_responsables_de_pago @file = 'C:\Users\Jordi\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+
 /*
 select * from socios.obra_social
 select * from socios.socio
@@ -535,11 +635,33 @@ end
 go
 
 -- exec importacion.cargar_grupo_familiar @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+-- exec importacion.cargar_grupo_familiar @file = 'C:\Users\Jordi\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx';
+
 /*
 select * from socios.obra_social
 select * from socios.socio
 select * from socios.grupo_familiar
 */
+
+-- Arreglar insertar categoria correspondiente a todos los socios
+-- Es necesario tener la fecha de nacimiento del socio en caso contrario quedara null
+create or alter procedure importacion.asignar_categoria_socio
+as
+begin
+	update ss
+	set ss.id_categoria = sc.id_categoria
+	from socios.socio ss
+	left join socios.categoria sc on 
+	(case when MONTH(fecha_nacimiento) >= MONTH(GETDATE())
+		and DAY(fecha_nacimiento) >= DAY(GETDATE())
+        then DATEDIFF(YEAR, fecha_nacimiento, GETDATE())
+		else (DATEDIFF(YEAR, fecha_nacimiento, GETDATE()) - 1) 
+	end)between sc.edad_minima and sc.edad_maxima
+	where ss.id_categoria is null
+end
+go
+-- exec importacion.asignar_categoria_socio;
+-- Fin de arreglar insertar categoria correspondiente a todos los socios
 go
 
 create or alter procedure socios.cargar_pago_cuotas_historico(@ruta nvarchar(MAX))
@@ -582,9 +704,12 @@ begin
 		print 'Error en cargar_pago_cuotas_historico: ' + ERROR_MESSAGE()
 	end catch
 end
+
 go
 
 -- exec socios.cargar_pago_cuotas_historico 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios 1(pago cuotas).csv';
+-- exec socios.cargar_pago_cuotas_historico 'C:\Users\Jordi\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios 1(pago cuotas).csv';
+
 /*
 select * from socios.pago_cuotas_historico
 */
@@ -644,6 +769,9 @@ go
 
 -- exec importacion.cargar_clima 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\open-meteo-buenosaires_2024.csv'
 -- exec importacion.cargar_clima 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\open-meteo-buenosaires_2025.csv'
+
+-- exec importacion.cargar_clima 'C:\Users\Jordi\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\open-meteo-buenosaires_2024.csv'
+-- exec importacion.cargar_clima 'C:\Users\Jordi\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\open-meteo-buenosaires_2025.csv'
 
 --SELECT * FROM facturacion.dias_lluviosos D ORDER BY D.fecha
 
@@ -750,8 +878,11 @@ end
 go
 
 -- exec importacion.presentismo_actividades @file = 'D:\Base\Universidad\Tercer anio\1er cuatrimestre\Bases de datos aplicadas\DBA-TP-Integrador-Grupo-03\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx'
+-- exec importacion.presentismo_actividades @file = 'C:\Users\Jordi\DBA-TP-Integrador-Grupo-03\ArchivosImportacion\Datos socios.xlsx'
+
 /*
 select * from socios.socio
+select * from actividades.actividad
 select * from actividades.profesor
 select * from actividades.presentismo where id_socio = 4148
 */
